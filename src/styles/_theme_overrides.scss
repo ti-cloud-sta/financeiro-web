@@ -1,0 +1,497 @@
+@import 'styles/variables';
+
+// Global light/dark body style and transitions
+html, body {
+  background-color: var(--color-bg);
+  color: var(--color-text-secondary);
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+// Global text utility class corrections
+.text-secondary {
+  color: var(--color-text-secondary) !important;
+}
+.text-muted {
+  color: var(--color-text-muted) !important;
+}
+.text-primary {
+  color: var(--color-primary) !important;
+}
+
+// Scrollbars theme-awareness
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb) !important;
+  transition: background-color 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover) !important;
+}
+
+// ----------------------------------------------------
+// CARD OVERRIDES
+// ----------------------------------------------------
+.erp-card, .dash-chart-card, .health-card, .import-card-premium, .import-card, .filters-panel-card, .dash-card, .company-card, .table-card, .config-content {
+  background-color: var(--color-surface) !important;
+  border-color: var(--color-border-light) !important;
+  color: var(--color-text-secondary) !important;
+  box-shadow: 0 1px 3px var(--color-shadow) !important;
+  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease !important;
+
+  &:hover {
+    box-shadow: 0 10px 15px -3px var(--color-shadow-lg), 0 4px 6px -2px rgba(0, 0, 0, 0.03) !important;
+  }
+
+  // Nested overrides for specific card layouts
+  &.dash-card {
+    .dash-value {
+      color: var(--color-text-primary) !important;
+    }
+    .dash-subtitle {
+      color: var(--color-text-muted) !important;
+    }
+  }
+
+  &.company-card {
+    .company-name {
+      color: var(--color-text-primary) !important;
+    }
+    .company-icon {
+      background-color: var(--color-surface-hover) !important;
+      color: var(--color-text-secondary) !important;
+    }
+  }
+}
+
+.erp-card-header, .dash-chart-header {
+  border-bottom-color: var(--color-border-light) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.erp-card-footer {
+  border-top-color: var(--color-border-light) !important;
+  background-color: var(--color-surface-hover) !important;
+}
+
+// ----------------------------------------------------
+// FORMS & INPUTS OVERRIDES
+// ----------------------------------------------------
+.form-control, .table-input, select.form-select, select {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
+  transition: all 0.2s ease !important;
+
+  &::placeholder {
+    color: var(--color-text-muted) !important;
+  }
+
+  &:focus {
+    background-color: var(--color-surface) !important;
+    color: var(--color-text-primary) !important;
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 3px var(--color-primary-light) !important;
+    outline: none !important;
+  }
+
+  option {
+    background-color: var(--color-surface) !important;
+    color: var(--color-text-primary) !important;
+  }
+}
+
+.is-disabled, :disabled {
+  opacity: 0.7 !important;
+  background-color: var(--color-bg) !important;
+  color: var(--color-text-muted) !important;
+}
+
+// ----------------------------------------------------
+// TABLES & GRIDS OVERRIDES
+// ----------------------------------------------------
+.table, .saas-table, .custom-table {
+  color: var(--color-text-secondary) !important;
+
+  thead th, th {
+    background-color: var(--color-surface-hover) !important;
+    color: var(--color-text-primary) !important;
+    border-bottom: 1px solid var(--color-border) !important;
+  }
+
+  tbody td, td {
+    color: var(--color-text-secondary) !important;
+    border-bottom: 1px solid var(--color-border-light) !important;
+    background-color: transparent !important;
+  }
+
+  tbody tr:hover td, tr:hover td {
+    background-color: var(--color-surface-hover) !important;
+  }
+
+  tfoot td, tfoot th {
+    background-color: var(--color-surface-hover) !important;
+    color: var(--color-text-primary) !important;
+    border-top: 1px solid var(--color-border) !important;
+  }
+
+  // Sticky columns in dark theme
+  .sticky-col-left, .sticky-col-right {
+    background-color: var(--color-surface) !important;
+    color: var(--color-text-primary) !important;
+  }
+  
+  tr:hover {
+    .sticky-col-left, .sticky-col-right {
+      background-color: var(--color-surface-hover) !important;
+    }
+  }
+
+  // Overrides for custom content in cells
+  .file-cell {
+    color: var(--color-text-primary) !important;
+  }
+
+  .company-badge {
+    color: var(--color-text-primary) !important;
+    background-color: rgba(6, 182, 212, 0.15) !important;
+  }
+}
+
+// ----------------------------------------------------
+// NG-SELECT OVERRIDES
+// ----------------------------------------------------
+.ng-select {
+  .ng-select-container {
+    background-color: var(--color-surface) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-text-primary) !important;
+  }
+  
+  &.ng-select-focused .ng-select-container {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 3px var(--color-primary-light) !important;
+  }
+
+  .ng-clear-wrapper, .ng-arrow-wrapper {
+    color: var(--color-text-muted) !important;
+  }
+
+  .ng-value-container {
+    .ng-placeholder {
+      color: var(--color-text-muted) !important;
+    }
+    .ng-value {
+      color: var(--color-text-primary) !important;
+      background-color: var(--color-surface-hover) !important;
+      border: 1px solid var(--color-border) !important;
+      
+      .ng-value-label {
+        color: var(--color-text-primary) !important;
+      }
+      .ng-value-icon {
+        border-right: 1px solid var(--color-border) !important;
+        &:hover {
+          background-color: var(--color-border-light) !important;
+        }
+      }
+    }
+  }
+}
+
+.ng-dropdown-panel {
+  background-color: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: 0 10px 15px -3px var(--color-shadow-lg) !important;
+
+  .ng-dropdown-panel-items {
+    .ng-option {
+      background-color: var(--color-surface) !important;
+      color: var(--color-text-secondary) !important;
+
+      &.ng-option-marked {
+        background-color: var(--color-surface-hover) !important;
+        color: var(--color-text-primary) !important;
+      }
+
+      &.ng-option-selected {
+        background-color: var(--color-primary-light) !important;
+        color: var(--color-primary) !important;
+        font-weight: 600;
+      }
+    }
+  }
+}
+
+// ----------------------------------------------------
+// FLATPICKR OVERRIDES
+// ----------------------------------------------------
+.flatpickr-calendar {
+  background-color: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: 0 10px 15px -3px var(--color-shadow-lg) !important;
+  color: var(--color-text-primary) !important;
+
+  .flatpickr-months {
+    .flatpickr-prev-month, .flatpickr-next-month {
+      color: var(--color-text-secondary) !important;
+      fill: var(--color-text-secondary) !important;
+      &:hover i {
+        color: var(--color-primary) !important;
+      }
+    }
+  }
+
+  .flatpickr-current-month {
+    color: var(--color-text-primary) !important;
+    select {
+      color: var(--color-text-primary) !important;
+    }
+  }
+
+  span.flatpickr-weekday {
+    color: var(--color-text-muted) !important;
+  }
+
+  .flatpickr-day {
+    color: var(--color-text-secondary) !important;
+    
+    &:hover {
+      background-color: var(--flatpickr-day-hover) !important;
+    }
+    
+    &.today {
+      border-color: var(--color-primary) !important;
+    }
+    
+    &.selected, &.startRange, &.endRange {
+      background-color: var(--color-primary) !important;
+      border-color: var(--color-primary) !important;
+      color: #ffffff !important;
+    }
+    
+    &.inRange {
+      background-color: var(--color-primary-light) !important;
+      box-shadow: none !important;
+    }
+    
+    &.prevMonthDay, &.nextMonthDay {
+      color: var(--color-text-muted) !important;
+      opacity: 0.5;
+    }
+  }
+}
+
+// ----------------------------------------------------
+// MODALS & DIALOGS OVERRIDES
+// ----------------------------------------------------
+.modal-content {
+  background-color: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+  box-shadow: 0 20px 25px -5px var(--color-shadow-lg) !important;
+
+  .modal-header {
+    border-bottom: 1px solid var(--color-border-light) !important;
+    .modal-title, h5 {
+      color: var(--color-text-primary) !important;
+    }
+  }
+
+  .modal-footer {
+    border-top: 1px solid var(--color-border-light) !important;
+    background-color: var(--color-surface-hover) !important;
+  }
+}
+
+// ----------------------------------------------------
+// OTHER GLOBAL INTERFACES
+// ----------------------------------------------------
+.header {
+  background-color: var(--color-surface) !important;
+  border-bottom-color: var(--color-border-light) !important;
+  box-shadow: 0 1px 3px var(--color-shadow) !important;
+
+  .header-brand .logo {
+    color: var(--color-text-primary) !important;
+  }
+
+  .main-nav .nav-item {
+    color: var(--color-text-secondary) !important;
+    
+    &:hover {
+      background-color: var(--color-surface-hover) !important;
+      color: var(--color-primary) !important;
+    }
+    
+    &.active {
+      background-color: var(--color-primary-light) !important;
+      color: var(--color-primary) !important;
+    }
+  }
+
+  .search-bar {
+    background-color: var(--color-bg) !important;
+    border-color: var(--color-border) !important;
+
+    &:focus-within {
+      background-color: var(--color-surface) !important;
+      border-color: var(--color-primary) !important;
+    }
+
+    input {
+      color: var(--color-text-primary) !important;
+      &::placeholder {
+        color: var(--color-text-muted) !important;
+      }
+    }
+    
+    .shortcut {
+      background-color: var(--color-surface) !important;
+      border-color: var(--color-border) !important;
+      color: var(--color-text-muted) !important;
+    }
+  }
+
+  .user-profile {
+    &:hover {
+      background-color: var(--color-surface-hover) !important;
+    }
+    .info {
+      .name {
+        color: var(--color-text-primary) !important;
+      }
+      .role {
+        color: var(--color-text-muted) !important;
+      }
+    }
+  }
+}
+
+.layout-main, .layout-wrapper {
+  background-color: var(--color-bg) !important;
+}
+
+// Inadimplência and Conciliação layouts and specific containers
+.inadimplencia-layout-container, .conciliacao-layout-container {
+  background-color: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+}
+
+.inadimplencia-content, .conciliacao-content {
+  background-color: var(--color-surface) !important;
+  
+  h2, h3, h4, h5 {
+    color: var(--color-text-primary) !important;
+  }
+}
+
+.section-title-premium {
+  color: var(--color-text-primary) !important;
+}
+
+// Buttons outlined
+.btn-outline-secondary {
+  background-color: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+
+  &:hover {
+    background-color: var(--color-surface-hover) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-text-primary) !important;
+  }
+}
+
+// Tooltips style override
+.tooltip-inner {
+  background-color: var(--color-text-primary) !important;
+  color: var(--color-surface) !important;
+}
+.tooltip-arrow::before {
+  border-top-color: var(--color-text-primary) !important;
+}
+
+// Skeletons
+.skeleton-box {
+  background-color: var(--color-surface-hover) !important;
+  &::after {
+    background: linear-gradient(90deg, transparent, var(--color-border-light), transparent) !important;
+  }
+}
+
+// Sidebar (Legacy template styled properly)
+.sidebar {
+  background-color: var(--color-surface) !important;
+  border-right: 1px solid var(--color-border-light) !important;
+
+  .logo {
+    color: var(--color-text-primary) !important;
+  }
+
+  .sidebar-nav {
+    a {
+      color: var(--color-text-secondary) !important;
+      &:hover {
+        background-color: var(--color-surface-hover) !important;
+        color: var(--color-primary) !important;
+      }
+      &.active {
+        background-color: var(--color-primary-light) !important;
+        color: var(--color-primary) !important;
+      }
+    }
+  }
+}
+
+// Dark theme overrides for standard alert components
+[data-theme='dark'] {
+  .alert-secondary {
+    background-color: var(--color-surface-hover) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-text-secondary) !important;
+  }
+}
+
+// CONFIGURATION TAB OVERRIDES
+.config-nav-link {
+  color: var(--color-text-secondary) !important;
+  transition: all 0.2s ease !important;
+
+  &:hover {
+    background-color: var(--color-surface-hover) !important;
+    color: var(--color-text-primary) !important;
+  }
+
+  &.active {
+    background-color: var(--color-primary-light) !important;
+    color: var(--color-primary) !important;
+  }
+}
+
+// ERP-MODAL OVERRIDES
+.erp-modal-overlay {
+  background-color: rgba(38, 31, 107, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+.erp-modal-container {
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: 0 20px 25px -5px var(--color-shadow-lg) !important;
+  color: var(--color-text-secondary) !important;
+
+  .erp-modal-header {
+    border-bottom: 1px solid var(--color-border-light) !important;
+    
+    .title {
+      color: var(--color-text-primary) !important;
+    }
+
+    .close-btn {
+      color: var(--color-text-muted) !important;
+      
+      &:hover {
+        color: var(--color-danger) !important;
+      }
+    }
+  }
+}

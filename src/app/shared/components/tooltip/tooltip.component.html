@@ -1,0 +1,9 @@
+<div class="erp-tooltip-wrapper" (mouseenter)="show = true" (mouseleave)="show = false">
+  <ng-content></ng-content>
+  
+  @if (show && text) {
+    <div class="erp-tooltip-content">
+      {{ text }}
+    </div>
+  }
+</div>

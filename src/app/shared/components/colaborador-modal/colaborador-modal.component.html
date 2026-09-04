@@ -1,0 +1,60 @@
+<app-modal [isOpen]="isOpen"
+  [title]="modalMode === 'create' ? 'Cadastrar Colaborador' : 'Editar Colaborador'"
+  (closed)="fechar()" size="md">
+  <div class="form-container py-2">
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">NOME DO COLABORADOR</label>
+      <input type="text" class="form-control" placeholder="Ex: João da Silva" [(ngModel)]="novoColaborador.nome">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">PAPEL</label>
+      <input type="text" class="form-control" placeholder="Ex: Diretor, Gerente, etc."
+        [(ngModel)]="novoColaborador.papel">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">CENTRO DE CUSTO</label>
+      <select class="form-select" [(ngModel)]="novoColaborador.idCentroCusto">
+        <option [value]="null" disabled selected>Selecione um centro de custo</option>
+        <option *ngFor="let c of listaCentrosCusto" [value]="c.idCentroCusto">{{ c.codigo }} - {{ c.nome ? c.nome +
+          ' - ' : '' }}{{ c.estados ? c.estados.join(', ') : '' }}</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">UNIDADE</label>
+      <select class="form-select" [(ngModel)]="novoColaborador.idUnidade">
+        <option [value]="null" selected>Sem unidade</option>
+        <option *ngFor="let u of listaUnidades" [value]="u.idUnidade">{{ u.codigo }} - {{ u.descricao }}</option>
+      </select>
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label text-muted small fw-medium">CARGO</label>
+      <div class="d-flex gap-2 align-items-center">
+        <select class="form-select" [(ngModel)]="novoColaborador.idCargoColaborador">
+          <option [value]="null" disabled selected>Selecione um cargo</option>
+          <option *ngFor="let cargo of listaCargos" [value]="cargo.idCargoColaborador">{{ cargo.nome }}</option>
+        </select>
+        <button class="btn btn-outline-primary" style="height: 38px; white-space: nowrap;"
+          (click)="openNovoCargoModal()" title="Cadastrar Novo Cargo">
+          <i class="fa-solid fa-plus me-1"></i> Novo
+        </button>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+      <app-button variant="ghost" (clicked)="fechar()">Cancelar</app-button>
+      <app-button variant="primary" (clicked)="salvar()"
+        [disabled]="!novoColaborador.nome || !novoColaborador.idCentroCusto || !novoColaborador.idCargoColaborador || isSalvando">
+        <i class="fa-solid fa-spinner fa-spin me-2" *ngIf="isSalvando"></i>
+        {{ isSalvando ? 'Salvando...' : 'Salvar Colaborador' }}
+      </app-button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Modal Auxiliar de Cargo -->
+<app-cargo-modal [isOpen]="isCargoModalOpen" (closed)="isCargoModalOpen = false" (cargoSaved)="onCargoSaved($event)">
+</app-cargo-modal>

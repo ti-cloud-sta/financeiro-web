@@ -1,0 +1,13 @@
+<div class="erp-dropdown">
+  <button class="dropdown-trigger" (click)="toggle()">
+    @if (icon) { <span class="icon">{{ icon }}</span> }
+    <span class="label">{{ label }}</span>
+    <span class="chevron" [class.open]="isOpen">▼</span>
+  </button>
+
+  @if (isOpen) {
+    <div class="dropdown-menu">
+      <ng-content></ng-content>
+    </div>
+  }
+</div>

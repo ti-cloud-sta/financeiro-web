@@ -1,0 +1,62 @@
+@import 'styles/variables';
+
+.erp-card {
+  background-color: $card-bg;
+  border: $border-width solid $border-color;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: $transition-base;
+  
+  // Efeito de hover suave
+  &:hover {
+    box-shadow: $box-shadow-lg;
+    transform: translateY(-2px);
+  }
+
+  &.no-border {
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+    &:hover {
+      box-shadow: none;
+      transform: none;
+    }
+  }
+
+  &-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: $border-width solid $border-color;
+    font-weight: $font-weight-semibold;
+    font-size: 1.1rem;
+    color: $headings-color;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    
+    &:empty {
+      display: none;
+    }
+  }
+
+  &-body {
+    padding: 1.5rem;
+    flex: 1;
+
+    &.no-padding {
+      padding: 0;
+    }
+  }
+
+  &-footer {
+    padding: 1rem 1.5rem;
+    border-top: $border-width solid $border-color;
+    background-color: $gray-50; // Quase branco
+
+    &:empty {
+      display: none;
+    }
+  }
+}

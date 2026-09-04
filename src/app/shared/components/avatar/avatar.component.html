@@ -1,0 +1,13 @@
+<div class="erp-avatar" [ngClass]="'erp-avatar--' + size">
+  @if (imageUrl) {
+    <img [src]="imageUrl" alt="Avatar" class="avatar-image">
+  } @else if (initials) {
+    <div class="avatar-initials">{{ initials }}</div>
+  } @else {
+    <div class="avatar-initials">U</div>
+  }
+
+  @if (status) {
+    <span class="avatar-status" [ngClass]="'status--' + status"></span>
+  }
+</div>

@@ -1,0 +1,15 @@
+<div class="erp-error-state">
+  <div class="icon-wrapper">
+    <span class="icon">⚠️</span>
+  </div>
+  <h3 class="title">{{ title }}</h3>
+  <p class="message">{{ message }}</p>
+  
+  @if (retryable) {
+    <div class="actions">
+      <app-button variant="primary" (clicked)="onRetry()">
+        Tentar Novamente
+      </app-button>
+    </div>
+  }
+</div>

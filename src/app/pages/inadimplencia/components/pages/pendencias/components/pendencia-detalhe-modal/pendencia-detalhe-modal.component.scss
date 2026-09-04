@@ -1,0 +1,591 @@
+@import 'styles/variables';
+
+// Este modal precisa de mais espaço do que o "lg" padrão (900px) comporta
+// para caber a grid de campos + as abas com chat/timeline com conforto, e
+// altura fixa (não "max-height") para manter o layout estável entre as abas.
+// Especificidade igual à regra original (.erp-modal-container.erp-modal--lg) do
+// componente compartilhado empata na ordem de carga do bundle - !important garante
+// que este ajuste específico do modal de pendência sempre vença.
+:host ::ng-deep .erp-modal-container.erp-modal--lg {
+  max-width: 1280px !important;
+  width: 100% !important;
+  height: 95vh !important;
+  max-height: 95vh !important;
+
+  // Com altura fixa (em vez de max-height "encolhível"), o corpo precisa de
+  // flex-grow + min-height:0 explícitos para rolar internamente em vez de
+  // estourar a altura do modal quando o conteúdo da aba é maior que o espaço.
+  .erp-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+.pendencia-detalhe {
+  display: flex;
+  flex-direction: column;
+}
+
+// ----------------------------------------------------
+// Subtítulo (cliente)
+// ----------------------------------------------------
+.detalhe-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: $font-weight-semibold;
+  color: var(--color-text-primary);
+  margin-bottom: 1rem;
+
+  i {
+    color: var(--color-primary);
+  }
+}
+
+// ----------------------------------------------------
+// Header da nota (grid de campos)
+// ----------------------------------------------------
+.nf-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem 1.25rem;
+  padding: 1.25rem;
+  // --color-surface-hover é um tom de destaque vibrante no tema escuro deste app (não um
+  // "cinza claro" neutro) - usar --color-bg aqui cria um painel recuado sutil nos dois temas.
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: $border-radius-lg;
+  margin-bottom: 1.5rem;
+}
+
+.detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+
+  label {
+    font-size: 0.7rem;
+    font-weight: $font-weight-bold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+  }
+
+  span {
+    font-size: 0.875rem;
+    font-weight: $font-weight-medium;
+    color: var(--color-text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .value-money {
+    font-variant-numeric: tabular-nums;
+    font-weight: $font-weight-semibold;
+  }
+
+  &--select {
+    select {
+      height: 34px;
+      font-size: 0.8rem;
+    }
+  }
+}
+
+// ----------------------------------------------------
+// Abas (mesmo padrão "config-nav" já usado no sistema)
+// ----------------------------------------------------
+.config-nav {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.25rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 0.75rem;
+}
+
+.config-nav-item {
+  width: auto;
+}
+
+.config-nav-link {
+  width: auto;
+  text-align: center;
+  background: transparent;
+  border: none;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text-primary);
+  }
+
+  &.active {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+}
+
+.tab-content-area {
+  min-height: 320px;
+}
+
+// ----------------------------------------------------
+// Aba Tratativa
+// ----------------------------------------------------
+.tratativa-input textarea {
+  resize: vertical;
+}
+
+.btn-link-cancel {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.4rem 0.5rem;
+
+  &:hover {
+    color: var(--color-text-primary);
+    text-decoration: underline;
+  }
+}
+
+.actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.8rem;
+
+  &:hover {
+    background-color: var(--color-surface-hover);
+    color: var(--color-primary);
+  }
+}
+
+.table-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: $border-radius-lg;
+  overflow: hidden;
+}
+
+.saas-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead {
+    background-color: var(--color-surface-hover);
+
+    th {
+      padding: 0.65rem 1rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-align: left;
+      white-space: nowrap;
+    }
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--color-border-light);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      font-size: 0.8125rem;
+      color: var(--color-text-secondary);
+      vertical-align: top;
+    }
+  }
+}
+
+// ----------------------------------------------------
+// Aba Mensagens (chat + composição)
+// ----------------------------------------------------
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chat-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 1rem;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: $border-radius-lg;
+}
+
+.chat-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  max-width: 78%;
+
+  .chat-bubble {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: 14px;
+    border-top-left-radius: 4px;
+    padding: 0.65rem 0.9rem;
+    box-shadow: 0 1px 2px var(--color-shadow);
+  }
+
+  &--mine {
+    flex-direction: row-reverse;
+    margin-left: auto;
+
+    .chat-bubble {
+      background-color: var(--color-primary);
+      border-color: var(--color-primary);
+      border-top-left-radius: 14px;
+      border-top-right-radius: 4px;
+      color: #fff;
+
+      .chat-author,
+      .chat-time,
+      .chat-subject {
+        color: rgba(255, 255, 255, 0.85);
+      }
+
+      .chat-body {
+        color: #fff;
+      }
+
+      .attachment-chip {
+        background-color: rgba(255, 255, 255, 0.15);
+        color: #fff;
+      }
+    }
+  }
+}
+
+.chat-bubble-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.15rem;
+
+  .chat-author {
+    font-size: 0.8rem;
+    font-weight: $font-weight-semibold;
+    color: var(--color-text-primary);
+  }
+
+  .chat-time {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+  }
+}
+
+.chat-subject {
+  font-size: 0.75rem;
+  font-weight: $font-weight-medium;
+  color: var(--color-primary);
+  margin-bottom: 0.25rem;
+}
+
+.chat-body {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.chat-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+
+  button {
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    font-size: 0.65rem;
+    opacity: 0.75;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.compose-panel {
+  border: 1px solid var(--color-border-light);
+  border-radius: $border-radius-lg;
+  padding: 1rem;
+  background-color: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.compose-row {
+  &--split {
+    display: flex;
+    gap: 0.6rem;
+
+    input {
+      flex: 1;
+    }
+  }
+}
+
+.compose-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-top: 0.25rem;
+}
+
+.toolbar-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: var(--color-surface-hover);
+    color: var(--color-primary);
+  }
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 18px;
+  background-color: var(--color-border-light);
+  margin: 0 0.25rem;
+}
+
+.compose-body {
+  min-height: 90px;
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-light);
+  }
+
+  &:empty::before {
+    content: attr(data-placeholder);
+    color: var(--color-text-muted);
+  }
+}
+
+.compose-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+
+  .attachment-chip {
+    background-color: var(--color-surface-hover);
+  }
+}
+
+.compose-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.25rem;
+}
+
+// ----------------------------------------------------
+// Aba Histórico (timeline horizontal)
+// ----------------------------------------------------
+.timeline-scroll {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 10px;
+  }
+}
+
+.timeline-track {
+  position: relative;
+  display: flex;
+  gap: 2.25rem;
+  padding: 2.5rem 1rem 0.5rem;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 2.5rem;
+    left: 1rem;
+    right: 1rem;
+    height: 2px;
+    background-color: var(--color-border-light);
+    transform: translateY(19px);
+  }
+}
+
+.timeline-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 190px;
+}
+
+.timeline-icon {
+  position: relative;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  border: 3px solid var(--color-bg);
+
+  &.cor-primary { background-color: rgba(var(--bs-primary-rgb), 0.15); color: var(--bs-primary); }
+  &.cor-success { background-color: rgba(var(--bs-success-rgb), 0.15); color: var(--bs-success); }
+  &.cor-warning { background-color: rgba(var(--bs-warning-rgb), 0.18); color: var(--bs-warning); }
+  &.cor-danger { background-color: rgba(var(--bs-danger-rgb), 0.15); color: var(--bs-danger); }
+  &.cor-info { background-color: rgba(var(--bs-info-rgb), 0.15); color: var(--bs-info); }
+  &.cor-secondary { background-color: rgba(var(--bs-secondary-rgb), 0.18); color: var(--color-text-primary); }
+}
+
+.timeline-card {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0 0.25rem;
+
+  .timeline-date {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+
+    small {
+      opacity: 0.85;
+    }
+  }
+
+  .timeline-type {
+    font-size: 0.8rem;
+    font-weight: $font-weight-semibold;
+    color: var(--color-text-primary);
+
+    &.cor-primary { color: var(--bs-primary); }
+    &.cor-success { color: var(--bs-success); }
+    &.cor-warning { color: var(--bs-warning); }
+    &.cor-danger { color: var(--bs-danger); }
+    &.cor-info { color: var(--bs-info); }
+    // --bs-secondary é propositalmente pouco contrastante (cor "apagada"); em cima do
+    // fundo do modal isso derruba a legibilidade, então aqui ele usa o texto primário.
+    &.cor-secondary { color: var(--color-text-primary); }
+  }
+
+  .timeline-obs {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+// ----------------------------------------------------
+// Utilitários
+// ----------------------------------------------------
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}

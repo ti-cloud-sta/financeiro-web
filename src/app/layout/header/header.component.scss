@@ -1,0 +1,224 @@
+@import 'styles/variables';
+
+.header {
+  height: 72px;
+  background-color: $white;
+  border-bottom: 1px solid $border-color;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: $box-shadow-sm;
+
+  .header-brand {
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.25rem;
+      font-weight: $font-weight-bold;
+      color: $gray-900;
+      text-decoration: none;
+      letter-spacing: -0.025em;
+      
+      i {
+        color: $primary;
+        font-size: 1.5rem;
+      }
+    }
+  }
+
+  .header-center {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    flex: 1;
+    margin: 0 3rem;
+
+    .main-nav {
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: $gray-600;
+        text-decoration: none;
+        font-size: 0.95rem;
+        font-weight: $font-weight-medium;
+        padding: 0.5rem 0.75rem;
+        border-radius: $border-radius-sm;
+        transition: all $transition-base;
+
+        i {
+          font-size: 1.1rem;
+        }
+
+        &:hover {
+          color: $primary;
+          background-color: rgba($primary, 0.05);
+        }
+
+        &.active {
+          color: $primary;
+          background-color: rgba($primary, 0.1);
+        }
+      }
+    }
+
+    .search-bar {
+      display: flex;
+      align-items: center;
+      background-color: $gray-50;
+      border-radius: $border-radius;
+      padding: 0.5rem 1rem;
+      width: 100%;
+      max-width: 480px;
+      transition: all $transition-base;
+      border: 1px solid $gray-200;
+
+      &:focus-within {
+        background-color: $white;
+        border-color: $primary;
+        box-shadow: 0 0 0 3px rgba($primary, 0.1);
+      }
+
+      .icon {
+        color: $gray-400;
+        margin-right: 0.75rem;
+        font-size: 0.9rem;
+      }
+
+      input {
+        border: none;
+        background: transparent;
+        outline: none;
+        flex: 1;
+        color: $gray-700;
+        font-size: 0.9rem;
+
+        &::placeholder {
+          color: $gray-400;
+        }
+      }
+
+      .shortcut {
+        font-size: 0.7rem;
+        color: $gray-400;
+        background-color: $white;
+        border: 1px solid $gray-200;
+        padding: 0.15rem 0.4rem;
+        border-radius: 0.2rem;
+        font-weight: $font-weight-medium;
+      }
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+
+    .theme-toggle-btn {
+      background: none;
+      border: none;
+      font-size: 1.15rem;
+      cursor: pointer;
+      color: $gray-500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      transition: all $transition-base;
+
+      &:hover {
+        color: $primary;
+        background-color: rgba($gray-500, 0.08);
+      }
+    }
+
+    .btn-icon {
+      background: none;
+      border: none;
+      font-size: 1.25rem;
+      cursor: pointer;
+      color: $gray-500;
+      position: relative;
+      transition: color $transition-base;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      
+      &:hover {
+        color: $primary;
+        background-color: rgba($gray-500, 0.1);
+      }
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: $border-radius;
+      transition: background-color $transition-base;
+
+      &:hover {
+        background-color: $gray-50;
+      }
+
+      .info {
+        display: flex;
+        flex-direction: column;
+        text-align: right;
+
+        .name {
+          font-weight: $font-weight-semibold;
+          font-size: 0.9rem;
+          color: $gray-800;
+          line-height: 1.2;
+        }
+
+        .role {
+          font-size: 0.75rem;
+          color: $gray-500;
+        }
+      }
+
+      .arrow-down {
+        font-size: 0.8rem;
+        color: $gray-400;
+        margin-left: 0.25rem;
+      }
+    }
+  }
+
+  @media (max-width: 992px) {
+    padding: 0 1rem;
+    
+    .header-center {
+      margin: 0 1rem;
+      
+      .main-nav {
+        display: none;
+      }
+      .search-bar {
+        max-width: 100%;
+        .shortcut { display: none; }
+      }
+    }
+    
+    .header-actions {
+      .info, .arrow-down {
+        display: none;
+      }
+    }
+  }
+}

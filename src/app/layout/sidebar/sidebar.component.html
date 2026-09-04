@@ -1,0 +1,55 @@
+<aside class="sidebar" [class.collapsed]="isCollapsed()">
+  <div class="sidebar-header">
+    <div class="logo">
+      <span class="icon"><i class="fa-solid fa-layer-group"></i></span>
+      @if (!isCollapsed()) {
+        <span class="text">ERP Modular</span>
+      }
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <ul>
+      @for (item of menuItems(); track item.id) {
+        <li>
+          
+          <!-- Se NÃO tiver filhos, é um link direto -->
+          @if (!item.children || item.children.length === 0) {
+            <a [routerLink]="item.route" routerLinkActive="active" [routerLinkActiveOptions]="{exact: item.route === '/home'}">
+              <span class="icon"><i [class]="item.icon"></i></span>
+              @if (!isCollapsed()) { <span class="text">{{ item.label }}</span> }
+              @if (!isCollapsed() && item.isFavorite) { <span class="badge-fav"><i class="fa-solid fa-star"></i></span> }
+            </a>
+          }
+
+          <!-- Se TIVER filhos, é um botão de Accordion -->
+          @if (item.children && item.children.length > 0) {
+            <a class="has-submenu" 
+               [class.expanded]="isExpanded(item.id)"
+               (click)="toggleSubmenu(item.id)">
+              <span class="icon"><i [class]="item.icon"></i></span>
+              @if (!isCollapsed()) { 
+                <span class="text">{{ item.label }}</span>
+                <span class="chevron" [class.rotated]="isExpanded(item.id)"><i class="fa-solid fa-chevron-down"></i></span>
+              }
+            </a>
+
+            <!-- Submenu Container -->
+            @if (!isCollapsed() && isExpanded(item.id)) {
+              <ul class="submenu">
+                @for (sub of item.children; track sub.id) {
+                  <li>
+                    <a [routerLink]="sub.route" routerLinkActive="active">
+                      <span class="text">{{ sub.label }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          }
+          
+        </li>
+      }
+    </ul>
+  </nav>
+</aside>

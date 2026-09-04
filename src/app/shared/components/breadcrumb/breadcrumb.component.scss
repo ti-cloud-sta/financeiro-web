@@ -1,0 +1,47 @@
+@import 'styles/variables';
+
+.breadcrumb {
+  padding: 1rem 2rem 0.5rem 2rem;
+  display: flex;
+  align-items: center;
+
+  ol,
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    gap: 0.5rem;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: $gray-500;
+
+      a {
+        color: $gray-500;
+        text-decoration: none;
+        transition: color $transition-base;
+
+        &:hover {
+          color: $primary;
+        }
+      }
+
+      .separator {
+        color: $gray-400;
+        font-size: 0.75rem;
+      }
+
+      &:last-child {
+        color: $gray-900;
+        font-weight: $font-weight-medium;
+      }
+    }
+  }
+}

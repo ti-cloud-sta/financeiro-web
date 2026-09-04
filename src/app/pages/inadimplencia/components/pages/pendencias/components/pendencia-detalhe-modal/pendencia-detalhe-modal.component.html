@@ -1,0 +1,284 @@
+<app-modal [isOpen]="isOpen" title="Detalhes da Pendência" size="lg" (closed)="close()">
+  <div class="pendencia-detalhe" *ngIf="detalhe as d">
+
+    <!-- Subtítulo com o cliente -->
+    <div class="detalhe-subtitle">
+      <i class="fa-solid fa-building"></i>
+      <span>{{ d.nomeCliente }}</span>
+    </div>
+
+    <!-- Header da nota -->
+    <div class="nf-detail-grid">
+      <div class="detail-field">
+        <label>Código - Unidade</label>
+        <span>{{ d.codigoUnidade }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Espécie</label>
+        <span>{{ d.especie }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Série</label>
+        <span>{{ d.serie }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Título</label>
+        <span>{{ d.titulo }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Parcela</label>
+        <span>{{ d.parcela }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Código - Cliente</label>
+        <span>{{ d.codigoCliente }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Portador</label>
+        <span>{{ d.portador }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Data Emissão</label>
+        <span>{{ d.dataEmissao | date:'dd/MM/yyyy' }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Data Entrega</label>
+        <span>{{ d.dataEntrega ? (d.dataEntrega | date:'dd/MM/yyyy') : '—' }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Data Vencimento</label>
+        <span>{{ d.dataVencimento ? (d.dataVencimento | date:'dd/MM/yyyy') : '—' }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Valor Original</label>
+        <span class="value-money">{{ d.valorOriginal | currency:'BRL' }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Saldo</label>
+        <span class="value-money" [class.text-danger]="d.saldo > 0">{{ d.saldo | currency:'BRL' }}</span>
+      </div>
+      <div class="detail-field detail-field--select">
+        <label>Fase {{ salvandoFase ? '(salvando...)' : '' }}</label>
+        <select class="form-select form-select-sm" [ngModel]="d.fase" (ngModelChange)="onFaseChange($event)"
+          [disabled]="salvandoFase">
+          <option *ngFor="let opt of faseOptions" [value]="opt">{{ opt }}</option>
+        </select>
+      </div>
+      <div class="detail-field detail-field--select">
+        <label>Status {{ salvandoStatus ? '(salvando...)' : '' }}</label>
+        <select class="form-select form-select-sm" [ngModel]="statusSelecionado" (ngModelChange)="onStatusChange($event)"
+          [disabled]="salvandoStatus">
+          <option *ngFor="let opt of statusOptions" [value]="opt">{{ opt }}</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Abas -->
+    <ul class="config-nav">
+      <li class="config-nav-item">
+        <button class="config-nav-link" [class.active]="activeTab === 'tratativa'" (click)="setTab('tratativa')">
+          <i class="fa-solid fa-clipboard-list me-2"></i>Tratativa
+        </button>
+      </li>
+      <li class="config-nav-item">
+        <button class="config-nav-link" [class.active]="activeTab === 'mensagens'" (click)="setTab('mensagens')">
+          <i class="fa-solid fa-comments me-2"></i>Mensagens
+        </button>
+      </li>
+      <li class="config-nav-item">
+        <button class="config-nav-link" [class.active]="activeTab === 'historico'" (click)="setTab('historico')">
+          <i class="fa-solid fa-timeline me-2"></i>Histórico
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content-area">
+
+      <!-- ABA TRATATIVA -->
+      @if (activeTab === 'tratativa') {
+      <div class="tratativa-panel animate-fade-in">
+        <div class="tratativa-input">
+          <textarea class="form-control" rows="3" placeholder="Descreva a tratativa realizada com o cliente..."
+            [(ngModel)]="novaTratativa" [disabled]="isSalvandoTratativa"></textarea>
+          <div class="d-flex justify-content-end align-items-center gap-2 mt-2">
+            @if (editingTratativaIndex !== null) {
+            <button type="button" class="btn-link-cancel" [disabled]="isSalvandoTratativa"
+              (click)="cancelarEdicaoTratativa()">Cancelar</button>
+            }
+            <app-button variant="primary" icon="fa-solid fa-check" [loading]="isSalvandoTratativa"
+              [disabled]="!novaTratativa.trim() || isSalvandoTratativa" (clicked)="registrarTratativa()">
+              {{ editingTratativaIndex !== null ? 'Alterar' : 'Tratar' }}
+            </app-button>
+          </div>
+        </div>
+
+        <div class="table-card mt-3">
+          <div class="table-responsive">
+            <table class="saas-table">
+              <thead>
+                <tr>
+                  <th style="width: 18%;">Data</th>
+                  <th>Tratativa</th>
+                  <th style="width: 8%; text-align: center;">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (isLoadingTratativas) {
+                <tr>
+                  <td colspan="3" class="text-center text-muted py-4">
+                    <i class="fa-solid fa-spinner fa-spin me-2"></i>Carregando tratativas...
+                  </td>
+                </tr>
+                } @else {
+                @for (item of tratativas; track item.id) {
+                <tr>
+                  <td class="font-monospace small">{{ item.data | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td>
+                    <span class="fw-semibold">{{ item.autor }}</span>
+                    <span class="text-muted"> — {{ item.texto }}</span>
+                  </td>
+                  <td class="text-center">
+                    <div class="actions-cell justify-content-center">
+                      <button class="action-btn" title="Editar" (click)="editarTratativa($index)">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                }
+                @if (tratativas.length === 0) {
+                <tr>
+                  <td colspan="3" class="text-center text-muted py-4">Nenhuma tratativa registrada.</td>
+                </tr>
+                }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- ABA MENSAGENS -->
+      @else if (activeTab === 'mensagens') {
+      <div class="chat-panel animate-fade-in">
+
+        <div class="chat-thread">
+          @for (msg of mensagens; track msg.id) {
+          <div class="chat-message" [class.chat-message--mine]="msg.minhaMensagem">
+            <app-avatar [initials]="msg.iniciais" size="sm"></app-avatar>
+            <div class="chat-bubble">
+              <div class="chat-bubble-header">
+                <span class="chat-author">{{ msg.autor }}</span>
+                <span class="chat-time">{{ msg.data | date:'dd/MM HH:mm' }}</span>
+              </div>
+              @if (msg.assunto) {
+              <div class="chat-subject"><i class="fa-solid fa-tag me-1"></i>{{ msg.assunto }}</div>
+              }
+              <div class="chat-body" [innerHTML]="msg.corpo"></div>
+              @if (msg.anexos.length > 0) {
+              <div class="chat-attachments">
+                @for (anexo of msg.anexos; track anexo) {
+                <span class="attachment-chip"><i class="fa-solid fa-paperclip"></i>{{ anexo }}</span>
+                }
+              </div>
+              }
+            </div>
+          </div>
+          }
+          @if (mensagens.length === 0) {
+          <div class="text-center text-muted py-4">Nenhuma mensagem ainda.</div>
+          }
+        </div>
+
+        <div class="compose-panel">
+          <div class="compose-row">
+            <input type="text" class="form-control form-control-sm" placeholder="Assunto"
+              [(ngModel)]="composeAssunto">
+          </div>
+          <div class="compose-row compose-row--split">
+            <input type="text" class="form-control form-control-sm" placeholder="Para (destinatários)"
+              [(ngModel)]="composeDestinatarios">
+            <input type="text" class="form-control form-control-sm" placeholder="Cc" [(ngModel)]="composeCopia">
+          </div>
+
+          <div class="compose-toolbar">
+            <button type="button" class="toolbar-btn" title="Negrito" (click)="aplicarFormatacao('bold')">
+              <i class="fa-solid fa-bold"></i>
+            </button>
+            <button type="button" class="toolbar-btn" title="Itálico" (click)="aplicarFormatacao('italic')">
+              <i class="fa-solid fa-italic"></i>
+            </button>
+            <button type="button" class="toolbar-btn" title="Sublinhado" (click)="aplicarFormatacao('underline')">
+              <i class="fa-solid fa-underline"></i>
+            </button>
+            <button type="button" class="toolbar-btn" title="Lista"
+              (click)="aplicarFormatacao('insertUnorderedList')">
+              <i class="fa-solid fa-list-ul"></i>
+            </button>
+            <span class="toolbar-divider"></span>
+            <button type="button" class="toolbar-btn" title="Anexar arquivo" (click)="triggerAnexo()">
+              <i class="fa-solid fa-paperclip"></i>
+            </button>
+          </div>
+
+          <div #composeBody class="compose-body" contenteditable="true"
+            data-placeholder="Escreva sua mensagem..."></div>
+
+          @if (composeAnexos.length > 0) {
+          <div class="compose-attachments">
+            @for (anexo of composeAnexos; track $index) {
+            <span class="attachment-chip">
+              <i class="fa-solid fa-paperclip"></i>{{ anexo }}
+              <button type="button" (click)="removerAnexo($index)"><i class="fa-solid fa-xmark"></i></button>
+            </span>
+            }
+          </div>
+          }
+
+          <div class="compose-footer">
+            <app-button variant="primary" icon="fa-solid fa-paper-plane" (clicked)="enviarMensagem()">
+              Enviar
+            </app-button>
+          </div>
+        </div>
+
+        <input #anexoInput type="file" multiple style="display:none;" (change)="onAnexoSelecionado($event)">
+      </div>
+      }
+
+      <!-- ABA HISTÓRICO -->
+      @else if (activeTab === 'historico') {
+      <div class="timeline-panel animate-fade-in">
+        @if (isLoadingHistorico) {
+        <div class="text-center text-muted py-4">
+          <i class="fa-solid fa-spinner fa-spin me-2"></i>Carregando histórico...
+        </div>
+        } @else if (historico.length === 0) {
+        <div class="text-center text-muted py-4">Nenhum evento registrado para esta pendência.</div>
+        } @else {
+        <div class="timeline-scroll custom-scrollbar">
+          <div class="timeline-track">
+            @for (evento of historico; track $index) {
+            <div class="timeline-node">
+              <div class="timeline-icon" [ngClass]="'cor-' + evento.cor">
+                <i [class]="evento.icone"></i>
+              </div>
+              <div class="timeline-card">
+                <span class="timeline-date">
+                  {{ evento.data | date:'dd/MM/yyyy' }} <small>{{ evento.data | date:'HH:mm' }}</small>
+                </span>
+                <span class="timeline-type" [ngClass]="'cor-' + evento.cor">{{ evento.tipo }}</span>
+                <p class="timeline-obs" [title]="evento.observacao">{{ evento.observacao }}</p>
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+        }
+      </div>
+      }
+
+    </div>
+  </div>
+</app-modal>

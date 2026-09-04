@@ -1,0 +1,14 @@
+<div class="erp-card" [class.no-border]="noBorder">
+  <div class="erp-card-header">
+    <ng-content select="[card-header]"></ng-content>
+  </div>
+  
+  <div class="erp-card-body" [class.no-padding]="!padding">
+    <ng-content select="[card-body]"></ng-content>
+    <ng-content></ng-content>
+  </div>
+  
+  <div class="erp-card-footer">
+    <ng-content select="[card-footer]"></ng-content>
+  </div>
+</div>

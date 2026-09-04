@@ -1,0 +1,29 @@
+@import 'styles/variables';
+
+.layout-wrapper {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: $body-bg;
+}
+
+.layout-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden; // Previne scroll da pagina inteira
+}
+
+.layout-content-scroll {
+  flex: 1;
+  overflow-y: auto; // Scroll apenas no miolo
+  display: flex;
+  flex-direction: column;
+}
+
+.layout-content {
+  flex: 1;
+  padding: 0 2rem 2rem 2rem;
+}

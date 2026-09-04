@@ -1,0 +1,10 @@
+@import 'styles/variables';
+
+.layout-footer {
+  padding: 1.5rem;
+  text-align: center;
+  color: $gray-500;
+  font-size: 0.8rem;
+  border-top: 1px solid $border-color;
+  background-color: $white;
+}

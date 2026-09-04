@@ -1,0 +1,1388 @@
+@import 'styles/variables';
+
+.page-container {
+  padding: 0;
+  max-width: 1400px;
+  margin: 0 auto;
+  margin-top: -0.75rem;
+  /* Margem negativa para puxar o conteúdo para perto do breadcrumb */
+  padding-bottom: 3rem;
+}
+
+/* ==========================================================================
+   1. CABEÇALHO (PAGE HEADER PREMIUM)
+   ========================================================================== */
+.page-header-premium {
+  margin-bottom: 1.5rem;
+
+  .title-row {
+    display: flex;
+    align-items: center;
+
+    i {
+      font-size: 0.875rem;
+      color: $gray-400;
+    }
+
+    .page-title {
+      font-size: 1.125rem;
+      /* 18px */
+      font-weight: 600;
+      color: $gray-800;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+
+    .divider {
+      margin: 0 0.5rem;
+      color: $gray-300;
+      font-size: 0.875rem;
+      font-weight: 300;
+    }
+
+    .page-description {
+      font-size: 0.8125rem;
+      /* 13px */
+      color: $gray-500;
+      margin: 0;
+      font-weight: 400;
+    }
+  }
+}
+
+/* ==========================================================================
+   2. LAYOUT PRINCIPAL (VERTICAL TABS)
+   ========================================================================== */
+.main-layout {
+  display: flex;
+  gap: 2rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+}
+
+.main-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden;
+
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+
+  .sidebar-header {
+    .sidebar-toggle:hover {
+      background: $gray-100 !important;
+    }
+  }
+
+  &.collapsed {
+    width: 60px;
+
+    .sidebar-header {
+      justify-content: center !important;
+    }
+
+    .main-nav-link {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+      justify-content: center;
+
+      i {
+        margin-right: 0;
+        font-size: 1.25rem;
+      }
+
+      .nav-text {
+        opacity: 0;
+        width: 0;
+        visibility: hidden;
+      }
+    }
+  }
+}
+
+.main-content {
+  flex-grow: 1;
+  min-width: 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-nav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  li {
+    width: 100%;
+  }
+
+  .main-nav-link {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    color: $gray-600;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+
+    i {
+      width: 20px;
+      text-align: center;
+      margin-right: 0.75rem;
+      font-size: 1.1rem;
+      transition: margin 0.3s ease;
+      color: #cbd3df;
+    }
+
+    .nav-text {
+      transition: opacity 0.2s ease, width 0.2s ease;
+      opacity: 1;
+      width: auto;
+    }
+
+    &:hover {
+      background: rgba($gray-100, 0.6);
+      color: $gray-900;
+      
+      i {
+        color: $gray-900;
+      }
+    }
+
+    &.active {
+      background: rgba($primary, 0.08);
+      color: $primary;
+      font-weight: 600;
+
+      i {
+        color: $primary;
+      }
+    }
+  }
+}
+
+.custom-tab-content {
+  min-height: 400px;
+}
+
+/* ==========================================================================
+   3 & 4. CARDS DE IMPORTAÇÃO (COMPANIES GRID)
+   ========================================================================== */
+.import-dashboard {
+  .dashboard-section-header {
+    margin-bottom: 1.5rem;
+
+    h3 {
+      font-size: 1rem;
+      /* 16px */
+      font-weight: 600;
+      color: $gray-500;
+      margin: 0 0 0.25rem 0;
+    }
+
+    p {
+      font-size: 0.8125rem;
+      /* 13px */
+      color: $gray-500;
+      margin: 0;
+    }
+  }
+
+  .companies-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+
+    .company-card {
+      background-color: $white;
+      border: 1px solid $border-color;
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.01);
+
+      &:hover {
+        border-color: rgba($primary, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        transform: translateY(-1px);
+      }
+
+      .company-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+
+        .company-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background-color: $gray-100;
+          color: $gray-600;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1rem;
+        }
+
+        .company-name {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: $gray-800;
+        }
+      }
+    }
+  }
+
+  /* ==========================================================================
+     5 & 6. HISTÓRICO DE IMPORTAÇÕES (TABLE)
+     ========================================================================== */
+  .table-card {
+    background-color: $white;
+    border: 1px solid $border-color;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.01);
+  }
+
+  .saas-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    thead {
+      background-color: $gray-50;
+      border-bottom: 1px solid $border-color;
+
+      th {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.75rem;
+        /* 12px */
+        font-weight: 600;
+        color: $gray-500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        text-align: left;
+        white-space: nowrap;
+      }
+    }
+
+    tbody {
+      tr {
+        border-bottom: 1px solid $gray-100;
+        transition: background-color 0.15s ease;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &:hover {
+          background-color: rgba($gray-50, 0.5);
+        }
+
+        td {
+          padding: 1rem 1.25rem;
+          font-size: 0.8125rem;
+          /* 13px */
+          color: $gray-700;
+          vertical-align: middle;
+        }
+      }
+    }
+
+    .file-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 500;
+      color: $gray-800;
+
+      .pdf-icon {
+        color: $danger;
+        font-size: 1rem;
+      }
+    }
+
+    .company-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background-color: rgba($info, 0.1);
+      color: darken($info, 20%);
+    }
+
+    .amount-cell {
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+    }
+
+    .actions-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+
+      .action-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: none;
+        background: transparent;
+        color: $gray-400;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
+
+        &:hover {
+          background-color: $gray-100;
+          color: $gray-700;
+        }
+
+        &.ai-btn {
+          &:hover {
+            background-color: rgba($primary, 0.1);
+            color: $primary;
+          }
+        }
+
+        &.delete-btn {
+          &:hover {
+            background-color: rgba($danger, 0.1);
+            color: $danger;
+          }
+        }
+      }
+    }
+  }
+}
+
+/* ==========================================================================
+   RESPONSIVIDADE E EXTRAS
+   ========================================================================== */
+@media (max-width: 992px) {
+  .import-dashboard .companies-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .import-dashboard .companies-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .saas-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Modal e Placeholder antigos (mantidos para não quebrar outras abas) */
+.placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+
+  .placeholder-icon {
+    font-size: 4rem;
+    color: $gray-300;
+    margin-bottom: 1.5rem;
+  }
+
+  h3 {
+    color: $gray-700;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    color: $gray-500;
+  }
+}
+
+.upload-zone {
+  border: 2px dashed $border-color;
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: rgba($primary, 0.02);
+
+  &:hover {
+    border-color: $primary;
+    background-color: rgba($primary, 0.05);
+  }
+
+  .upload-icon {
+    font-size: 3rem;
+    color: $primary;
+    margin-bottom: 1rem;
+  }
+
+  h4 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: $gray-800;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    color: $gray-500;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+}
+
+.processing-container {
+  padding: 1rem 0;
+
+  .processing-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+
+    .processing-step {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      color: $gray-400;
+      transition: all 0.3s ease;
+
+      .step-indicator {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background-color: $gray-300;
+        }
+
+        i {
+          color: $success;
+          font-size: 1.2rem;
+        }
+      }
+
+      .step-label {
+        font-size: 1rem;
+        font-weight: 500;
+      }
+
+      &.active {
+        color: $primary;
+
+        .step-label {
+          font-weight: 600;
+        }
+      }
+
+      &.completed {
+        color: $gray-800;
+      }
+    }
+  }
+}
+
+/* =========================================
+   CONFIGURAÇÕES LAYOUT (Horizontal Tabs)
+========================================= */
+.config-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 0;
+  min-height: 500px;
+}
+
+.config-sidebar {
+  width: 100%;
+}
+
+.config-sidebar-title {
+  display: none;
+}
+
+.config-nav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-bottom: 1px solid $border-color;
+  padding-bottom: 1rem;
+}
+
+.config-nav-item {
+  width: auto;
+}
+
+.config-nav-link {
+  width: auto;
+  text-align: center;
+  background: transparent;
+  border: none;
+  padding: 0.625rem 1rem;
+  border-radius: 8px;
+  color: $gray-600;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    background: $gray-50;
+    color: $gray-900;
+  }
+
+  &.active {
+    background: rgba($primary, 0.08);
+    color: $primary;
+    font-weight: 600;
+  }
+}
+
+.config-content {
+  flex-grow: 1;
+  background: #fff;
+  border: 1px solid $border-color;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.015);
+  overflow: hidden;
+}
+
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: $gray-900;
+    margin-bottom: 0.25rem;
+  }
+}
+
+.config-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.config-toolbar {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.search-box {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+
+  i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $gray-400;
+  }
+
+  input {
+    width: 100%;
+    height: 40px;
+    padding: 0.5rem 1rem 0.5rem 2.5rem;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: $gray-900;
+    transition: all 0.2s ease;
+
+    &::placeholder {
+      color: $gray-400;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $primary;
+      box-shadow: 0 0 0 3px rgba($primary, 0.1);
+    }
+  }
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.25rem;
+
+  .btn-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: $gray-400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: $gray-100;
+      color: $primary;
+    }
+
+    &.delete:hover {
+      background: rgba($danger, 0.1);
+      color: $danger;
+    }
+  }
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1.5rem;
+  margin-top: 1rem;
+  border-top: 1px solid $border-color;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-indicator {
+  font-size: 0.875rem;
+  color: $gray-600;
+  margin: 0 0.5rem;
+}
+
+.btn-page {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid $border-color;
+  background: #fff;
+  color: $gray-600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: $gray-50;
+    color: $gray-900;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: $gray-50;
+  }
+}
+
+.states-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+  max-height: 250px;
+  overflow-y: auto;
+  padding: 1rem;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  background-color: $gray-50;
+
+  .state-check {
+    margin: 0;
+
+    .form-check-label {
+      font-size: 0.85rem;
+      color: $gray-700;
+      cursor: pointer;
+    }
+  }
+}
+
+/* Custom NgSelect Override para design SaaS limpo */
+::ng-deep .custom-ng-select {
+  .ng-select-container {
+    background-color: #f8fafc;
+    border: none;
+    border-radius: 6px;
+    box-shadow: none !important;
+    min-height: 32px;
+    height: 32px;
+    padding-left: 0.25rem;
+    cursor: pointer;
+
+    .ng-value-container {
+      padding-left: 0;
+      justify-content: center;
+
+      .ng-value {
+        font-size: 0.85rem;
+        font-weight: 500;
+        text-align: center;
+        width: 100%;
+      }
+
+      .ng-input {
+        input {
+          text-align: center;
+        }
+      }
+    }
+  }
+
+  &.ng-select-opened {
+    .ng-select-container {
+      background-color: #f1f5f9;
+    }
+  }
+
+  .ng-arrow-wrapper {
+    display: none;
+    /* Remove a setinha pra ficar bem minimalista */
+  }
+}
+
+/* =========================================
+   DASHBOARD VISÃO GERAL (PREMIUM UI)
+========================================= */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid $border-color;
+  padding-bottom: 0.5rem;
+
+  .config-nav {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.filters-panel-card {
+  background-color: $white;
+  border: 1px solid rgba($border-color, 0.8);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+
+  .filters-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  .filter-group {
+    width: 200px;
+    max-width: 100%;
+
+    &.period-filter-group {
+      width: auto;
+    }
+
+    .filter-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      margin-bottom: 0.35rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .period-inputs {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+
+      @media (max-width: 576px) {
+        flex-direction: column;
+        align-items: stretch;
+
+        .input-icon-wrapper {
+          width: 100% !important;
+        }
+
+        .period-separator {
+          display: none;
+        }
+      }
+    }
+
+    .form-control,
+    .form-select {
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid $border-color;
+      background-color: $white;
+      color: $gray-800;
+      font-size: 0.875rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+      transition: all 0.2s;
+
+      &:focus {
+        border-color: rgba($primary, 0.5);
+        box-shadow: 0 0 0 3px rgba($primary, 0.1);
+        outline: none;
+      }
+    }
+
+    .input-icon-wrapper {
+      position: relative;
+
+      .input-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: $gray-400;
+        font-size: 0.9rem;
+      }
+
+      input {
+        padding-left: 2.25rem !important;
+      }
+    }
+
+    .shortcut-select {
+      width: 150px;
+      flex-shrink: 0;
+
+      @media (max-width: 768px) {
+        width: 100% !important;
+      }
+    }
+  }
+}
+
+.dashboard-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dash-card {
+  background: $white;
+  border-radius: 10px;
+  border: 1px solid rgba($border-color, 0.8);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02);
+    border-color: rgba($primary, 0.2);
+  }
+
+  .dash-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+
+    .dash-card-title {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0;
+    }
+
+    .icon-wrapper {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+    }
+  }
+
+  .dash-card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    flex-grow: 1;
+
+    .dash-value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: $gray-900;
+      margin: 0 0 0.15rem 0;
+      letter-spacing: -0.01em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .dash-subtitle {
+      font-size: 0.7rem;
+      margin: 0;
+    }
+
+    .dash-trend {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-top: 0.1rem;
+
+      &.trend-up {
+        color: $danger;
+      }
+
+      &.trend-down {
+        color: $success;
+      }
+
+      span {
+        color: $gray-500;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+// Chart Cards
+.dash-chart-card {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .dash-chart-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+
+    .dash-chart-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #9fabbd;
+      margin: 0;
+    }
+  }
+
+  .dash-chart-body {
+    flex-grow: 1;
+    padding: 1rem;
+    position: relative;
+    min-height: 180px;
+
+    .chart-container {
+      width: 100%;
+      height: 100%;
+      min-height: 180px;
+    }
+  }
+
+  &.table-card {
+    .dash-chart-body {
+      padding: 0;
+    }
+  }
+}
+
+// Custom Premium Table
+.custom-table {
+  font-size: 0.85rem;
+
+  thead {
+    th {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      font-weight: 600;
+      border-bottom-width: 1px;
+      border-bottom-color: rgba(0, 0, 0, 0.1);
+      padding: 1rem 1.25rem;
+      background-color: rgba(248, 250, 252, 0.5);
+    }
+  }
+
+  tbody {
+    td {
+      padding: 0.85rem 1.25rem;
+      border-bottom-color: rgba(241, 245, 249, 0.8);
+      color: #475569;
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: rgba(248, 250, 252, 0.8);
+    }
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Fullscreen Mode Styles */
+.config-layout.fullscreen-mode {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  background-color: var(--color-bg) !important;
+  /* Lighter background for dashboard */
+  padding: 2rem !important;
+  overflow-y: auto !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+
+  .dashboard-actions .btn {
+    background-color: #fff;
+  }
+}
+
+/* Estilos específicos da aba Categorias */
+.ranking-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+
+  &:hover td {
+    background-color: rgba(59, 130, 246, 0.04) !important;
+  }
+
+  &.selected-row td {
+    background-color: rgba(59, 130, 246, 0.08) !important;
+  }
+}
+
+.no-selection-banner {
+  border: 2px dashed rgba(226, 232, 240, 0.8) !important;
+  background-color: #f8fafc;
+  transition: all 0.3s ease;
+}
+
+.category-details-panel {
+  animation: slideDown 0.3s ease-out;
+
+  .details-loading-overlay {
+    border-radius: 12px;
+  }
+}
+
+.spenders-item {
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #f8fafc;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================
+   ABA ANALÍTICO — ESTILOS
+========================================= */
+
+// Ng-Select Multi para filtro de meses
+::ng-deep .analitico-month-select {
+  .ng-select-container {
+    height: 38px;
+    min-height: 38px;
+    border-radius: 8px;
+    border: 1px solid $border-color;
+    background-color: $white;
+    font-size: 0.875rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s;
+    cursor: pointer;
+
+    .ng-value-container {
+      padding-left: 0.75rem;
+
+      .ng-value {
+        background-color: rgba($primary, 0.08);
+        border: 1px solid rgba($primary, 0.15);
+        border-radius: 4px;
+        padding: 0 0.35rem;
+        margin-right: 0.25rem;
+        font-size: 0.75rem;
+        color: $primary;
+        font-weight: 500;
+      }
+
+      .ng-value-icon {
+        color: rgba($primary, 0.5);
+
+        &:hover {
+          background-color: rgba($primary, 0.1);
+          color: $primary;
+        }
+      }
+
+      .ng-placeholder {
+        color: $gray-400;
+        font-size: 0.875rem;
+      }
+    }
+
+    .ng-clear-wrapper {
+      color: $gray-400;
+    }
+  }
+
+  &.ng-select-focused:not(.ng-select-opened) {
+    .ng-select-container {
+      border-color: rgba($primary, 0.5);
+      box-shadow: 0 0 0 3px rgba($primary, 0.1);
+    }
+  }
+
+  &.ng-select-opened {
+    .ng-select-container {
+      border-color: rgba($primary, 0.5);
+      box-shadow: 0 0 0 3px rgba($primary, 0.1);
+    }
+  }
+
+  .ng-dropdown-panel {
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin-top: 4px;
+
+    .ng-dropdown-panel-items {
+      .ng-option {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+        color: $gray-700;
+        transition: background-color 0.15s;
+
+        &.ng-option-selected {
+          background-color: rgba($primary, 0.06);
+          color: $primary;
+          font-weight: 500;
+        }
+
+        &:hover {
+          background-color: $gray-50;
+        }
+      }
+    }
+  }
+}
+
+// Badge de total no card principal
+.analitico-total-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  .analitico-total-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: $primary;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+}
+
+// Colunas fixas (Sticky) na Grid de Detalhes
+.custom-table {
+
+  th.sticky-col-left,
+  td.sticky-col-left {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background-color: var(--color-surface);
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.04);
+  }
+
+  th.sticky-col-right,
+  td.sticky-col-right {
+    position: sticky;
+    right: 0;
+    z-index: 3;
+    background-color: var(--color-surface);
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.04);
+  }
+
+  thead th.sticky-col-left,
+  thead th.sticky-col-right {
+    z-index: 4;
+    background-color: var(--color-bg);
+  }
+
+  tfoot tr td.sticky-col-left,
+  tfoot tr td.sticky-col-right {
+    z-index: 4;
+    background-color: var(--color-bg);
+  }
+
+  tbody tr:hover td.sticky-col-left,
+  tbody tr:hover td.sticky-col-right {
+    background-color: var(--color-surface-hover);
+  }
+}
+
+// Estilo customizado para o modal de importação (conferência)
+.import-table-container,
+.import-table-action-bar,
+.import-table-footer {
+  background-color: var(--color-surface);
+  border-color: var(--color-border) !important;
+}
+
+:host-context([data-theme='dark']) {
+  .import-table-container,
+  .import-table-action-bar,
+  .import-table-footer {
+    background-color: #064663 !important;
+    border-color: #064663 !important;
+  }
+
+  ::ng-deep .import-modal-content-wrapper {
+    // Override backgrounds and borders of the table
+    .table-responsive {
+      border-color: #064663 !important;
+    }
+
+    .saas-table {
+      border-color: #064663 !important;
+
+      thead th, th {
+        background-color: #064663 !important;
+        border-color: #064663 !important;
+      }
+
+      tbody td, td {
+        border-color: #064663 !important;
+      }
+
+      tr {
+        border-color: #064663 !important;
+      }
+    }
+
+    // Override ng-select dropdown container background and border
+    .ng-select {
+      .ng-select-container {
+        background-color: #064663 !important;
+        border-color: #0077b3 !important;
+        color: #f8fafc !important;
+      }
+
+      &.ng-select-focused .ng-select-container {
+        border-color: #0077b3 !important;
+        box-shadow: none !important;
+      }
+    }
+
+    // Override form inputs inside the table
+    input.form-control {
+      background-color: #064663 !important;
+      border-color: #0077b3 !important;
+      color: #f8fafc !important;
+    }
+  }
+}
+
+// Estilo customizado para o container da tabela da aba Relatório
+.report-table-container {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+
+  .saas-table {
+    thead th, th {
+      background-color: var(--color-bg) !important;
+      border-bottom: 1px solid var(--color-border) !important;
+      color: var(--color-text-primary) !important;
+    }
+
+    tbody td, td {
+      border-bottom: 1px solid var(--color-border-light) !important;
+      color: var(--color-text-secondary) !important;
+    }
+  }
+}

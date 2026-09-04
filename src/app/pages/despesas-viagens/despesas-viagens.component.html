@@ -1,0 +1,1492 @@
+<div class="page-container">
+
+
+  <div class="main-layout">
+    <aside class="main-sidebar" [class.collapsed]="isSidebarCollapsed">
+      <div class="sidebar-header d-flex justify-content-end mb-3 pb-2 border-bottom">
+        <button class="btn btn-sm text-muted sidebar-toggle" (click)="toggleSidebar()"
+          style="background: transparent; border: none; padding: 0.25rem 0.5rem; border-radius: 6px;">
+          <i class="fa-solid" [ngClass]="isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+        </button>
+      </div>
+      <ul class="main-nav">
+        <li>
+          <button class="main-nav-link" [class.active]="activeTab === 'dashboard'" (click)="setActiveTab('dashboard')"
+            title="Dashboard">
+            <i class="fa-solid fa-chart-pie"></i> <span class="nav-text">Dashboard</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeTab === 'atualizacao'"
+            (click)="setActiveTab('atualizacao')" title="Atualização de Dados">
+            <i class="fa-solid fa-database"></i> <span class="nav-text">Atualização de Dados</span>
+          </button>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="tab-content custom-tab-content">
+        <!-- Dashboard Tab -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'dashboard'" [class.active]="activeTab === 'dashboard'"
+          role="tabpanel">
+          <div class="config-layout" #dashboardWrapper [class.fullscreen-mode]="isFullscreen">
+
+            <div class="dashboard-header d-flex justify-content-between align-items-center border-bottom">
+              <ul class="config-nav mb-0 border-bottom-0 pb-0">
+                <li class="config-nav-item">
+                  <button class="config-nav-link" [class.active]="activeDashboardTab === 'visao-geral'"
+                    (click)="setActiveDashboardTab('visao-geral')">
+                    Visão Geral
+                  </button>
+                </li>
+                <li class="config-nav-item">
+                  <button class="config-nav-link" [class.active]="activeDashboardTab === 'categorias'"
+                    (click)="setActiveDashboardTab('categorias')">
+                    Categorias
+                  </button>
+                </li>
+                <li class="config-nav-item">
+                  <button class="config-nav-link" [class.active]="activeDashboardTab === 'comercial-marketing'"
+                    (click)="setActiveDashboardTab('comercial-marketing')">
+                    Comercial/Marketing
+                  </button>
+                </li>
+                <li class="config-nav-item">
+                  <button class="config-nav-link" [class.active]="activeDashboardTab === 'relatorio'"
+                    (click)="setActiveDashboardTab('relatorio')">
+                    Relatório
+                  </button>
+                </li>
+              </ul>
+
+              <div class="dashboard-actions d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary"
+                  *ngIf="activeDashboardTab !== 'comercial-marketing' && activeDashboardTab !== 'relatorio'"
+                  (click)="exportToPDF()">
+                  <i class="fa-regular fa-file-pdf me-1"></i> Exportar PDF
+                </button>
+                <button class="btn btn-sm btn-outline-success" *ngIf="activeDashboardTab === 'relatorio'"
+                  (click)="exportRelatorioToExcel()">
+                  <i class="fa-regular fa-file-excel me-1"></i> Exportar Excel
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" (click)="toggleFullscreen()">
+                  <i class="fa-solid" [ngClass]="isFullscreen ? 'fa-compress' : 'fa-expand'"></i>
+                  {{ isFullscreen ? 'Sair da tela cheia' : 'Tela cheia' }}
+                </button>
+              </div>
+            </div>
+
+            <main class="dashboard-content" style="flex-grow: 1;">
+              <div #dashboardContent class="dashboard-pdf-container">
+                <!-- Painel de Filtros Premium -->
+                <div class="filters-panel-card mb-4"
+                  *ngIf="activeDashboardTab !== 'comercial-marketing' && activeDashboardTab !== 'relatorio'">
+                  <div class="filters-grid">
+
+                    <!-- Coluna de Período -->
+                    <div class="filter-group period-filter-group">
+                      <span class="filter-label mb-2 d-block">Período</span>
+
+                      <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
+                        <div class="period-inputs">
+                          <div class="input-icon-wrapper" style="width: 130px;">
+                            <i class="fa-regular fa-calendar input-icon"></i>
+                            <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
+                              [locale]="locale" [convertModelValue]="true" [maxDate]="dashDataFim || ''"
+                              placeholder="Data inicial" [(ngModel)]="dashDataInicio"
+                              (ngModelChange)="onDataInicioChange()">
+                          </div>
+
+                          <span class="period-separator text-muted small px-1">→</span>
+
+                          <div class="input-icon-wrapper" style="width: 130px;">
+                            <i class="fa-regular fa-calendar input-icon"></i>
+                            <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
+                              [locale]="locale" [convertModelValue]="true" [minDate]="dashDataInicio || ''"
+                              placeholder="Data final" [(ngModel)]="dashDataFim" (ngModelChange)="onDataFimChange()">
+                          </div>
+                        </div>
+
+                        <select class="form-select form-select-sm shortcut-select" [(ngModel)]="activePeriodShortcut"
+                          (ngModelChange)="onShortcutSelectChange($event)">
+                          <option value="ultimo-bimestre">Últ. Bimestre</option>
+                          <option value="ultimo-semestre">Últ. Semestre</option>
+                          <option value="este-ano">Este Ano</option>
+                          <option value="ano-passado">Ano Passado</option>
+                          <option value="personalizado" disabled>Personalizado</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Coluna de Empresa -->
+                    <div class="filter-group">
+                      <label class="filter-label mb-2">Empresa</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="dashFiltroEmpresa"
+                        (ngModelChange)="carregarDadosDashboard()">
+                        <option [value]="null">Todas</option>
+                        <option *ngFor="let e of listaEmpresasGeral" [value]="e.idEmpresas">{{ e.nome }}</option>
+                      </select>
+                    </div>
+
+                    <!-- Coluna de Pessoa -->
+                    <div class="filter-group">
+                      <label class="filter-label mb-2">Pessoa</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="dashFiltroPessoa"
+                        (ngModelChange)="carregarDadosDashboard()">
+                        <option [value]="null">Todas</option>
+                        <option *ngFor="let c of listaColaboradoresGeral" [value]="c.idColaborador">{{ c.nome }}
+                        </option>
+                      </select>
+                    </div>
+
+                    <!-- Coluna de Categoria -->
+                    <div class="filter-group">
+                      <label class="filter-label mb-2">Categoria</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="dashFiltroCategoria"
+                        (ngModelChange)="carregarDadosDashboard()">
+                        <option [value]="null">Todas</option>
+                        <option *ngFor="let cat of listaCategoriasGeral" [value]="cat.idCategorias">{{ cat.nome }}
+                        </option>
+                      </select>
+                    </div>
+
+                  </div>
+                </div>
+
+                <!-- TAB 1: VISÃO GERAL -->
+                <div *ngIf="activeDashboardTab === 'visao-geral'">
+                  <!-- SKELETON LOADING STATE -->
+                  <div *ngIf="isDashboardLoading">
+                    <!-- Skeletons of Cards -->
+                    <div class="dashboard-cards-grid mb-4">
+                      <div class="dash-card" *ngFor="let i of [1,2,3,4]">
+                        <div class="dash-card-header mb-2 d-flex justify-content-between align-items-center">
+                          <app-skeleton type="text" width="60%" height="16px"></app-skeleton>
+                          <app-skeleton type="circle" width="28px" height="28px"></app-skeleton>
+                        </div>
+                        <div class="dash-card-body">
+                          <app-skeleton type="rect" width="80%" height="28px" class="mb-2"></app-skeleton>
+                          <app-skeleton type="text" width="50%" height="14px"></app-skeleton>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Skeletons of Row 3 -->
+                    <div class="row g-4 mb-4">
+                      <div class="col-12 col-xl-6">
+                        <div class="dash-chart-card h-100 p-3 bg-white border rounded-3" style="min-height: 350px;">
+                          <app-skeleton type="text" width="40%" height="18px" class="mb-3"></app-skeleton>
+                          <app-skeleton type="rect" width="100%" height="280px"></app-skeleton>
+                        </div>
+                      </div>
+                      <div class="col-12 col-md-6 col-xl-3">
+                        <div class="dash-chart-card h-100 p-3 bg-white border rounded-3" style="min-height: 350px;">
+                          <app-skeleton type="text" width="60%" height="18px" class="mb-3"></app-skeleton>
+                          <div class="d-flex justify-content-center align-items-center" style="height: 280px;">
+                            <app-skeleton type="circle" width="180px" height="180px"></app-skeleton>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-12 col-md-6 col-xl-3">
+                        <div class="dash-chart-card h-100 p-3 bg-white border rounded-3" style="min-height: 350px;">
+                          <app-skeleton type="text" width="60%" height="18px" class="mb-3"></app-skeleton>
+                          <div class="d-flex justify-content-center align-items-center" style="height: 280px;">
+                            <app-skeleton type="circle" width="180px" height="180px"></app-skeleton>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Skeletons of Row 4 -->
+                    <div class="row g-4 mb-4">
+                      <div class="col-12 col-xl-4">
+                        <div class="dash-chart-card h-100 p-3 bg-white border rounded-3" style="min-height: 350px;">
+                          <app-skeleton type="text" width="50%" height="18px" class="mb-3"></app-skeleton>
+                          <app-skeleton type="rect" width="100%" height="320px"></app-skeleton>
+                        </div>
+                      </div>
+                      <div class="col-12 col-xl-8">
+                        <div class="dash-chart-card h-100 p-3 bg-white border rounded-3" style="min-height: 350px;">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <app-skeleton type="text" width="30%" height="18px"></app-skeleton>
+                            <app-skeleton type="text" width="15%" height="16px"></app-skeleton>
+                          </div>
+                          <div class="py-2" *ngFor="let row of [1,2,3,4,5]">
+                            <app-skeleton type="rect" width="100%" height="28px" class="mb-2"></app-skeleton>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- ACTUAL CONTENT -->
+                  <div *ngIf="!isDashboardLoading">
+                    <!-- ROW 2: 4 Cards -->
+                    <div class="dashboard-cards-grid mb-4">
+
+                      <!-- Card 1: Total de Despesas -->
+                      <div class="dash-card">
+                        <div class="dash-card-header">
+                          <h6 class="dash-card-title">Total de Despesas</h6>
+                          <div class="icon-wrapper bg-primary-subtle text-primary">
+                            <i class="fa-solid fa-wallet"></i>
+                          </div>
+                        </div>
+                        <div class="dash-card-body">
+                          <h3 class="dash-value">{{ dashVisaoGeral.total | currency:'BRL' }}</h3>
+                          <div class="dash-trend">
+                            <span>{{ dashVisaoGeral.quantidadeDespesas | number }} despesas registradas</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Card 2: Total no Mês -->
+                      <div class="dash-card">
+                        <div class="dash-card-header">
+                          <h6 class="dash-card-title">Total no Mês</h6>
+                          <div class="icon-wrapper bg-info-subtle text-info">
+                            <i class="fa-solid fa-calendar-day"></i>
+                          </div>
+                        </div>
+                        <div class="dash-card-body">
+                          <h3 class="dash-value">{{ dashVisaoGeral.totalMes | currency:'BRL' }}</h3>
+                          <div class="dash-trend"
+                            [ngClass]="dashVisaoGeral.percentualMes > 0 ? 'trend-up' : 'trend-down'">
+                            <i class="fa-solid"
+                              [ngClass]="dashVisaoGeral.percentualMes > 0 ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'"></i>
+                            <span>{{ dashVisaoGeral.percentualMes > 0 ? '+' : '' }}{{ dashVisaoGeral.percentualMes }}%
+                              vs. mês anterior</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Card 3: Ticket Médio -->
+                      <div class="dash-card">
+                        <div class="dash-card-header">
+                          <h6 class="dash-card-title">Ticket Médio</h6>
+                          <div class="icon-wrapper bg-warning-subtle text-warning">
+                            <i class="fa-solid fa-receipt"></i>
+                          </div>
+                        </div>
+                        <div class="dash-card-body">
+                          <h3 class="dash-value">{{ dashVisaoGeral.ticketMedio | currency:'BRL' }}</h3>
+                          <div class="dash-trend"
+                            [ngClass]="dashVisaoGeral.ticketMedioPercentual > 0 ? 'trend-up' : 'trend-down'">
+                            <i class="fa-solid"
+                              [ngClass]="dashVisaoGeral.ticketMedioPercentual > 0 ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'"></i>
+                            <span>{{ dashVisaoGeral.ticketMedioPercentual > 0 ? '+' : '' }}{{
+                              dashVisaoGeral.ticketMedioPercentual }}% vs. período anterior</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Card 4: Maior Despesa -->
+                      <div class="dash-card">
+                        <div class="dash-card-header">
+                          <h6 class="dash-card-title">Maior Despesa</h6>
+                          <div class="icon-wrapper bg-danger-subtle text-danger">
+                            <i class="fa-solid fa-star"></i>
+                          </div>
+                        </div>
+                        <div class="dash-card-body">
+                          <h3 class="dash-value">{{ dashVisaoGeral.maiorDespesa | currency:'BRL' }}</h3>
+                          <div class="dash-trend">
+                            <span>{{ dashVisaoGeral.maiorDespesaContexto }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- ROW 3: Gráficos Linha 1 (Área e 2 Donuts) -->
+                    <div class="row g-4 mb-4">
+                      <!-- Gráfico de Área -->
+                      <div class="col-12 col-xl-6">
+                        <div class="dash-chart-card h-100">
+                          <div class="dash-chart-header">
+                            <h6 class="dash-chart-title">Despesas por Categoria — Evolução Mensal</h6>
+                          </div>
+                          <div class="dash-chart-body">
+                            <div echarts [options]="chartOptionArea" class="chart-container"></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Donut Categoria -->
+                      <div class="col-12 col-md-6 col-xl-3">
+                        <div class="dash-chart-card h-100">
+                          <div class="dash-chart-header">
+                            <h6 class="dash-chart-title">Despesas por Categoria</h6>
+                          </div>
+                          <div class="dash-chart-body">
+                            <div echarts [options]="chartOptionDonutCategoria" class="chart-container"></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Donut Empresa -->
+                      <div class="col-12 col-md-6 col-xl-3">
+                        <div class="dash-chart-card h-100">
+                          <div class="dash-chart-header">
+                            <h6 class="dash-chart-title">Despesas por Empresa</h6>
+                          </div>
+                          <div class="dash-chart-body">
+                            <div echarts [options]="chartOptionDonutEmpresa" class="chart-container"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- ROW 4: Gráficos Linha 2 (Mapa e Tabela) -->
+                    <div class="row g-4 mb-4">
+                      <!-- Mapa -->
+                      <div class="col-12 col-xl-4">
+                        <div class="dash-chart-card h-100">
+                          <div class="dash-chart-header">
+                            <h6 class="dash-chart-title">Despesas por Localização</h6>
+                          </div>
+                          <div class="dash-chart-body">
+                            <div echarts [options]="chartOptionMapa" class="chart-container"></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Tabela Maiores Despesas -->
+                      <div class="col-12 col-xl-8">
+                        <div class="dash-chart-card h-100 table-card">
+                          <div class="dash-chart-header d-flex justify-content-between align-items-center">
+                            <h6 class="dash-chart-title m-0">Maiores Despesas</h6>
+                            <button class="btn btn-sm btn-link text-decoration-none">Ver todas</button>
+                          </div>
+                          <div class="dash-chart-body p-0">
+                            <div class="table-responsive">
+                              <table class="table table-hover align-middle custom-table m-0">
+                                <thead>
+                                  <tr>
+                                    <th>Descrição</th>
+                                    <th>Pessoa</th>
+                                    <th>Empresa</th>
+                                    <th>Categoria</th>
+                                    <th>Data</th>
+                                    <th class="text-end">Valor</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr *ngFor="let item of tabelaMaioresDespesas">
+                                    <td class="fw-medium text-dark">{{ item.descricao }}</td>
+                                    <td>{{ item.pessoa }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ item.empresa }}</span></td>
+                                    <td>{{ item.categoria }}</td>
+                                    <td>{{ item.data }}</td>
+                                    <td class="text-end fw-semibold tabular-nums">{{ item.valor | currency:'BRL' }}</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- TAB 2: CATEGORIAS -->
+                <div *ngIf="activeDashboardTab === 'categorias'">
+                  <!-- SKELETON LOADING STATE FOR CATEGORIAS -->
+                  <div *ngIf="isDashboardLoading">
+                    <!-- KPI Cards Skeleton -->
+                    <div class="dashboard-cards-grid mb-4">
+                      <div class="dash-card" *ngFor="let i of [1,2,3,4]">
+                        <div class="dash-card-header mb-2 d-flex justify-content-between align-items-center">
+                          <app-skeleton type="text" width="60%" height="16px"></app-skeleton>
+                          <app-skeleton type="circle" width="28px" height="28px"></app-skeleton>
+                        </div>
+                        <div class="dash-card-body">
+                          <app-skeleton type="rect" width="80%" height="28px" class="mb-2"></app-skeleton>
+                          <app-skeleton type="text" width="50%" height="14px"></app-skeleton>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Charts Row Skeleton -->
+                    <div class="row g-4 mb-4">
+                      <div class="col-12 col-xl-8">
+                        <div class="dash-chart-card h-100 p-3 bg-white border rounded-3" style="min-height: 350px;">
+                          <app-skeleton type="text" width="40%" height="18px" class="mb-3"></app-skeleton>
+                          <app-skeleton type="rect" width="100%" height="280px"></app-skeleton>
+                        </div>
+                      </div>
+                      <div class="col-12 col-xl-4">
+                        <div class="dash-chart-card h-100 p-3 bg-white border rounded-3" style="min-height: 350px;">
+                          <app-skeleton type="text" width="55%" height="18px" class="mb-3"></app-skeleton>
+                          <div class="d-flex justify-content-center align-items-center" style="height: 280px;">
+                            <app-skeleton type="circle" width="180px" height="180px"></app-skeleton>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Ranking Skeleton -->
+                    <div class="dash-chart-card p-4 mb-4">
+                      <app-skeleton type="text" width="250px" height="20px" class="mb-3"></app-skeleton>
+                      <app-skeleton type="rect" width="100%" height="200px"></app-skeleton>
+                    </div>
+                  </div>
+
+                  <!-- ACTUAL CONTENT FOR CATEGORIAS -->
+                  <div *ngIf="!isDashboardLoading">
+                    <!-- 4 KPI Cards Specific to Categories -->
+                    <div class="dashboard-cards-grid mb-4">
+
+                      <!-- Card 1: Total de Despesas -->
+                      <div class="dash-card">
+                        <div class="dash-card-header">
+                          <h6 class="dash-card-title">Total de Despesas</h6>
+                          <div class="icon-wrapper bg-primary-subtle text-primary">
+                            <i class="fa-solid fa-wallet"></i>
+                          </div>
+                        </div>
+                        <div class="dash-card-body">
+                          <h3 class="dash-value">{{ dashVisaoGeral.total | currency:'BRL' }}</h3>
+                          <div class="dash-trend">
+                            <span>{{ dashVisaoGeral.quantidadeDespesas | number }} despesas registradas</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Card 2: Categoria com Maior Gasto -->
+                      <div class="dash-card">
+                        <div class="dash-card-header">
+                          <h6 class="dash-card-title">Categoria com Maior Gasto</h6>
+                          <div class="icon-wrapper bg-info-subtle text-info">
+                            <i class="fa-solid fa-tags"></i>
+                          </div>
+                        </div>
+                        <div class="dash-card-body">
+                          <h3 class="dash-value text-truncate" [title]="topCategoryName">{{ topCategoryName }}</h3>
+                          <div class="dash-trend">
+                            <span>{{ topCategoryValue | currency:'BRL' }}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Card 3: Ticket Médio -->
+                      <div class="dash-card">
+                        <div class="dash-card-header">
+                          <h6 class="dash-card-title">Ticket Médio</h6>
+                          <div class="icon-wrapper bg-warning-subtle text-warning">
+                            <i class="fa-solid fa-receipt"></i>
+                          </div>
+                        </div>
+                        <div class="dash-card-body">
+                          <h3 class="dash-value">{{ dashVisaoGeral.ticketMedio | currency:'BRL' }}</h3>
+                          <div class="dash-trend">
+                            <span>por despesa</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Card 4: Maior Crescimento -->
+                      <div class="dash-card">
+                        <div class="dash-card-header">
+                          <h6 class="dash-card-title">Maior Crescimento</h6>
+                          <div class="icon-wrapper bg-danger-subtle text-danger">
+                            <i class="fa-solid fa-arrow-trend-up"></i>
+                          </div>
+                        </div>
+                        <div class="dash-card-body">
+                          <h3 class="dash-value text-truncate" [title]="maiorCrescimentoName">{{ maiorCrescimentoName }}
+                          </h3>
+                          <div class="dash-trend trend-up">
+                            <i class="fa-solid fa-arrow-trend-up"></i>
+                            <span>{{ maiorCrescimentoPct > 0 ? '+' : '' }}{{ maiorCrescimentoPct }}% vs. período
+                              anterior</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Main Charts: Evolution & Distribution -->
+                    <div class="row g-4 mb-4">
+                      <!-- Evolution Chart -->
+                      <div class="col-12 col-xl-8">
+                        <div class="dash-chart-card h-100">
+                          <div class="dash-chart-header">
+                            <h6 class="dash-chart-title">Despesas por Categoria — Evolução no Período</h6>
+                          </div>
+                          <div class="dash-chart-body">
+                            <div echarts [options]="chartOptionAreaCategorias" class="chart-container"
+                              style="height: 320px;"></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Donut Chart -->
+                      <div class="col-12 col-xl-4">
+                        <div class="dash-chart-card h-100">
+                          <div class="dash-chart-header">
+                            <h6 class="dash-chart-title">Distribuição das Despesas</h6>
+                          </div>
+                          <div class="dash-chart-body">
+                            <div echarts [options]="chartOptionDonutCategoriaTab" class="chart-container"
+                              style="height: 320px;"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Ranking de Categorias -->
+                    <div class="dash-chart-card mb-4 table-card">
+                      <div class="dash-chart-header">
+                        <h6 class="dash-chart-title m-0">Ranking de Categorias</h6>
+                      </div>
+                      <div class="dash-chart-body p-0">
+                        <div class="table-responsive">
+                          <table class="table table-hover align-middle custom-table m-0">
+                            <thead>
+                              <tr>
+                                <th>Categoria</th>
+                                <th style="width: 30%;">Participação</th>
+                                <th class="text-end">Despesas</th>
+                                <th class="text-end">Valor Total</th>
+                                <th class="text-end">Ticket Médio</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let item of donutCategoriasTab"
+                                (click)="selecionarCategoria(item.name, item.id)" class="ranking-row"
+                                [class.selected-row]="selectedCategoryId === item.id">
+                                <td class="fw-medium text-dark">
+                                  <i class="fa-solid fa-tag me-2 text-primary opacity-50"></i>
+                                  {{ item.name }}
+                                </td>
+                                <td>
+                                  <div class="d-flex align-items-center gap-2">
+                                    <div class="progress w-100"
+                                      style="height: 6px; background-color: #f1f5f9; border-radius: 3px;">
+                                      <div class="progress-bar bg-primary"
+                                        [style.width.%]="(item.value / dashVisaoGeral.total) * 100"></div>
+                                    </div>
+                                    <span class="small text-muted fw-semibold tabular-nums">
+                                      {{ ((item.value / dashVisaoGeral.total) * 100) | number:'1.0-1' }}%
+                                    </span>
+                                  </div>
+                                </td>
+                                <td class="text-end tabular-nums">{{ item.qtd | number }}</td>
+                                <td class="text-end fw-semibold tabular-nums">{{ item.value | currency:'BRL' }}</td>
+                                <td class="text-end tabular-nums">{{ (item.value / item.qtd) | currency:'BRL' }}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Detalhes da Categoria Selecionada -->
+                    <div class="category-details-section">
+                      <!-- Banner: No Selection -->
+                      <div *ngIf="!selectedCategoryId"
+                        class="no-selection-banner text-center p-5 bg-light border border-dashed rounded-3">
+                        <i class="fa-solid fa-arrow-pointer fs-2 text-muted mb-3 opacity-25"></i>
+                        <h6 class="text-secondary fw-semibold">Nenhuma categoria selecionada para análise detalhada</h6>
+                        <p class="text-muted small mb-0">Clique em uma categoria no ranking acima para detalhar os
+                          gastos por empresa, pessoas e ver transações.</p>
+                      </div>
+
+                      <!-- Content: Selection Active -->
+                      <div *ngIf="selectedCategoryId"
+                        class="category-details-panel p-4 bg-white border rounded-3 position-relative">
+                        <!-- Loading overlay inside details -->
+                        <div *ngIf="categoryDetailsLoading"
+                          class="details-loading-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75"
+                          style="z-index: 10;">
+                          <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                          </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+                          <h5 class="fw-bold text-dark m-0">
+                            <i class="fa-solid fa-circle-info text-primary me-2"></i>
+                            Detalhes da Categoria: <span class="text-primary">{{ selectedCategoryName }}</span>
+                          </h5>
+                          <button class="btn btn-sm btn-outline-danger"
+                            (click)="selecionarCategoria('', selectedCategoryId)">
+                            <i class="fa-solid fa-times me-1"></i> Limpar seleção
+                          </button>
+                        </div>
+
+                        <!-- 4 Mini Indicators for the selected category -->
+                        <div class="row g-3 mb-4">
+                          <div class="col-6 col-md-3">
+                            <div class="p-3 bg-light rounded border text-center">
+                              <span class="text-muted d-block small mb-1">Total Gasto</span>
+                              <span class="fs-5 fw-bold text-dark tabular-nums">{{ categoryVisaoGeral.total |
+                                currency:'BRL' }}</span>
+                            </div>
+                          </div>
+                          <div class="col-6 col-md-3">
+                            <div class="p-3 bg-light rounded border text-center">
+                              <span class="text-muted d-block small mb-1">Despesas</span>
+                              <span class="fs-5 fw-bold text-dark tabular-nums">{{ categoryVisaoGeral.quantidadeDespesas
+                                | number }}</span>
+                            </div>
+                          </div>
+                          <div class="col-6 col-md-3">
+                            <div class="p-3 bg-light rounded border text-center">
+                              <span class="text-muted d-block small mb-1">Ticket Médio</span>
+                              <span class="fs-5 fw-bold text-dark tabular-nums">{{ categoryVisaoGeral.ticketMedio |
+                                currency:'BRL' }}</span>
+                            </div>
+                          </div>
+                          <div class="col-6 col-md-3">
+                            <div class="p-3 bg-light rounded border text-center">
+                              <span class="text-muted d-block small mb-1">Maior Despesa</span>
+                              <span class="fs-5 fw-bold text-dark tabular-nums"
+                                [title]="categoryVisaoGeral.maiorDespesaContexto">
+                                {{ categoryVisaoGeral.maiorDespesa | currency:'BRL' }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Distribution: Company (Chart) & Spenders (People list) -->
+                        <div class="row g-4 mb-4">
+                          <!-- Distribution by Company -->
+                          <div class="col-12 col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100">
+                              <h6 class="fw-bold text-secondary mb-3">Despesas por Categoria e Empresa</h6>
+                              <div echarts [options]="categoryEmpresasOption" class="chart-container"
+                                style="height: 200px;"></div>
+                            </div>
+                          </div>
+
+                          <!-- Spenders list -->
+                          <div class="col-12 col-md-6">
+                            <div class="p-3 border rounded-3 bg-white h-100">
+                              <h6 class="fw-bold text-secondary mb-3">Maiores Gastos por Categoria (Pessoas)</h6>
+                              <div class="spenders-list">
+                                <div *ngIf="categorySpenders.length === 0" class="text-center py-4 text-muted small">
+                                  Nenhum registro encontrado.
+                                </div>
+                                <div *ngFor="let s of categorySpenders | slice:0:5; let idx = index"
+                                  class="spenders-item d-flex justify-content-between align-items-center py-2 border-bottom">
+                                  <div class="d-flex align-items-center gap-2">
+                                    <span
+                                      class="badge rounded-circle bg-light text-muted border d-flex align-items-center justify-content-center"
+                                      style="width: 24px; height: 24px; font-size: 10px;">
+                                      {{ idx + 1 }}
+                                    </span>
+                                    <span class="fw-medium text-dark">{{ s.name }}</span>
+                                  </div>
+                                  <span class="fw-semibold text-secondary tabular-nums">{{ s.value | currency:'BRL'
+                                    }}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Table of Top Despesas inside the Category -->
+                        <div class="border rounded-3 bg-white p-3">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold text-secondary m-0">Maiores Despesas por Categoria</h6>
+                            <button class="btn btn-sm btn-link text-decoration-none text-primary fw-medium p-0">Ver
+                              todas &rarr;</button>
+                          </div>
+                          <div class="table-responsive">
+                            <table class="table table-hover align-middle custom-table m-0">
+                              <thead>
+                                <tr>
+                                  <th>Descrição</th>
+                                  <th>Pessoa</th>
+                                  <th>Empresa</th>
+                                  <th>Data</th>
+                                  <th class="text-end">Valor</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr *ngIf="categoryTabelaDespesas.length === 0">
+                                  <td colspan="5" class="text-center py-3 text-muted small">Nenhuma despesa para esta
+                                    categoria.</td>
+                                </tr>
+                                <tr *ngFor="let item of categoryTabelaDespesas">
+                                  <td class="fw-medium text-dark">{{ item.descricao }}</td>
+                                  <td>{{ item.pessoa }}</td>
+                                  <td><span class="badge bg-light text-dark border">{{ item.empresa }}</span></td>
+                                  <td>{{ item.data }}</td>
+                                  <td class="text-end fw-semibold tabular-nums">{{ item.valor | currency:'BRL' }}</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- TAB 3: COMERCIAL/MARKETING -->
+              <div *ngIf="activeDashboardTab === 'comercial-marketing'">
+
+                <!-- Painel de Filtros (Padrão Visão Geral) -->
+                <div class="filters-panel-card mb-4">
+                  <div class="filters-grid">
+
+                    <!-- Coluna de Período -->
+                    <div class="filter-group period-filter-group">
+                      <span class="filter-label mb-2 d-block">Período</span>
+
+                      <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
+                        <div class="period-inputs">
+                          <div class="input-icon-wrapper" style="width: 130px;">
+                            <i class="fa-regular fa-calendar input-icon"></i>
+                            <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
+                              [locale]="locale" [convertModelValue]="true" [maxDate]="analiticoDataFim || ''"
+                              placeholder="Data inicial" [(ngModel)]="analiticoDataInicio"
+                              (ngModelChange)="onAnaliticoDataInicioChange()">
+                          </div>
+
+                          <span class="period-separator text-muted small px-1">→</span>
+
+                          <div class="input-icon-wrapper" style="width: 130px;">
+                            <i class="fa-regular fa-calendar input-icon"></i>
+                            <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
+                              [locale]="locale" [convertModelValue]="true" [minDate]="analiticoDataInicio || ''"
+                              placeholder="Data final" [(ngModel)]="analiticoDataFim"
+                              (ngModelChange)="onAnaliticoDataFimChange()">
+                          </div>
+                        </div>
+
+                        <select class="form-select form-select-sm shortcut-select" [(ngModel)]="analiticoPeriodShortcut"
+                          (ngModelChange)="onAnaliticoShortcutSelectChange($event)">
+                          <option value="ultimo-bimestre">Últ. Bimestre</option>
+                          <option value="ultimo-semestre">Últ. Semestre</option>
+                          <option value="este-ano">Este Ano</option>
+                          <option value="ano-passado">Ano Passado</option>
+                          <option value="personalizado" disabled>Personalizado</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Coluna de Categoria -->
+                    <div class="filter-group">
+                      <label class="filter-label mb-2">Categoria</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="analiticoCategoria"
+                        (ngModelChange)="atualizarDadosAnalitico()">
+                        <option [value]="null">Todas</option>
+                        <option *ngFor="let cat of listaCategoriasGeral" [value]="cat.idCategorias">{{ cat.nome }}
+                        </option>
+                      </select>
+                    </div>
+
+                    <!-- Coluna de Colaborador -->
+                    <div class="filter-group">
+                      <label class="filter-label mb-2">Colaborador</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="analiticoColaborador"
+                        (ngModelChange)="atualizarDadosAnalitico()">
+                        <option [value]="null">Todos</option>
+                        <option *ngFor="let c of listaColaboradoresGeral" [value]="c.idColaborador">{{ c.nome }}
+                        </option>
+                      </select>
+                    </div>
+
+                    <!-- Coluna de Centro de Custo -->
+                    <div class="filter-group">
+                      <label class="filter-label mb-2">Centro de Custo</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="analiticoCentroCusto"
+                        (ngModelChange)="atualizarDadosAnalitico()">
+                        <option [value]="null">Todos</option>
+                        <option *ngFor="let cc of listaCentrosCustoGeral" [value]="cc.codigo">{{ cc.codigo }} - {{
+                          cc.nome }}
+                        </option>
+                      </select>
+                    </div>
+
+                    <!-- Botão Detalhes Toggle -->
+                    <div class="filter-group d-flex flex-column justify-content-end" style="width: auto;">
+                      <span class="filter-label mb-2 opacity-0">&nbsp;</span>
+                      <button class="btn btn-sm"
+                        [ngClass]="isAnaliticoDetalhesActive ? 'btn-primary' : 'btn-outline-secondary'"
+                        (click)="toggleAnaliticoDetalhes()" style="height: 38px;">
+                        <i class="fa-solid fa-sliders me-1"></i> Detalhes
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+
+                <!-- Visão Padrão: Gráficos -->
+                <div *ngIf="!isAnaliticoDetalhesActive">
+                  <!-- Linha 1: 5 Colunas (Evolução Anual) + 4 Colunas (Evolução Mensal) + 3 Colunas (Rankings) -->
+                  <div class="row g-4 mb-4">
+                    <!-- Total de Despesas — Evolução Anual (Barras Verticais - 5 col) -->
+                    <div class="col-12 col-xl-5">
+                      <div class="dash-chart-card h-100">
+                        <div class="dash-chart-header d-flex justify-content-between align-items-center">
+                          <h6 class="dash-chart-title m-0">Total de Despesas — Evolução Anual</h6>
+                          <div class="analitico-total-badge">
+                            <span class="text-muted small me-1">TOTAL:</span>
+                            <span class="analitico-total-value" style="font-size: 1.05rem;">{{ analiticoTotalDespesas |
+                              currency:'BRL' }}</span>
+                          </div>
+                        </div>
+                        <div class="dash-chart-body" style="min-height: 240px;">
+                          <div echarts [options]="chartAnaliticoBarrasVerticais" class="chart-container"
+                            style="min-height: 220px;"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Evolução Mensal das Despesas (Linha - 4 col) -->
+                    <div class="col-12 col-xl-4">
+                      <div class="dash-chart-card h-100">
+                        <div class="dash-chart-header">
+                          <h6 class="dash-chart-title">Evolução Mensal das Despesas</h6>
+                        </div>
+                        <div class="dash-chart-body" style="min-height: 240px;">
+                          <div echarts [options]="chartAnaliticoEvolucaoLinha" class="chart-container"
+                            style="min-height: 220px;"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Rankings Top 10 em Abas (3 col) -->
+                    <div class="col-12 col-xl-3">
+                      <div class="dash-chart-card h-100">
+                        <div class="dash-chart-header p-2 border-bottom">
+                          <div class="d-flex gap-1 bg-light p-1 rounded-2">
+                            <button class="btn btn-sm flex-fill text-center rounded-2 py-1 border-0"
+                              [ngClass]="analiticoRankingTab === 'colaboradores' ? 'bg-white shadow-sm text-primary fw-semibold' : 'text-muted'"
+                              (click)="setAnaliticoRankingTab('colaboradores')" style="font-size: 0.72rem;">
+                              Top Colaboradores
+                            </button>
+                            <button class="btn btn-sm flex-fill text-center rounded-2 py-1 border-0"
+                              [ngClass]="analiticoRankingTab === 'categorias' ? 'bg-white shadow-sm text-primary fw-semibold' : 'text-muted'"
+                              (click)="setAnaliticoRankingTab('categorias')" style="font-size: 0.72rem;">
+                              Top Categorias
+                            </button>
+                          </div>
+                        </div>
+                        <div class="dash-chart-body p-0"
+                          style="min-height: 240px; max-height: 260px; overflow-y: auto;">
+                          <table class="table table-hover align-middle m-0" style="font-size: 0.75rem;">
+                            <thead>
+                              <tr class="text-muted bg-light" style="font-size: 0.68rem; text-transform: uppercase;">
+                                <th class="ps-3" style="width: 25px;">#</th>
+                                <th>Nome</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-end pe-3">%</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr
+                                *ngFor="let item of (analiticoRankingTab === 'colaboradores' ? rankingColaboradores : rankingCategorias)">
+                                <td class="ps-3 fw-bold text-secondary">{{ item.posicao }}º</td>
+                                <td class="fw-medium text-dark text-truncate" style="max-width: 90px;"
+                                  [title]="item.nome">{{ item.nome }}</td>
+                                <td class="text-end tabular-nums">{{ item.valor | currency:'BRL':'symbol':'1.0-0' }}
+                                </td>
+                                <td class="text-end pe-3 text-muted tabular-nums">{{ item.pct | number:'1.0-1' }}%</td>
+                              </tr>
+                              <tr
+                                *ngIf="(analiticoRankingTab === 'colaboradores' ? rankingColaboradores : rankingCategorias).length === 0">
+                                <td colspan="4" class="text-center text-muted py-3">Sem dados.</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Linha 2: 4 Colunas (Por Categoria) + 4 Colunas (Distribuição Categoria) + 4 Colunas (Butterfly) -->
+                  <div class="row g-4 mb-4">
+                    <!-- Despesas por Categoria (4 col) -->
+                    <div class="col-12 col-xl-4">
+                      <div class="dash-chart-card h-100">
+                        <div class="dash-chart-header">
+                          <h6 class="dash-chart-title">Despesas por Categoria</h6>
+                        </div>
+                        <div class="dash-chart-body" style="min-height: 260px;">
+                          <div echarts [options]="chartAnaliticoCategoriaBarras" class="chart-container"
+                            style="min-height: 240px;"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Distribuição por Categoria (4 col) -->
+                    <div class="col-12 col-xl-4">
+                      <div class="dash-chart-card h-100">
+                        <div class="dash-chart-header">
+                          <h6 class="dash-chart-title">Distribuição por Categoria</h6>
+                        </div>
+                        <div class="dash-chart-body" style="min-height: 260px;">
+                          <div echarts [options]="chartAnaliticoCategoriaDonut" class="chart-container"
+                            style="min-height: 240px;"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Comercial vs Marketing Butterfly (4 col) -->
+                    <div class="col-12 col-xl-4">
+                      <div class="dash-chart-card h-100">
+                        <div class="dash-chart-header">
+                          <h6 class="dash-chart-title">Comercial vs. Marketing</h6>
+                        </div>
+                        <div class="dash-chart-body" style="min-height: 260px;">
+                          <div echarts [options]="chartAnaliticoButterfly" class="chart-container"
+                            style="min-height: 240px;"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Linha 3: 7 Colunas (Por Centro de Custo) + 5 Colunas (Distribuição Região) -->
+                  <div class="row g-4 mb-4">
+                    <div class="col-12 col-xl-7">
+                      <div class="dash-chart-card h-100">
+                        <div class="dash-chart-header">
+                          <h6 class="dash-chart-title">Despesas por Centro de Custo</h6>
+                        </div>
+                        <div class="dash-chart-body" style="min-height: 260px;">
+                          <div echarts [options]="chartAnaliticoCentroCusto" class="chart-container"
+                            style="min-height: 240px;"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-12 col-xl-5">
+                      <div class="dash-chart-card h-100">
+                        <div class="dash-chart-header">
+                          <h6 class="dash-chart-title">Distribuição por Região</h6>
+                        </div>
+                        <div class="dash-chart-body" style="min-height: 260px;">
+                          <div echarts [options]="chartAnaliticoMapa" class="chart-container"
+                            style="min-height: 240px;">
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Visão Alternativa: Detalhes -->
+                <div *ngIf="isAnaliticoDetalhesActive">
+
+                  <div class="dash-chart-card">
+                    <!-- Header do Card com Título e Busca Integrada -->
+                    <div
+                      class="dash-chart-header d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-3">
+                      <h6 class="dash-chart-title m-0">Detalhamento por Colaborador e Categoria</h6>
+                      <div class="search-box" style="max-width: 320px;">
+                        <i class="fa-solid fa-search text-muted"></i>
+                        <input type="text" class="form-control form-control-sm" placeholder="Buscar por colaborador..."
+                          [ngModel]="searchDetalhesTerm" (ngModelChange)="onSearchDetalhesChange($event)">
+                      </div>
+                    </div>
+
+                    <!-- Tabela com o mesmo design 'custom-table' da aba Visão Geral -->
+                    <div class="dash-chart-body p-0">
+                      <div class="table-responsive" style="max-height: 600px; overflow-x: auto;">
+                        <table class="table table-hover align-middle custom-table m-0">
+                          <thead>
+                            <tr>
+                              <th class="sticky-col-left">COLABORADOR</th>
+                              <th *ngFor="let cat of detalhesCategoriasColunas" class="text-end text-nowrap">{{ cat }}
+                              </th>
+                              <th class="sticky-col-right text-end">TOTAL</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr *ngFor="let row of detalhesMatrizFiltrada">
+                              <td class="sticky-col-left fw-semibold text-dark text-nowrap">{{ row.colaboradorNome }}
+                              </td>
+                              <td *ngFor="let cat of detalhesCategoriasColunas"
+                                class="text-end tabular-nums text-nowrap">
+                                <span *ngIf="row.valoresPorCategoria[cat]">{{ row.valoresPorCategoria[cat] |
+                                  currency:'BRL' }}</span>
+                                <span *ngIf="!row.valoresPorCategoria[cat]" class="text-muted small">-</span>
+                              </td>
+                              <td class="sticky-col-right text-end fw-bold text-primary tabular-nums text-nowrap">{{
+                                row.total | currency:'BRL' }}</td>
+                            </tr>
+                            <tr *ngIf="detalhesMatrizFiltrada.length === 0">
+                              <td [attr.colspan]="detalhesCategoriasColunas.length + 2"
+                                class="text-center text-muted py-4 small">
+                                Nenhum colaborador encontrado para a busca.
+                              </td>
+                            </tr>
+                          </tbody>
+                          <tfoot *ngIf="detalhesMatrizFiltrada.length > 0">
+                            <tr class="fw-bold" style="background-color: #f8fafc;">
+                              <td class="sticky-col-left text-dark">TOTAL GERAL</td>
+                              <td *ngFor="let cat of detalhesCategoriasColunas"
+                                class="text-end tabular-nums text-dark text-nowrap">
+                                {{ (detalhesTotaisPorCategoria[cat] || 0) | currency:'BRL' }}
+                              </td>
+                              <td class="sticky-col-right text-end text-primary tabular-nums text-nowrap">{{
+                                detalhesTotalGeral | currency:'BRL' }}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+              <!-- TAB 4: RELATÓRIO -->
+              <div *ngIf="activeDashboardTab === 'relatorio'">
+                <!-- Painel de Filtros Premium -->
+                <div class="filters-panel-card mb-4">
+                  <div class="filters-grid">
+                    <!-- Período -->
+                    <div class="filter-group period-filter-group">
+                      <span class="filter-label mb-2 d-block">Período</span>
+                      <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
+                        <div class="period-inputs">
+                          <div class="input-icon-wrapper" style="width: 130px;">
+                            <i class="fa-regular fa-calendar input-icon"></i>
+                            <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
+                              [locale]="locale" [convertModelValue]="true" [maxDate]="relatorioDataFim || ''"
+                              placeholder="Data inicial" [(ngModel)]="relatorioDataInicio"
+                              (ngModelChange)="onRelatorioDataInicioChange()">
+                          </div>
+                          <span class="period-separator text-muted small px-1">→</span>
+                          <div class="input-icon-wrapper" style="width: 130px;">
+                            <i class="fa-regular fa-calendar input-icon"></i>
+                            <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
+                              [locale]="locale" [convertModelValue]="true" [minDate]="relatorioDataInicio || ''"
+                              placeholder="Data final" [(ngModel)]="relatorioDataFim"
+                              (ngModelChange)="onRelatorioDataFimChange()">
+                          </div>
+                        </div>
+                        <select class="form-select form-select-sm shortcut-select" [(ngModel)]="relatorioPeriodShortcut"
+                          (ngModelChange)="onRelatorioShortcutSelectChange($event)">
+                          <option value="ultimo-bimestre">Últ. Bimestre</option>
+                          <option value="ultimo-semestre">Últ. Semestre</option>
+                          <option value="este-ano">Este Ano</option>
+                          <option value="ano-passado">Ano Passado</option>
+                          <option value="personalizado" disabled>Personalizado</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Empresa -->
+                    <div class="filter-group" style="min-width: 200px;">
+                      <label class="filter-label mb-2">Empresa</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="relatorioEmpresa"
+                        (ngModelChange)="atualizarDadosRelatorio()">
+                        <option [value]="null">Todas</option>
+                        <option *ngFor="let emp of listaEmpresasGeral" [value]="emp.idEmpresas">{{ emp.nome }}</option>
+                      </select>
+                    </div>
+
+                    <!-- Pessoa -->
+                    <div class="filter-group" style="min-width: 200px;">
+                      <label class="filter-label mb-2">Pessoa</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="relatorioColaborador"
+                        (ngModelChange)="atualizarDadosRelatorio()">
+                        <option [value]="null">Todas</option>
+                        <option *ngFor="let colab of listaColaboradoresGeral" [value]="colab.idColaborador">{{
+                          colab.nome }}</option>
+                      </select>
+                    </div>
+
+                    <!-- Centro de Custo -->
+                    <div class="filter-group" style="min-width: 200px;">
+                      <label class="filter-label mb-2">Centro de Custo</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="relatorioCentroCusto"
+                        (ngModelChange)="atualizarDadosRelatorio()">
+                        <option [value]="null">Todos</option>
+                        <option *ngFor="let cc of listaCentrosCustoGeral" [value]="cc.nome">{{ cc.codigo }} - {{ cc.nome
+                          }}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Grid Loading Skeleton -->
+                <app-skeleton *ngIf="isRelatorioLoading" type="rect" width="100%" height="320px"
+                  class="mb-4"></app-skeleton>
+
+                <!-- Grid Real Matrix Table -->
+                <div *ngIf="!isRelatorioLoading" class="dash-chart-card report-table-container">
+                  <!-- Header do Card com Título e Busca Integrada -->
+                  <div
+                    class="dash-chart-header d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-3">
+                    <h6 class="dash-chart-title m-0" style="font-size: 0.95rem; font-weight: 600;">Detalhamento por
+                      Colaborador e Categoria</h6>
+                    <div class="search-box" style="max-width: 320px;">
+                      <i class="fa-solid fa-search text-muted"></i>
+                      <input type="text" class="form-control form-control-sm" placeholder="Buscar por colaborador..."
+                        [(ngModel)]="searchRelatorioTerm" (ngModelChange)="onSearchRelatorioChange($event)">
+                    </div>
+                  </div>
+
+                  <div class="dash-chart-body p-0">
+                    <div class="table-responsive" style="max-height: 600px; overflow-x: auto;">
+                      <table class="table table-hover align-middle custom-table m-0" style="font-size: 0.85rem;">
+                        <thead>
+                          <tr>
+                            <th class="sticky-col-left py-2 px-3 text-muted fw-bold"
+                              style="letter-spacing: 0.5px; font-size: 0.75rem;">COLABORADOR</th>
+                            <th class="py-2 px-3 text-muted fw-bold text-nowrap"
+                              style="letter-spacing: 0.5px; font-size: 0.75rem;">EMPRESA</th>
+                            <th class="py-2 px-3 text-muted fw-bold text-nowrap"
+                              style="letter-spacing: 0.5px; font-size: 0.75rem;">CENTRO DE CUSTO</th>
+                            <th *ngFor="let cat of relatorioDetalhesCategoriasColunas"
+                              class="text-end text-nowrap py-2 px-3 text-muted fw-bold"
+                              style="letter-spacing: 0.5px; font-size: 0.75rem;">{{ cat }}</th>
+                            <th class="sticky-col-right text-end py-2 px-4 text-muted fw-bold"
+                              style="letter-spacing: 0.5px; font-size: 0.75rem; width: 140px;">TOTAL</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr *ngFor="let row of relatorioDetalhesMatrizFiltrada">
+                            <td class="sticky-col-left fw-semibold text-dark text-nowrap py-2 px-3">{{
+                              row.colaboradorNome }}</td>
+                            <td class="py-2 px-3 text-nowrap">{{ row.empresaNome || '-' }}</td>
+                            <td class="py-2 px-3 text-nowrap text-muted tabular-nums">{{ row.centroCustoCodigo || '-' }}
+                            </td>
+                            <td *ngFor="let cat of relatorioDetalhesCategoriasColunas"
+                              class="text-end tabular-nums text-nowrap py-2 px-3">
+                              <span *ngIf="row.valoresPorCategoria[cat]">{{ row.valoresPorCategoria[cat] |
+                                currency:'BRL' }}</span>
+                              <span *ngIf="!row.valoresPorCategoria[cat]" class="text-muted small">-</span>
+                            </td>
+                            <td
+                              class="sticky-col-right text-end fw-bold text-primary tabular-nums text-nowrap py-2 px-4">
+                              {{ row.total | currency:'BRL' }}</td>
+                          </tr>
+                          <tr *ngIf="relatorioDetalhesMatrizFiltrada.length === 0">
+                            <td [attr.colspan]="relatorioDetalhesCategoriasColunas.length + 4"
+                              class="text-center text-muted py-5 small">
+                              Nenhum colaborador encontrado para a busca.
+                            </td>
+                          </tr>
+                        </tbody>
+                        <tfoot *ngIf="relatorioDetalhesMatrizFiltrada.length > 0">
+                          <tr class="fw-bold" style="background-color: var(--color-surface-hover);">
+                            <td class="sticky-col-left text-dark py-2 px-3">TOTAL GERAL</td>
+                            <td class="py-2 px-3"></td>
+                            <td class="py-2 px-3"></td>
+                            <td *ngFor="let cat of relatorioDetalhesCategoriasColunas"
+                              class="text-end tabular-nums text-nowrap py-2 px-3">
+                              {{ (relatorioDetalhesTotaisPorCategoria[cat] || 0) | currency:'BRL' }}
+                            </td>
+                            <td class="sticky-col-right text-end text-primary tabular-nums text-nowrap py-2 px-4">
+                              {{ relatorioDetalhesTotalGeral | currency:'BRL' }}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </main>
+          </div>
+        </div>
+
+        <!-- Atualização de dados Tab (Importação) -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'atualizacao'"
+          [class.active]="activeTab === 'atualizacao'" role="tabpanel">
+          <div class="import-dashboard">
+
+            <div class="dashboard-section-header">
+              <h3>Importação de Faturas e Extratos</h3>
+              <p>Importe os relatórios em PDF dos nossos parceiros para processamento via IA.</p>
+            </div>
+
+            <div class="companies-grid">
+              @for (empresa of empresas; track empresa.nome) {
+              <div class="company-card">
+                <div class="company-info">
+                  <div class="company-icon">
+                    <i [class]="empresa.icon"></i>
+                  </div>
+                  <span class="company-name">{{ empresa.nome }}</span>
+                </div>
+                <app-button variant="ghost" size="sm" icon="fa-solid fa-cloud-arrow-up"
+                  (clicked)="openImportModal(empresa)">
+                  Importar
+                </app-button>
+              </div>
+              }
+            </div>
+
+            <div class="section-header d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h3>Histórico de Importações</h3>
+                <p>Acompanhe os arquivos processados recentemente.</p>
+              </div>
+              <div class="search-box" style="max-width: 300px; width: 100%;">
+                <i class="fa-solid fa-search text-muted"></i>
+                <input type="text" placeholder="Buscar importação..." [ngModel]="searchImportacaoTerm"
+                  (ngModelChange)="onSearchImportacaoChange($event)">
+              </div>
+            </div>
+
+            <div class="table-card">
+              <div class="table-responsive">
+                <table class="saas-table">
+                  <thead>
+                    <tr>
+                      <th>Nome do Arquivo</th>
+                      <th>Empresa</th>
+                      <th>Tipo</th>
+                      <th>Data</th>
+                      <th>Usuário</th>
+                      <th class="text-end">Valor Total</th>
+                      <th class="text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (hist of listaImportacoes; track hist.idImportacoes) {
+                    <tr>
+                      <td>
+                        <div class="file-cell">
+                          <i class="fa-regular fa-file-excel excel-icon"
+                            *ngIf="hist.extensaoArquivo === 'xlsx' || hist.extensaoArquivo === 'xls'"></i>
+                          <i class="fa-regular fa-file-pdf pdf-icon" *ngIf="hist.extensaoArquivo === 'pdf'"></i>
+                          <i class="fa-regular fa-file file-icon"
+                            *ngIf="hist.extensaoArquivo !== 'xlsx' && hist.extensaoArquivo !== 'xls' && hist.extensaoArquivo !== 'pdf'"></i>
+                          <span>{{ hist.nomeArquivo }}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span>{{ hist.empresa?.nome || '-' }}</span>
+                      </td>
+                      <td>
+                        <span class="company-badge">{{ hist.tipo }}</span>
+                      </td>
+                      <td>{{ hist.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                      <td>
+                        <span class="text-muted small fw-medium">
+                          <i class="fa-regular fa-user me-1"></i>{{ hist.autor || '-' }}
+                        </span>
+                      </td>
+                      <td class="text-end amount-cell">{{ hist.valor_total | currency:'BRL' }}</td>
+                      <td>
+                        <div class="actions-cell justify-content-center">
+                          <button class="action-btn delete-btn" title="Excluir"
+                            (click)="confirmarExclusaoImportacao(hist.idImportacoes)">
+                            <i class="fa-solid fa-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    }
+                    <tr *ngIf="listaImportacoes.length === 0">
+                      <td colspan="7" class="text-center text-muted py-4">Nenhuma importação encontrada.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Pagination -->
+              <div class="pagination-container p-3" *ngIf="listaImportacoes.length > 0">
+                <span class="text-muted small">Total de {{ totalImportacoes }} registros</span>
+                <div class="pagination-actions">
+                  <button class="btn-page" [disabled]="currentImportacaoPage === 1"
+                    (click)="goToImportacaoPage(currentImportacaoPage - 1)">
+                    <i class="fa-solid fa-chevron-left"></i>
+                  </button>
+                  <span class="page-indicator">Página {{ currentImportacaoPage }} de {{ totalImportacaoPages }}</span>
+                  <button class="btn-page" [disabled]="currentImportacaoPage === totalImportacaoPages"
+                    (click)="goToImportacaoPage(currentImportacaoPage + 1)">
+                    <i class="fa-solid fa-chevron-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Configurações Tab -->
+      </div> <!-- fecha tab-content -->
+    </main> <!-- fecha main-content -->
+  </div> <!-- fecha main-layout -->
+</div> <!-- fecha page-container -->
+
+<!-- Modal de Importação -->
+<app-modal [isOpen]="isImportModalOpen" [title]="'Importar Dados ' + (empresaSelecionada?.nome || '')"
+  (closed)="closeImportModal()" size="lg">
+  <div class="import-modal-content-wrapper">
+    @if (uploadState === 'idle') {
+    <div class="upload-zone" (click)="fileInput.click()">
+      @if (selectedFileName) {
+      <i class="fa-solid fa-file-pdf upload-icon text-primary"></i>
+      <h4 class="text-primary">{{ selectedFileName }}</h4>
+      <p>Clique aqui para trocar o arquivo</p>
+      } @else {
+      <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+      <h4>Clique ou arraste um arquivo aqui</h4>
+      <p>Suporta PDF, Excel, CSV ou DOC</p>
+      }
+      <input type="file" #fileInput hidden accept=".pdf,.xls,.xlsx,.csv,.doc,.docx" (change)="onFileSelected($event)">
+    </div>
+    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+      <app-button variant="ghost" (clicked)="closeImportModal()">Cancelar</app-button>
+      <app-button variant="primary" (clicked)="iniciarProcessamento()">Processar</app-button>
+    </div>
+    } @else {
+    <div class="processing-container d-flex flex-column" style="height: 75vh;">
+      @if (uploadState === 'processing') {
+      <div class="processing-steps flex-grow-1 d-flex flex-column justify-content-center align-items-center">
+        <div class="text-center mb-4">
+          <h5 class="fw-bold" style="color: var(--color-text-primary);">Processando Documento</h5>
+          <p class="text-muted small">Nossa IA está interpretando as informações. Isso pode levar alguns segundos.</p>
+        </div>
+        <div class="processing-steps-list text-start" style="width: 100%; max-width: 350px;">
+          @for (step of processingSteps; track step; let i = $index) {
+          <div class="processing-step mb-3" [class.active]="currentProcessingStep === i"
+            [class.completed]="currentProcessingStep > i" [class.text-muted]="currentProcessingStep < i">
+            <div class="d-flex align-items-center">
+              <div class="step-indicator me-3" style="width: 20px; text-align: center;">
+                @if (currentProcessingStep > i) {
+                <i class="fa-solid fa-check text-success"></i>
+                } @else if (currentProcessingStep === i) {
+                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                } @else {
+                <i class="fa-regular fa-circle text-muted" style="font-size: 0.85rem;"></i>
+                }
+              </div>
+              <span class="step-label small fw-medium" [class.text-primary]="currentProcessingStep === i">{{ step
+                }}</span>
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+      }
+      @if (uploadState === 'done') {
+      <div class="success-message mt-2 mb-3 d-flex align-items-center text-success flex-shrink-0">
+        <i class="fa-solid fa-circle-check fs-5 me-2"></i>
+        <span class="small fw-medium">Leitura concluída via IA. Faça a conferência e ajustes se necessário:</span>
+      </div>
+
+      <div class="table-responsive border rounded flex-grow-1 import-table-container" style="overflow-y: auto;">
+        <table class="saas-table w-100 mb-0" style="font-size: 0.85rem;">
+          <thead
+            style="position: sticky; top: 0; background: var(--color-bg); z-index: 1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border-bottom: 1px solid var(--color-border);">
+            <tr>
+              <th class="py-2 px-3 text-muted fw-bold text-center" style="letter-spacing: 0.5px; font-size: 0.75rem;">
+                COLABORADOR</th>
+              <th class="py-2 px-3 text-muted fw-bold text-center" style="letter-spacing: 0.5px; font-size: 0.75rem;">
+                CATEGORIA</th>
+              <th class="py-2 px-4 text-muted fw-bold text-center"
+                style="letter-spacing: 0.5px; font-size: 0.75rem; width: 140px;">VALOR</th>
+              <th style="width: 50px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (despesa of despesasExtraidas; track $index) {
+            <tr class="align-middle" style="border-bottom: 1px solid var(--color-border);">
+              <td class="p-2 text-center" style="min-width: 220px;">
+                <ng-select [items]="listaColaboradoresGeral" bindLabel="nome" bindValue="nome"
+                  [(ngModel)]="despesa.colaborador" [clearable]="false" [searchable]="true" appendTo="body"
+                  placeholder="Colaborador" class="custom-ng-select">
+                </ng-select>
+              </td>
+              <td class="p-2 text-center" style="min-width: 220px;">
+                <ng-select [items]="listaCategoriasGeral" bindLabel="nome" bindValue="nome"
+                  [(ngModel)]="despesa.categoria" [clearable]="false" [searchable]="true" appendTo="body"
+                  placeholder="Categoria" class="custom-ng-select"
+                  [ngClass]="{'text-primary': despesa.categoria !== 'Outros', 'text-warning': despesa.categoria === 'Outros'}">
+                </ng-select>
+              </td>
+              <td class="p-2 text-center pe-4">
+                <input type="number" step="0.01"
+                  class="form-control form-control-sm text-center fw-bold border-0 shadow-none d-inline-block"
+                  style="width: 100%; max-width: 110px; font-size: 0.85rem; -moz-appearance: textfield; background-color: var(--color-bg); color: var(--color-text-primary); border-radius: 6px;"
+                  [(ngModel)]="despesa.valor">
+              </td>
+              <td class="p-2 text-center">
+                <div class="action-buttons justify-content-center">
+                  <button class="btn-icon delete" title="Remover Despesa" (click)="removerLinha($index)">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            }
+            @if (despesasExtraidas.length === 0) {
+            <tr>
+              <td colspan="4" class="text-center text-muted py-5 small">Nenhuma despesa identificada neste documento.
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+        <div class="p-2 border-top d-flex justify-content-start import-table-action-bar">
+          <button class="btn btn-sm btn-outline-primary" style="height: 32px; border-radius: 6px; font-size: 0.75rem;"
+            (click)="adicionarLinhaEmBranco()">
+            <i class="fa-solid fa-plus me-1"></i> Adicionar Linha Manual
+          </button>
+        </div>
+      </div>
+
+      <div
+        class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-shrink-0 import-table-footer">
+        <div class="d-flex flex-column">
+          <span class="text-muted fw-bold" style="letter-spacing: 0.5px; font-size: 0.7rem;">TOTAL IDENTIFICADO</span>
+          <span class="fs-5 fw-bold" style="color: var(--color-text-primary);">{{ totalDespesasExtraidas |
+            currency:'BRL':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="d-flex gap-2">
+          <app-button variant="ghost" (clicked)="closeImportModal()">Fechar</app-button>
+          <app-button variant="primary" (clicked)="salvarExtraidos()"
+            [disabled]="despesasExtraidas.length === 0 || isSalvandoExtraidos">
+            {{ isSalvandoExtraidos ? 'Salvando...' : 'Confirmar e Salvar' }}
+          </app-button>
+        </div>
+      </div>
+      }
+    </div>
+    }
+  </div>
+</app-modal>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Modal de Confirmação (Genérico) -->
+<app-confirm-modal [isOpen]="isConfirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
+  [isLoading]="isConfirmLoading" (confirmed)="executeConfirm()" (canceled)="closeConfirmModal()"></app-confirm-modal>
+
+<!-- Toast Simples Customizado para Alertas -->
+@if (toastMessage) {
+<div class="position-fixed top-0 end-0 p-3 mt-5" style="z-index: 9999">
+  <div class="toast show align-items-center text-bg-danger border-0 shadow-lg" role="alert" aria-live="assertive"
+    aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body fw-medium px-3 py-2">
+        <i class="fa-solid fa-circle-exclamation me-2"></i> {{ toastMessage }}
+      </div>
+      <button type="button" class="btn-close btn-close-white me-3 m-auto" (click)="toastMessage = null"
+        aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+}

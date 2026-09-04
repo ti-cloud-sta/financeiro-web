@@ -1,0 +1,252 @@
+<div class="page-container">
+  <div class="main-layout">
+    
+    <!-- Sidebar -->
+    <aside class="main-sidebar" [class.collapsed]="isSidebarCollapsed">
+      <div class="sidebar-header d-flex justify-content-end mb-3 pb-2 border-bottom">
+        <button class="btn btn-sm text-muted sidebar-toggle" (click)="toggleSidebar()"
+          style="background: transparent; border: none; padding: 0.25rem 0.5rem; border-radius: 6px;">
+          <i class="fa-solid" [ngClass]="isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+        </button>
+      </div>
+      
+      <ul class="main-nav">
+        <li>
+          <button class="main-nav-link" [class.active]="activeTab === 'dashboards'" (click)="setActiveTab('dashboards')" title="Dashboards">
+            <i class="fa-solid fa-chart-line"></i> <span class="nav-text">Dashboards</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeTab === 'inadimplencia'" (click)="setActiveTab('inadimplencia')" title="Inadimplência">
+            <i class="fa-solid fa-file-invoice-dollar"></i> <span class="nav-text">Inadimplência</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeTab === 'representantes'" (click)="setActiveTab('representantes')" title="Representantes">
+            <i class="fa-solid fa-user-tie"></i> <span class="nav-text">Representantes</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeTab === 'gerentes'" (click)="setActiveTab('gerentes')" title="Gerentes">
+            <i class="fa-solid fa-user-shield"></i> <span class="nav-text">Gerentes</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeTab === 'pendencias'" (click)="setActiveTab('pendencias')" title="Pendências">
+            <i class="fa-solid fa-triangle-exclamation"></i> <span class="nav-text">Pendências</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeTab === 'atualizacao-dados'" (click)="setActiveTab('atualizacao-dados')" title="Atualização de Dados">
+            <i class="fa-solid fa-database"></i> <span class="nav-text">Atualização de Dados</span>
+          </button>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="tab-content custom-tab-content">
+        
+        <!-- Tab Dashboards -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'dashboards'" [class.active]="activeTab === 'dashboards'" role="tabpanel">
+          <div class="config-layout">
+            <div class="dashboard-header border-bottom">
+              <h3 class="mb-0 p-3" style="font-size: 1.5rem; font-weight: 600;">Dashboards</h3>
+            </div>
+            <div class="p-3">
+              <!-- Conteúdo de Dashboards virá aqui -->
+              <p class="text-muted">Conteúdo de Dashboards</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Inadimplência -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'inadimplencia'" [class.active]="activeTab === 'inadimplencia'" role="tabpanel">
+          <div class="config-layout">
+            <div class="dashboard-header border-bottom">
+              <h3 class="mb-0 p-3" style="font-size: 1.5rem; font-weight: 600;">Inadimplência</h3>
+            </div>
+            <div class="p-3">
+              <!-- Conteúdo de Inadimplência virá aqui -->
+              <p class="text-muted">Conteúdo de Inadimplência</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Representantes -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'representantes'" [class.active]="activeTab === 'representantes'" role="tabpanel">
+          <div class="config-layout">
+            <div class="dashboard-header border-bottom">
+              <h3 class="mb-0 p-3" style="font-size: 1.5rem; font-weight: 600;">Representantes</h3>
+            </div>
+            <div class="p-3">
+              <!-- Conteúdo de Representantes virá aqui -->
+              <p class="text-muted">Conteúdo de Representantes</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Gerentes -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'gerentes'" [class.active]="activeTab === 'gerentes'" role="tabpanel">
+          <div class="config-layout">
+            <div class="dashboard-header border-bottom">
+              <h3 class="mb-0 p-3" style="font-size: 1.5rem; font-weight: 600;">Gerentes</h3>
+            </div>
+            <div class="p-3">
+              <!-- Conteúdo de Gerentes virá aqui -->
+              <p class="text-muted">Conteúdo de Gerentes</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Pendências -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'pendencias'" [class.active]="activeTab === 'pendencias'" role="tabpanel">
+          <div class="config-layout">
+            <div class="dashboard-header border-bottom">
+              <h3 class="mb-0 p-3" style="font-size: 1.5rem; font-weight: 600;">Pendências</h3>
+            </div>
+            <div class="p-3">
+              <!-- Conteúdo de Pendências virá aqui -->
+              <app-pendencias></app-pendencias>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Atualização de Dados -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'atualizacao-dados'" [class.active]="activeTab === 'atualizacao-dados'" role="tabpanel">
+          <div class="panel-container pt-0">
+
+            <!-- Upload Box Card -->
+            <div class="import-card-premium">
+              <div class="import-card-header">
+                <div class="import-card-icon">
+                  <i class="fa-solid fa-database"></i>
+                </div>
+                <div class="import-card-meta">
+                  <h3>Atualização de Dados</h3>
+                  <p>Carregue a planilha correspondente para atualizar as informações do sistema.</p>
+                </div>
+              </div>
+
+              <div class="upload-fields-row mb-3">
+                <div class="upload-field-box">
+                  <label class="form-label">Planilha de Atualização (Excel)</label>
+                  <div class="custom-upload-zone" (click)="triggerUploadAtualizacao()"
+                    [class.has-file]="selectedFileAtualizacao() !== null">
+                    @if (selectedFileAtualizacao()) {
+                    <i class="fa-regular fa-file-excel fs-3 text-success"></i>
+                    <div class="upload-text">
+                      <span class="file-selected-name text-success">{{ selectedFileAtualizacao()?.name }}</span>
+                      <span class="d-block text-muted mt-1" style="font-size: 11px;">Planilha carregada! Clique em "Atualizar Dados" para processar.</span>
+                    </div>
+                    } @else {
+                    <i class="fa-regular fa-file-excel fs-3 text-success"></i>
+                    <div class="upload-text">
+                      <span>Carregar Planilha de Atualização</span>
+                    </div>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div class="import-actions-row">
+                <app-button variant="primary" icon="fa-solid fa-arrows-rotate"
+                  [disabled]="!selectedFileAtualizacao() || isImportandoDados()" [loading]="isImportandoDados()"
+                  (clicked)="processarAtualizacaoDados()">
+                  {{ isImportandoDados() ? 'Importando...' : 'Atualizar Dados' }}
+                </app-button>
+              </div>
+            </div>
+
+            <!-- Atualizações History Header -->
+            <div class="section-header d-flex justify-content-between align-items-center mb-3 mt-5">
+              <div>
+                <h3>Últimas Atualizações Realizadas</h3>
+                <p>Acompanhe os arquivos de atualização de dados processados recentemente.</p>
+              </div>
+              <div class="search-box" style="max-width: 300px; width: 100%;">
+                <i class="fa-solid fa-search text-muted"></i>
+                <input type="text" placeholder="Buscar atualização..." [ngModel]="searchAtualizacao()"
+                  (ngModelChange)="searchAtualizacao.set($event)">
+              </div>
+            </div>
+
+            <!-- Atualizações History Table (SaaS Style) -->
+            <div class="table-card mb-5">
+              <div class="table-responsive">
+                <table class="saas-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 18%;">Data/Hora</th>
+                      <th style="width: 52%;">Arquivo de Origem</th>
+                      <th style="width: 15%;">Tipo</th>
+                      <th style="width: 10%;">Usuário</th>
+                      <th style="width: 5%; text-align: center;">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (history of filteredAtualizacaoHistory(); track history.idImportacoes) {
+                    <tr>
+                      <td class="font-monospace small">{{ formatarData(history.createdAt) }}</td>
+                      <td>
+                        <div class="file-cell">
+                          <i class="fa-regular fa-file-excel text-success fs-5"
+                            *ngIf="history.nomeArquivo.endsWith('.xlsx') || history.nomeArquivo.endsWith('.xls') || history.nomeArquivo.endsWith('.csv')"></i>
+                          <i class="fa-regular fa-file text-muted fs-5"
+                            *ngIf="!history.nomeArquivo.endsWith('.xlsx') && !history.nomeArquivo.endsWith('.xls') && !history.nomeArquivo.endsWith('.csv')"></i>
+                          <span>{{ history.nomeArquivo }}</span>
+                        </div>
+                      </td>
+                      <td class="text-muted small">{{ history.tipo }}</td>
+                      <td>
+                        <span class="text-muted small fw-medium">
+                          <i class="fa-regular fa-user me-1"></i>{{ history.autor || '-' }}
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <div class="actions-cell justify-content-center">
+                          <button class="action-btn delete-btn" title="Excluir"
+                            (click)="excluirAtualizacao(history.idImportacoes)">
+                            <i class="fa-solid fa-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    }
+                    @if (filteredAtualizacaoHistory().length === 0) {
+                    <tr>
+                      <td colspan="5" class="text-center py-4 text-muted">
+                        Nenhuma atualização encontrada.
+                      </td>
+                    </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Hidden File Input -->
+  <input type="file" #atualizacaoFileInput style="display: none;" accept=".xlsx, .xls, .csv"
+    (change)="onFileSelectedAtualizacao($event)">
+
+  <!-- Confirm / Alert Modal -->
+  <app-confirm-modal
+    [isOpen]="isConfirmModalOpen"
+    [title]="confirmTitle"
+    [message]="confirmMessage"
+    [confirmText]="confirmText"
+    [cancelText]="cancelText"
+    [variant]="confirmVariant"
+    [showCancel]="showCancelConfirm"
+    (confirmed)="executeConfirm()"
+    (canceled)="closeConfirmModal()"
+  ></app-confirm-modal>
+</div>

@@ -1,0 +1,42 @@
+<header class="header">
+
+  <!-- LEFT: LOGO -->
+  <div class="header-brand d-flex align-items-center justify-content-between w-100 align-items-center">
+    <a routerLink="/" class="logo d-flex align-items-center">
+      <img src="images/logo.jpg" class="rounded-pill" width="100" alt="">
+      <span class="h5">Cuidamos da sua casa, como cuidamos da nossa!</span>
+    </a>
+  </div>
+
+  <!-- CENTER: NAVIGATION & SEARCH -->
+  <div class="header-center">
+    <!-- <nav class="main-nav">
+      <a routerLink="/home" routerLinkActive="active" class="nav-item">
+        <i class="fa-solid fa-house"></i> Home
+      </a>
+    </nav> -->
+    <!-- <div class="search-bar">
+      <span class="icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+      <input type="text" placeholder="Buscar no sistema..." />
+      <span class="shortcut">Ctrl + K</span>
+    </div> -->
+  </div>
+
+  <div class="header-actions">
+
+    <button class="theme-toggle-btn" (click)="themeService.toggleTheme()"
+      [title]="themeService.activeTheme() === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
+      aria-label="Alternar tema">
+      <i class="fa-solid" [class.fa-sun]="themeService.activeTheme() === 'dark'"
+        [class.fa-moon]="themeService.activeTheme() === 'light'"></i>
+    </button>
+
+    <div class="user-profile d-flex align-items-center gap-3">
+      <span class="name text-nowrap fw-semibold text-secondary fs-6 mb-0">{{ user()?.name }}</span>
+      <button class="btn btn-sm btn-outline-danger text-nowrap" (click)="logout()" title="Sair do sistema">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i> Sair
+      </button>
+    </div>
+  </div>
+
+</header>

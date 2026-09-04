@@ -1,0 +1,21 @@
+@import 'styles/variables';
+
+.erp-skeleton {
+  background-color: $gray-200;
+  border-radius: $border-radius-sm;
+  animation: pulse 1.5s infinite ease-in-out;
+
+  &--circle {
+    border-radius: 50%;
+  }
+
+  &--text {
+    border-radius: $border-radius-sm;
+  }
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}

@@ -1,0 +1,451 @@
+<div class="page-container">
+
+  <!-- Page Header -->
+  <!-- <header class="page-header-premium">
+    <div class="title-row">
+      <div class="header-info">
+        <h1 class="page-title">Extratores</h1>
+        <span class="page-description">Configure e gerencie extratores de dados inteligentes para importação automatizada.</span>
+      </div>
+    </div>
+  </header> -->
+
+  <div class="main-layout">
+    <aside class="main-sidebar" [class.collapsed]="isSidebarCollapsed">
+      <div class="sidebar-header d-flex justify-content-end mb-3 pb-2 border-bottom">
+        <button class="btn btn-sm text-muted sidebar-toggle" (click)="toggleSidebar()"
+          style="background: transparent; border: none; padding: 0.25rem 0.5rem; border-radius: 6px;">
+          <i class="fa-solid" [ngClass]="isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+        </button>
+      </div>
+      <ul class="main-nav">
+        <li>
+          <button class="main-nav-link" [class.active]="activeTab === 'composicoes'"
+            (click)="setActiveTab('composicoes')" title="Pagamentos">
+            <i class="fa-solid fa-file-invoice-dollar"></i> <span class="nav-text">Pagamentos</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeTab === 'prorrogacoes'"
+            (click)="setActiveTab('prorrogacoes')" title="Prorrogações">
+            <i class="fa-solid fa-clock-rotate-left"></i> <span class="nav-text">Prorrogações</span>
+          </button>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="tab-content custom-tab-content">
+
+        <!-- Tab: Composições -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'composicoes'"
+          [class.active]="activeTab === 'composicoes'">
+          <div class="import-dashboard">
+
+            <div class="dashboard-section-header">
+              <h3>Pagamentos</h3>
+              <p>Importe os dados de pagamentos de cada supermercado.</p>
+            </div>
+
+            <div class="companies-grid">
+              @for (ext of getComposicoesExtractors(); track ext.id) {
+              <div class="company-card">
+                <div class="company-info">
+                  <div class="company-icon" [class]="ext.colorClass" [style.padding]="ext.logo ? '4px' : ''"
+                    [style.background]="ext.logo ? 'white' : ''">
+                    @if (ext.logo) { <img [src]="ext.logo" alt="{{ ext.name }}"
+                      style="max-width: 100%; max-height: 100%; object-fit: contain;"> } @else { <i
+                      [class]="ext.icon"></i> }
+                  </div>
+                  <span class="company-name">{{ ext.name }}</span>
+                </div>
+                <app-button variant="ghost" size="sm" icon="fa-solid fa-cloud-arrow-up"
+                  (clicked)="openComposicaoModal(ext)">
+                  Importar
+                </app-button>
+              </div>
+              }
+            </div>
+
+            <div class="section-header d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h3>Histórico de Importações</h3>
+                <p>Acompanhe os arquivos processados recentemente.</p>
+              </div>
+              <div class="search-box" style="max-width: 300px; width: 100%;">
+                <i class="fa-solid fa-search text-muted"></i>
+                <input type="text" placeholder="Buscar importação...">
+              </div>
+            </div>
+
+            <div class="table-card">
+              <div class="table-responsive">
+                <table class="saas-table">
+                  <thead>
+                    <tr>
+                      <th>Nome do Arquivo</th>
+                      <th>Empresa</th>
+                      <th>Tipo</th>
+                      <th>Data</th>
+                      <th>Usuário</th>
+
+                      <th class="text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of historicoComposicoes(); track item.idImportacoes) {
+                    <tr>
+                      <td>
+                        <div class="file-cell">
+                          <i class="fa-regular fa-file-excel excel-icon"></i>
+                          <span>{{ item.nomeArquivo }}</span>
+                        </div>
+                      </td>
+                      <td>{{ item.empresa?.nome || item.tipo.split(' - ')[1] || '-' }}</td>
+                      <td><span class="company-badge">{{ item.tipo }}</span></td>
+                      <td>{{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                      <td>
+                        <span class="text-muted small fw-medium">
+                          <i class="fa-regular fa-user me-1"></i>{{ item.autor || '-' }}
+                        </span>
+                      </td>
+
+                      <td>
+                        <div class="actions-cell justify-content-center">
+                          <button class="action-btn delete-btn" title="Excluir"
+                            (click)="confirmarExclusao(item.idImportacoes, $event)">
+                            <i class="fa-solid fa-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    }
+                    @if (historicoComposicoes().length === 0) {
+                    <tr>
+                      <td colspan="6" class="text-center text-muted py-4">Nenhuma importação encontrada.</td>
+                    </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Tab: Prorrogações -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'prorrogacoes'"
+          [class.active]="activeTab === 'prorrogacoes'">
+          <div class="import-dashboard">
+
+            <div class="dashboard-section-header">
+              <h3>Prorrogações</h3>
+              <p>Importe e concilie os dados de prorrogações de cada supermercado.</p>
+            </div>
+
+            <div class="companies-grid">
+              @for (ext of getProrrogacoesExtractors(); track ext.id) {
+              <div class="company-card">
+                <div class="company-info">
+                  <div class="company-icon" [class]="ext.colorClass" [style.padding]="ext.logo ? '4px' : ''"
+                    [style.background]="ext.logo ? 'white' : ''">
+                    @if (ext.logo) { <img [src]="ext.logo" alt="{{ ext.name }}"
+                      style="max-width: 100%; max-height: 100%; object-fit: contain;"> } @else { <i
+                      [class]="ext.icon"></i> }
+                  </div>
+                  <span class="company-name">{{ ext.name }}</span>
+                </div>
+                <app-button variant="ghost" size="sm" icon="fa-solid fa-cloud-arrow-up"
+                  (clicked)="openProrrogacaoModal(ext)">
+                  Importar
+                </app-button>
+              </div>
+              }
+            </div>
+
+            <div class="section-header d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h3>Histórico de Prorrogações</h3>
+                <p>Acompanhe os arquivos processados recentemente.</p>
+              </div>
+              <div class="search-box" style="max-width: 300px; width: 100%;">
+                <i class="fa-solid fa-search text-muted"></i>
+                <input type="text" placeholder="Buscar prorrogação...">
+              </div>
+            </div>
+
+            <div class="table-card">
+              <div class="table-responsive">
+                <table class="saas-table">
+                  <thead>
+                    <tr>
+                      <th>Nome do Arquivo</th>
+                      <th>Empresa</th>
+                      <th>Tipo</th>
+                      <th>Data</th>
+                      <th>Usuário</th>
+
+                      <th class="text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of historicoProrrogacoes(); track item.idImportacoes) {
+                    <tr>
+                      <td>
+                        <div class="file-cell">
+                          <i class="fa-regular fa-file-excel excel-icon"></i>
+                          <span>{{ item.nomeArquivo }}</span>
+                        </div>
+                      </td>
+                      <td>{{ item.empresa?.nome || item.tipo.split(' - ')[1] || '-' }}</td>
+                      <td><span class="company-badge">{{ item.tipo }}</span></td>
+                      <td>{{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                      <td>
+                        <span class="text-muted small fw-medium">
+                          <i class="fa-regular fa-user me-1"></i>{{ item.autor || '-' }}
+                        </span>
+                      </td>
+
+                      <td>
+                        <div class="actions-cell justify-content-center">
+                          <button class="action-btn delete-btn" title="Excluir"
+                            (click)="confirmarExclusao(item.idImportacoes, $event)">
+                            <i class="fa-solid fa-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    }
+                    @if (historicoProrrogacoes().length === 0) {
+                    <tr>
+                      <td colspan="6" class="text-center text-muted py-4">Nenhuma importação encontrada.</td>
+                    </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Hidden Inputs for unified Composicao modal -->
+  <input type="file" #composicaoEmpresaFileInput style="display: none;"
+    [accept]="composicaoExtSelecionado?.id === 'ext-pdf-ia' ? '.html, .htm' : '.xlsx, .xls'"
+    (change)="onComposicaoEmpresaFileSelected($event)">
+  <input type="file" #composicaoAcrFileInput style="display: none;" accept=".xlsx, .xls"
+    (change)="onComposicaoAcrFileSelected($event)">
+
+  <app-modal [isOpen]="isComposicaoUnifiedModalOpen"
+    [title]="'Processar Pagamento - ' + (composicaoExtSelecionado?.name || '')" size="lg"
+    (closed)="closeComposicaoModal()">
+    <div class="prorrogacao-modal-content">
+
+      @if (isComposicaoUnifiedProcessing()) {
+      <div class="text-center py-5">
+        <div class="processing-spinner mb-3">
+          <app-loading type="spinner" size="lg"></app-loading>
+        </div>
+        <h4 class="mb-2">Processando arquivos...</h4>
+        <p class="text-muted small">Carregando arquivos e realizando a extração e conciliação. Por favor, aguarde.</p>
+      </div>
+      }
+
+      @else if (composicaoUnifiedError() !== '') {
+      <div class="text-center py-5">
+        <div class="text-danger mb-3">
+          <i class="fa-solid fa-circle-xmark fs-1"></i>
+        </div>
+        <h4 class="mb-2 text-danger">Falha no Processamento</h4>
+        <p class="text-muted small">{{ composicaoUnifiedError() }}</p>
+        <div class="mt-4">
+          <app-button variant="secondary" (clicked)="closeComposicaoModal()">
+            Fechar
+          </app-button>
+        </div>
+      </div>
+      }
+
+      @else {
+      <div class="upload-split-layout">
+        <!-- Lado Esquerdo: Arquivo da Empresa -->
+        <div class="upload-split-side">
+          <div class="upload-split-label">
+            <i class="fa-solid fa-building me-2"></i>
+            Arquivo {{ composicaoExtSelecionado?.name }}
+          </div>
+          <div class="upload-zone" (click)="triggerComposicaoEmpresaFileInput()">
+            @if (composicaoEmpresaFile()) {
+            <i class="fa-solid fa-file-circle-check upload-icon text-success"></i>
+            <h4 class="text-success small fw-semibold">{{ composicaoEmpresaFile()?.name }}</h4>
+            <p class="text-muted small">Clique para trocar o arquivo</p>
+            } @else {
+            <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+            <h4>Clique para selecionar</h4>
+            <p class="text-muted small">
+              {{ composicaoExtSelecionado?.id === 'ext-pdf-ia' ? 'Arquivo HTML (.html, .htm)' : 'Planilha Excel (.xlsx,
+              .xls)' }}
+            </p>
+            }
+          </div>
+        </div>
+
+        <!-- Divisor Vertical -->
+        <div class="upload-split-divider">
+          <div class="divider-line"></div>
+          <span class="divider-text">e</span>
+          <div class="divider-line"></div>
+        </div>
+
+        <!-- Lado Direito: Arquivo ACR -->
+        <div class="upload-split-side">
+          <div class="upload-split-label">
+            <i class="fa-solid fa-file-excel me-2"></i>
+            Arquivo ACR
+          </div>
+          <div class="upload-zone" (click)="triggerComposicaoAcrFileInput()">
+            @if (composicaoAcrFile()) {
+            <i class="fa-solid fa-file-circle-check upload-icon text-success"></i>
+            <h4 class="text-success small fw-semibold">{{ composicaoAcrFile()?.name }}</h4>
+            <p class="text-muted small">Clique para trocar o arquivo</p>
+            } @else {
+            <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+            <h4>Clique para selecionar</h4>
+            <p class="text-muted small">Planilha Excel (.xlsx, .xls)</p>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+        <app-button variant="ghost" (clicked)="closeComposicaoModal()">Cancelar</app-button>
+        <app-button variant="primary" [disabled]="!composicaoEmpresaFile() || !composicaoAcrFile()"
+          (clicked)="processComposicaoUnified()">Processar</app-button>
+      </div>
+      }
+
+    </div>
+  </app-modal>
+  <!-- Hidden Inputs for unified prorrogação modal -->
+  <input type="file" #prorrogacaoEmpresaFileInput style="display: none;" [accept]="getEmpresaFileAccept()"
+    (change)="onProrrogacaoEmpresaFileChange($event)" [multiple]="prorrogacaoExtSelecionado?.id === 'ext-atacadao-prorrogacao'">
+  <input type="file" #prorrogacaoAcrFileInput style="display: none;" accept=".xlsx, .xls"
+    (change)="onProrrogacaoAcrFileChange($event)">
+
+  <!-- Modal Unificado de Prorrogação -->
+  <app-modal [isOpen]="isProrrogacaoUnifiedModalOpen"
+    [title]="'Processar Prorrogação - ' + (prorrogacaoExtSelecionado?.name || '')" size="lg"
+    (closed)="closeProrrogacaoModal()">
+    <div class="prorrogacao-modal-content">
+
+      @if (isProrrogacaoUnifiedProcessing()) {
+      <div class="text-center py-5">
+        <div class="processing-spinner mb-3">
+          <app-loading type="spinner" size="lg"></app-loading>
+        </div>
+        <h4 class="mb-2">Processando arquivos...</h4>
+        <p class="text-muted small">Carregando arquivos e realizando a conciliação. Por favor, aguarde.</p>
+      </div>
+      }
+
+      @else if (prorrogacaoUnifiedError() !== '') {
+      <div class="text-center py-5">
+        <div class="text-danger mb-3">
+          <i class="fa-solid fa-circle-xmark fs-1"></i>
+        </div>
+        <h4 class="mb-2 text-danger">Falha no Processamento</h4>
+        <p class="text-muted small">{{ prorrogacaoUnifiedError() }}</p>
+        <div class="mt-4">
+          <app-button variant="secondary" (clicked)="closeProrrogacaoModal()">
+            Fechar
+          </app-button>
+        </div>
+      </div>
+      }
+
+      @else {
+      <div class="upload-split-layout">
+        <!-- Lado Esquerdo: Arquivo da Empresa -->
+        <div class="upload-split-side">
+          <div class="upload-split-label">
+            <i class="fa-solid fa-building me-2"></i>
+            Arquivo {{ prorrogacaoExtSelecionado?.name }}
+          </div>
+          <div class="upload-zone" (click)="triggerProrrogacaoEmpresaFileInput()">
+            @if (prorrogacaoEmpresaFiles().length > 0) {
+            <i class="fa-solid fa-file-circle-check upload-icon text-success"></i>
+            <h4 class="text-success small fw-semibold">
+              @if (prorrogacaoEmpresaFiles().length === 1) {
+                {{ prorrogacaoEmpresaFiles()[0].name }}
+              } @else {
+                {{ prorrogacaoEmpresaFiles().length }} arquivos selecionados
+              }
+            </h4>
+            <p class="text-muted small">Clique para trocar</p>
+            } @else {
+            <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+            <h4>Clique para selecionar</h4>
+            <p class="text-muted small">
+              {{ prorrogacaoExtSelecionado?.id === 'ext-atacadao-prorrogacao' ? 'Arquivo HTML (.html, .htm)' : 'Planilha
+              Excel (.xlsx, .xls)' }}
+            </p>
+            }
+          </div>
+        </div>
+
+        <!-- Divisor Vertical -->
+        <div class="upload-split-divider">
+          <div class="divider-line"></div>
+          <span class="divider-text">e</span>
+          <div class="divider-line"></div>
+        </div>
+
+        <!-- Lado Direito: Arquivo ACR -->
+        <div class="upload-split-side">
+          <div class="upload-split-label">
+            <i class="fa-solid fa-file-excel me-2"></i>
+            Arquivo ACR
+          </div>
+          <div class="upload-zone" (click)="triggerProrrogacaoAcrFileInput()">
+            @if (prorrogacaoAcrFile()) {
+            <i class="fa-solid fa-file-circle-check upload-icon text-success"></i>
+            <h4 class="text-success small fw-semibold">{{ prorrogacaoAcrFile()?.name }}</h4>
+            <p class="text-muted small">Clique para trocar o arquivo</p>
+            } @else {
+            <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+            <h4>Clique para selecionar</h4>
+            <p class="text-muted small">Planilha Excel (.xlsx, .xls)</p>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+        <app-button variant="ghost" (clicked)="closeProrrogacaoModal()">Cancelar</app-button>
+        <app-button variant="primary" [disabled]="prorrogacaoEmpresaFiles().length === 0 || !prorrogacaoAcrFile()"
+          (clicked)="processProrrogacaoUnified()">Processar</app-button>
+      </div>
+      }
+
+    </div>
+  </app-modal>
+
+  <!-- Modal de Confirmação de Exclusão -->
+  <app-modal [isOpen]="isDeleteModalOpen()" title="Confirmar Exclusão" size="sm" (closed)="cancelarExclusao()">
+    <div class="text-center py-4">
+      <i class="fa-solid fa-triangle-exclamation text-danger mb-3" style="font-size: 2.5rem;"></i>
+      <h5 class="mb-3">Deseja excluir este histórico?</h5>
+      <p class="text-muted mb-4">Esta ação não poderá ser desfeita.</p>
+
+      <div class="d-flex justify-content-center gap-3">
+        <app-button variant="secondary" (clicked)="cancelarExclusao()">Cancelar</app-button>
+        <app-button variant="danger" (clicked)="executarExclusao()">Excluir</app-button>
+      </div>
+    </div>
+  </app-modal>
+
+</div>

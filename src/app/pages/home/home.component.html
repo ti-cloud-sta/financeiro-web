@@ -1,0 +1,60 @@
+<div class="home-container">
+
+  <!-- WELCOME SECTION -->
+  <section class="welcome-section">
+    <div class="welcome-content shadow">
+      <h1>{{ user()?.name }}</h1>
+      <p class="subtitle">Olá, Tania. É bom te ver de volta...</p>
+    </div>
+
+    <div class="datetime-pill">
+      <div class="pill-item">
+        <i class="fa-regular fa-calendar"></i>
+        <span>{{ currentDate | date:'fullDate' }}</span>
+      </div>
+      <div class="pill-item">
+        <i class="fa-regular fa-clock"></i>
+        <span>{{ currentDate | date:'HH:mm' }}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULES SECTION -->
+  <section class="modules-section">
+    <div class="section-header">
+      <div class="header-main-title">
+        <span class="header-icon"><i class="fa-solid fa-cubes"></i></span>
+        <h2>Módulos Financeiros</h2>
+      </div>
+      <p class="header-desc">Acesse rapidamente os principais módulos disponíveis no sistema.</p>
+    </div>
+ 
+    <div class="modules-grid">
+      @if (modules()) {
+      @for (mod of modules(); track mod.id) {
+      <app-card [padding]="false" class="module-card" [attr.data-module-id]="mod.id">
+        <a [routerLink]="mod.route" class="card-link">
+          <div class="card-top-row">
+            <div class="icon-wrap">
+              <i [class]="mod.icon"></i>
+            </div>
+            @if (mod.category) {
+              <span class="category-badge">{{ mod.category }}</span>
+            }
+          </div>
+          <div class="card-info">
+            <h3 class="module-title">{{ mod.name }}</h3>
+            <p class="module-desc" [title]="mod.description">{{ mod.description }}</p>
+          </div>
+          <div class="card-link-action">
+            <span>Abrir módulo</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </div>
+        </a>
+      </app-card>
+      }
+      }
+    </div>
+  </section>
+ 
+</div>

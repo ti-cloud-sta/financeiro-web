@@ -1,0 +1,372 @@
+@import 'styles/variables';
+
+:host {
+  display: block;
+  /* Calcula a altura da tela descontando header global (~70px), header da aba (~60px), paddings (~40px) */
+  height: calc(100vh - 220px);
+}
+
+/* ==========================================================================
+   PAINEL DE FILTROS (Padrão SaaS - mesmo estilo de Plano de Saúde / Despesas,
+   sem o card ao redor para ocupar menos espaço)
+   ========================================================================== */
+.filters {
+  .filters-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  .filter-group {
+    width: 200px;
+    max-width: 100%;
+
+    &.period-filter-group {
+      width: auto;
+    }
+
+    .filter-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      margin-bottom: 0.35rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .period-inputs {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+
+      @media (max-width: 576px) {
+        flex-direction: column;
+        align-items: stretch;
+
+        .input-icon-wrapper {
+          width: 100% !important;
+        }
+
+        .period-separator {
+          display: none;
+        }
+      }
+    }
+
+    .form-control,
+    .form-select {
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid $border-color;
+      background-color: $white;
+      color: $gray-800;
+      font-size: 0.875rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+      transition: all 0.2s;
+
+      &:focus {
+        border-color: rgba($primary, 0.5);
+        box-shadow: 0 0 0 3px rgba($primary, 0.1);
+        outline: none;
+      }
+    }
+
+    .input-icon-wrapper {
+      position: relative;
+
+      .input-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: $gray-400;
+        font-size: 0.9rem;
+      }
+
+      input {
+        padding-left: 2.25rem !important;
+      }
+    }
+
+    .shortcut-select {
+      width: 150px;
+      flex-shrink: 0;
+
+      @media (max-width: 768px) {
+        width: 100% !important;
+      }
+    }
+  }
+}
+
+/* Dropdown de seleção de colunas visíveis (checkboxes) */
+.column-filter-dropdown {
+  position: relative;
+  width: 180px;
+
+  .column-filter-trigger {
+    width: 100%;
+    cursor: pointer;
+  }
+
+  .column-filter-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 20;
+    width: 220px;
+    max-height: 260px;
+    overflow-y: auto;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px var(--color-shadow-lg);
+    padding: 0.5rem 0.75rem;
+
+    .form-check {
+      margin: 0.35rem 0;
+
+      .form-check-input {
+        cursor: pointer;
+      }
+
+      .form-check-label {
+        font-size: 0.85rem;
+        color: var(--color-text-secondary);
+        cursor: pointer;
+      }
+    }
+  }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.filters {
+  flex-shrink: 0;
+}
+
+.kanban {
+  flex-grow: 1;
+  min-height: 0;
+}
+
+/* ==========================================================================
+   SCROLLBARS DISCRETAS (Estilo Premium)
+   ========================================================================== */
+.custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(var(--bs-secondary-rgb), 0.2);
+    border-radius: 10px;
+    
+    &:hover {
+      background-color: rgba(var(--bs-secondary-rgb), 0.4);
+    }
+  }
+}
+
+/* ==========================================================================
+   COLUNAS DO KANBAN
+   ========================================================================== */
+.kanban-column {
+  /* Fundo sutil e arredondado ao invés de um bloco cinza */
+  background: rgba(var(--bs-light-rgb), 0.3);
+  border: 1px solid rgba(var(--bs-secondary-rgb), 0.1);
+  border-radius: 12px;
+  padding: 0.5rem;
+  transition: all 0.2s ease;
+
+  .column-header {
+    border-radius: 8px;
+    font-size: 0.85rem;
+    height: 48px; /* Compacto */
+    
+    .column-title {
+      color: var(--bs-gray-800);
+      letter-spacing: 0.2px;
+    }
+    
+    .column-count {
+      background: rgba(var(--bs-secondary-rgb), 0.12);
+      color: var(--bs-gray-700);
+      font-weight: 600;
+      border-radius: 12px;
+      padding: 0.2rem 0.5rem;
+      font-size: 0.75rem;
+    }
+
+    /* Cores das Categorias - Ultra suaves */
+    &.color-danger {
+      background-color: rgba(var(--bs-danger-rgb), 0.05);
+      .column-icon { color: var(--bs-danger); }
+    }
+    &.color-warning {
+      background-color: rgba(var(--bs-warning-rgb), 0.1);
+      .column-icon { color: #d97706; } /* Amarelo escuro para melhor contraste */
+    }
+    &.color-info {
+      background-color: rgba(var(--bs-info-rgb), 0.08);
+      .column-icon { color: var(--bs-info); }
+    }
+    &.color-primary {
+      background-color: rgba(var(--bs-primary-rgb), 0.05);
+      .column-icon { color: var(--bs-primary); }
+    }
+    &.color-secondary {
+      background-color: rgba(var(--bs-secondary-rgb), 0.05);
+      .column-icon { color: var(--bs-gray-600); }
+    }
+    &.color-success {
+      background-color: rgba(var(--bs-success-rgb), 0.05);
+      .column-icon { color: var(--bs-success); }
+    }
+  }
+
+  .column-body {
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 8px;
+    
+    &.drag-over-active {
+      background-color: rgba(var(--bs-primary-rgb), 0.04);
+      box-shadow: inset 0 0 0 2px rgba(var(--bs-primary-rgb), 0.3);
+    }
+  }
+}
+
+/* ==========================================================================
+   CARDS DO KANBAN (Linear / Monday style)
+   ========================================================================== */
+.kanban-card {
+  background-color: #ffffff;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--bs-secondary-rgb), 0.15);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  cursor: grab;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.06);
+    border-color: rgba(var(--bs-secondary-rgb), 0.3);
+  }
+  
+  &:active {
+    cursor: grabbing;
+    transform: scale(0.98);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  /* Estado visual aplicado via TS no dragstart */
+  &.dragging {
+    opacity: 0.4;
+    transform: scale(0.95);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-title {
+    font-size: 0.85rem; /* ~13.6px */
+    font-weight: 600;
+    color: var(--bs-gray-800);
+    margin: 0;
+  }
+  
+  /* Badge de Status Pequeno (Pill) */
+  .status-badge {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+  }
+
+  .card-client {
+    font-size: 0.8rem;
+    color: var(--bs-gray-900);
+  }
+  
+  /* Rodapé do Card */
+  .card-footer {
+    font-size: 0.7rem;
+    
+    .card-lead-time {
+      color: var(--bs-gray-500);
+    }
+    
+    .btn-icon {
+      border: none;
+      background: transparent;
+      transition: background 0.2s ease, color 0.2s ease;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      &:hover {
+        color: var(--bs-gray-800) !important;
+        background-color: rgba(var(--bs-secondary-rgb), 0.1);
+      }
+    }
+  }
+}
+
+/* ==========================================================================
+   SUPORTE AO DARK MODE GLOBAL
+   ========================================================================== */
+:host-context([data-bs-theme="dark"]) {
+  .kanban-column {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+    
+    .column-header {
+      .column-title { color: var(--bs-gray-300); }
+      .column-count {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--bs-gray-400);
+      }
+    }
+  }
+  
+  .kanban-card {
+    background-color: #1e1e1e; /* Fundo escuro sutil, não branco */
+    border-color: rgba(255, 255, 255, 0.05);
+    
+    &:hover {
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    
+    .card-title { color: var(--bs-gray-200); }
+    .card-client { color: var(--bs-gray-200); }
+    
+    .card-footer {
+      border-color: rgba(255, 255, 255, 0.05) !important;
+      
+      .btn-icon:hover {
+        color: var(--bs-gray-200) !important;
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.1);
+    &:hover { background-color: rgba(255, 255, 255, 0.2); }
+  }
+}

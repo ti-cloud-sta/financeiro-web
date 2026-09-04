@@ -1,0 +1,1103 @@
+<div class="page-container">
+  <div class="main-layout">
+    <aside class="main-sidebar" [class.collapsed]="isSidebarCollapsed">
+      <div class="sidebar-header d-flex justify-content-end mb-3 pb-2 border-bottom">
+        <button class="btn btn-sm text-muted sidebar-toggle" (click)="toggleSidebar()"
+          style="background: transparent; border: none; padding: 0.25rem 0.5rem; border-radius: 6px;">
+          <i class="fa-solid" [ngClass]="isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+        </button>
+      </div>
+      <ul class="main-nav">
+        
+        @if (isAdmin()) {
+        <li>
+          <button class="main-nav-link" [class.active]="activeConfigTab === 'usuarios'"
+            (click)="setActiveConfigTab('usuarios')" title="Usuários e Acessos">
+            <i class="fa-solid fa-users-gear"></i> <span class="nav-text">Usuários e Acessos</span>
+          </button>
+        </li>
+        }
+        <li class="nav-section-title mt-3 mb-2 px-3 text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Cadastros Básicos</li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeConfigTab === 'colaboradores'"
+            (click)="setActiveConfigTab('colaboradores')" title="Colaboradores">
+            <i class="fa-solid fa-users"></i> <span class="nav-text">Colaboradores</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeConfigTab === 'categorias'"
+            (click)="setActiveConfigTab('categorias')" title="Categorias">
+            <i class="fa-solid fa-tags"></i> <span class="nav-text">Categorias</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeConfigTab === 'centros-custo'"
+            (click)="setActiveConfigTab('centros-custo')" title="Centros de Custo">
+            <i class="fa-solid fa-building"></i> <span class="nav-text">Centros de Custo</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeConfigTab === 'unidades'"
+            (click)="setActiveConfigTab('unidades')" title="Unidades">
+            <i class="fa-solid fa-building-user"></i> <span class="nav-text">Unidades</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeConfigTab === 'empresas'"
+            (click)="setActiveConfigTab('empresas')" title="Empresas">
+            <i class="fa-solid fa-briefcase"></i> <span class="nav-text">Empresas</span>
+          </button>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="tab-content custom-tab-content">
+
+         <div class="dashboard-section-header">
+              <h3>Importação de Faturas e Extratos</h3>
+              <p>Importe os relatórios em PDF dos nossos parceiros para processamento via IA.</p>
+            </div>
+
+              <!-- Usuários Tab Content -->
+              <div *ngIf="activeConfigTab === 'usuarios'" class="config-layout">
+                <div class="config-header">
+                  <div>
+                    <h2>Gerenciar Usuários e Acessos</h2>
+                    <p class="text-muted">Gerencie os usuários do sistema, senhas e níveis de acesso (Admin/Default).</p>
+                  </div>
+                </div>
+
+                <div class="config-toolbar d-flex justify-content-between align-items-center">
+                  <div class="search-box">
+                    <i class="fa-solid fa-search text-muted"></i>
+                    <input type="text" placeholder="Buscar por nome ou email..." [ngModel]="searchTerm"
+                      (ngModelChange)="onSearchUsuariosChange($event)">
+                  </div>
+                  <div class="config-actions">
+                    <button class="btn btn-primary" (click)="openCadastroModal()">
+                      <i class="fa-solid fa-user-plus me-2"></i> Novo Usuário
+                    </button>
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="saas-table w-100">
+                    <thead>
+                      <tr>
+                        <th>NOME</th>
+                        <th>EMAIL</th>
+                        <th>NÍVEL DE ACESSO</th>
+                        <th class="text-end">AÇÕES</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let user of filteredUsers">
+                        <td class="fw-medium">
+                          {{ user.name }}
+                          <span *ngIf="user.active === 'N'" class="badge bg-danger ms-2" style="font-size: 0.65rem;">BLOQUEADO</span>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                          <app-badge [text]="user.role === 'admin' ? 'Administrador' : 'Padrão'" 
+                            [variant]="user.role === 'admin' ? 'primary' : 'secondary'">
+                          </app-badge>
+                        </td>
+                        <td class="text-end">
+                          <div class="action-buttons">
+                            <button class="btn-icon" title="Alterar Senha" (click)="openPasswordModal(user)">
+                              <i class="fa-solid fa-key"></i>
+                            </button>
+                            <button class="btn-icon" title="Alterar Nível de Acesso" (click)="confirmGrantAdmin(user)">
+                              <i class="fa-solid fa-shield-halved"></i>
+                            </button>
+                            <button class="btn-icon" [ngClass]="{'delete': user.active !== 'N'}" 
+                                    [title]="user.active === 'N' ? 'Desbloquear Usuário' : 'Bloquear Usuário'" 
+                                    (click)="confirmToggleBlockUser(user)">
+                              <i class="fa-solid" [ngClass]="user.active === 'N' ? 'fa-lock-open text-success' : 'fa-lock'"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr *ngIf="filteredUsers.length === 0">
+                        <td colspan="4" class="text-center text-muted py-4">Nenhum usuário encontrado.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+<!-- Colaboradores Tab Content -->
+              <div *ngIf="activeConfigTab === 'colaboradores'" class="config-layout">
+                <div class="config-header">
+                  <div>
+                    <h2>Gerenciar Colaboradores</h2>
+                    <p class="text-muted">Adicione ou importe a lista de colaboradores da empresa.</p>
+                  </div>
+                </div>
+
+                <div class="config-toolbar d-flex justify-content-between align-items-center">
+                  <div class="search-box">
+                    <i class="fa-solid fa-search text-muted"></i>
+                    <input type="text" placeholder="Buscar por nome, centro ou cargo..." [ngModel]="searchTerm"
+                      (ngModelChange)="onSearchChange($event)">
+                  </div>
+                  <div class="config-actions">
+                    <button class="btn btn-outline-secondary me-2" (click)="openImportColabModal()">
+                      <i class="fa-solid fa-file-import me-2"></i> Importar Colaboradores
+                    </button>
+                    <button class="btn btn-primary" (click)="openColaboradorModal()">
+                      <i class="fa-solid fa-plus me-2"></i> Cadastrar Colaborador
+                    </button>
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="saas-table w-100">
+                    <thead>
+                      <tr>
+                        <th>NOME</th>
+                        <th>CENTRO DE CUSTO</th>
+                        <th>UNIDADE</th>
+                        <th>CARGO</th>
+                        <th>PAPEL</th>
+                        <th class="text-end">AÇÕES</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let colab of listaColaboradores">
+                        <td class="fw-medium">{{ colab.nome }}</td>
+                        <td>
+                          <span *ngIf="colab.centro_custo">{{ colab.centro_custo.codigo }} - {{ colab.centro_custo.nome
+                            }}</span>
+                          <span *ngIf="!colab.centro_custo" class="text-muted">N/A</span>
+                        </td>
+                        <td>
+                          <span *ngIf="colab.unidades?.length">{{ getUnidadesCodigos(colab) }}</span>
+                          <span *ngIf="!colab.unidades?.length" class="text-muted">N/A</span>
+                        </td>
+                        <td>
+                          <span *ngIf="colab.cargo_colaborador">{{ colab.cargo_colaborador.nome }}</span>
+                          <span *ngIf="!colab.cargo_colaborador" class="text-muted">N/A</span>
+                        </td>
+                        <td>
+                          <span>{{ colab.papel || 'N/A' }}</span>
+                        </td>
+                        <td class="text-end">
+                          <div class="action-buttons">
+                            <button class="btn-icon" title="Editar" (click)="openColaboradorModal(colab)"><i
+                                class="fa-solid fa-pen"></i></button>
+                            <button class="btn-icon delete" title="Excluir"
+                              (click)="confirmarExclusaoColaborador(colab.idColaborador!)"><i
+                                class="fa-solid fa-trash"></i></button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr *ngIf="listaColaboradores.length === 0">
+                        <td colspan="6" class="text-center text-muted py-4">Nenhum colaborador encontrado.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container" *ngIf="listaColaboradores.length > 0">
+                  <span class="text-muted small">Total de {{ totalColaboradores }} registros</span>
+                  <div class="pagination-actions">
+                    <button class="btn-page" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+                      <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span class="page-indicator">Página {{ currentPage }} de {{ totalPages }}</span>
+                    <button class="btn-page" [disabled]="currentPage === totalPages"
+                      (click)="goToPage(currentPage + 1)">
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Unidades Tab Content -->
+              <div *ngIf="activeConfigTab === 'unidades'" class="config-layout">
+                <div class="config-header">
+                  <div>
+                    <h2>Gerenciar Unidades</h2>
+                    <p class="text-muted">Cadastre as unidades de negócio.</p>
+                  </div>
+                </div>
+
+                <div class="config-toolbar d-flex justify-content-between align-items-center">
+                  <div class="search-box">
+                    <i class="fa-solid fa-search text-muted"></i>
+                    <input type="text" placeholder="Buscar por código ou descrição..." [ngModel]="searchUnidade"
+                      (ngModelChange)="onSearchUnidadeChange($event)">
+                  </div>
+                  <div class="config-actions">
+                    <button class="btn btn-primary" (click)="openUnidadeModal()">
+                      <i class="fa-solid fa-plus me-2"></i> Cadastrar Unidade
+                    </button>
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="saas-table w-100">
+                    <thead>
+                      <tr>
+                        <th>CÓDIGO</th>
+                        <th>DESCRIÇÃO</th>
+                        <th class="text-end">AÇÕES</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let unid of listaUnidades">
+                        <td class="fw-medium">{{ unid.codigo }}</td>
+                        <td>{{ unid.descricao }}</td>
+                        <td class="text-end">
+                          <div class="action-buttons">
+                            <button class="btn-icon" title="Editar" (click)="openUnidadeModal(unid)"><i
+                                class="fa-solid fa-pen"></i></button>
+                            <button class="btn-icon delete" title="Excluir"
+                              (click)="confirmarExclusaoUnidade(unid.idUnidade!)"><i
+                                class="fa-solid fa-trash"></i></button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr *ngIf="listaUnidades.length === 0">
+                        <td colspan="3" class="text-center text-muted py-4">Nenhuma unidade encontrada.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="pagination-container" *ngIf="listaUnidades.length > 0">
+                  <span class="text-muted small">Total de {{ totalUnidades }} registros</span>
+                  <div class="pagination-actions">
+                    <button class="btn-page" [disabled]="currentUnidadePage === 1"
+                      (click)="goToUnidadePage(currentUnidadePage - 1)">
+                      <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span class="page-indicator">Página {{ currentUnidadePage }} de {{ totalUnidadePages }}</span>
+                    <button class="btn-page" [disabled]="currentUnidadePage === totalUnidadePages"
+                      (click)="goToUnidadePage(currentUnidadePage + 1)">
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Categorias Tab Content -->
+              <div *ngIf="activeConfigTab === 'categorias'" class="config-layout">
+                <div class="config-header">
+                  <div>
+                    <h2>Gerenciar Categorias</h2>
+                    <p class="text-muted">Cadastre as categorias para classificação de despesas.</p>
+                  </div>
+                </div>
+
+                <div class="config-toolbar d-flex justify-content-between align-items-center">
+                  <div class="search-box">
+                    <i class="fa-solid fa-search text-muted"></i>
+                    <input type="text" placeholder="Buscar categoria..." [ngModel]="searchCategoria"
+                      (ngModelChange)="onSearchCategoriaChange($event)">
+                  </div>
+                  <div class="config-actions">
+                    <button class="btn btn-primary" (click)="openCategoriaModal()">
+                      <i class="fa-solid fa-plus me-2"></i> Cadastrar Categoria
+                    </button>
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="saas-table w-100">
+                    <thead>
+                      <tr>
+                        <th>NOME DA CATEGORIA</th>
+                        <th>DESCRIÇÃO</th>
+                        <th class="text-end">AÇÕES</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let cat of listaCategorias">
+                        <td class="fw-medium">{{ cat.nome }}</td>
+                        <td class="text-muted text-truncate" style="max-width: 300px;">{{ cat.descricao }}</td>
+                        <td class="text-end">
+                          <div class="action-buttons">
+                            <button class="btn-icon" title="Editar" (click)="openCategoriaModal(cat)"><i
+                                class="fa-solid fa-pen"></i></button>
+                            <button class="btn-icon delete" title="Excluir"
+                              (click)="confirmarExclusaoCategoria(cat.idCategorias!)"><i
+                                class="fa-solid fa-trash"></i></button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr *ngIf="listaCategorias.length === 0">
+                        <td colspan="3" class="text-center text-muted py-4">Nenhuma categoria encontrada.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container" *ngIf="listaCategorias.length > 0">
+                  <span class="text-muted small">Total de {{ totalCategorias }} registros</span>
+                  <div class="pagination-actions">
+                    <button class="btn-page" [disabled]="currentCategoriaPage === 1"
+                      (click)="goToCategoriaPage(currentCategoriaPage - 1)">
+                      <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span class="page-indicator">Página {{ currentCategoriaPage }} de {{ totalCategoriaPages }}</span>
+                    <button class="btn-page" [disabled]="currentCategoriaPage === totalCategoriaPages"
+                      (click)="goToCategoriaPage(currentCategoriaPage + 1)">
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Centros de Custo Tab Content -->
+              <div *ngIf="activeConfigTab === 'centros-custo'" class="config-layout">
+                <div class="config-header">
+                  <div>
+                    <h2>Gerenciar Centros de Custo</h2>
+                    <p class="text-muted">Cadastre os Centros de Custo por Estado.</p>
+                  </div>
+                </div>
+
+                <div class="config-toolbar d-flex justify-content-between align-items-center">
+                  <div class="search-box">
+                    <i class="fa-solid fa-search text-muted"></i>
+                    <input type="text" placeholder="Buscar por código ou nome..." [ngModel]="searchCentroCusto"
+                      (ngModelChange)="onSearchCentroCustoChange($event)">
+                  </div>
+                  <div class="config-actions">
+                    <button class="btn btn-primary text-nowrap" (click)="openCentroCustoModal()">
+                      <i class="fa-solid fa-plus me-2"></i> Cadastrar Centro de Custo
+                    </button>
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="saas-table w-100">
+                    <thead>
+                      <tr>
+                        <th>CÓDIGO</th>
+                        <th>NOME</th>
+                        <th>ESTADOS</th>
+                        <th class="text-end">AÇÕES</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let centro of listaCentrosCusto">
+                        <td class="fw-medium"><app-badge [text]="centro.codigo.toString()"
+                            variant="secondary"></app-badge></td>
+                        <td>{{ centro.nome || '-' }}</td>
+                        <td>{{ centro.estados.join(', ') }}</td>
+                        <td class="text-end">
+                          <div class="action-buttons">
+                            <button class="btn-icon" title="Editar" (click)="openCentroCustoModal(centro)"><i
+                                class="fa-solid fa-pen"></i></button>
+                            <button class="btn-icon delete" title="Excluir"
+                              (click)="confirmarExclusaoCentroCusto(centro.idCentroCusto!)"><i
+                                class="fa-solid fa-trash"></i></button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr *ngIf="listaCentrosCusto.length === 0">
+                        <td colspan="4" class="text-center text-muted py-4">Nenhum Centro de Custo encontrado.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container" *ngIf="listaCentrosCusto.length > 0">
+                  <span class="text-muted small">Total de {{ totalCentrosCusto }} registros</span>
+                  <div class="pagination-actions">
+                    <button class="btn-page" [disabled]="currentCentroCustoPage === 1"
+                      (click)="goToCentroCustoPage(currentCentroCustoPage - 1)">
+                      <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span class="page-indicator">Página {{ currentCentroCustoPage }} de {{ totalCentroCustoPages
+                      }}</span>
+                    <button class="btn-page" [disabled]="currentCentroCustoPage === totalCentroCustoPages"
+                      (click)="goToCentroCustoPage(currentCentroCustoPage + 1)">
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Empresas Tab Content -->
+              <div *ngIf="activeConfigTab === 'empresas'" class="config-layout">
+                <div class="config-header">
+                  <div>
+                    <h2>Gerenciar Empresas</h2>
+                    <p class="text-muted">Cadastre as empresas e cartões (Faturas/Extratos) para importação.</p>
+                  </div>
+                </div>
+
+                <div class="config-toolbar d-flex justify-content-between align-items-center">
+                  <div class="search-box">
+                    <i class="fa-solid fa-search text-muted"></i>
+                    <input type="text" placeholder="Buscar empresa..." [ngModel]="searchEmpresaConfig"
+                      (ngModelChange)="onSearchEmpresaConfigChange($event)">
+                  </div>
+                  <div class="config-actions">
+                    <button class="btn btn-primary" (click)="openEmpresaModal()">
+                      <i class="fa-solid fa-plus me-2"></i> Cadastrar Empresa
+                    </button>
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="saas-table w-100">
+                    <thead>
+                      <tr>
+                        <th>NOME DA EMPRESA</th>
+                        <th>DESCRIÇÃO</th>
+                        <th class="text-end">AÇÕES</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let emp of listaEmpresasConfig">
+                        <td class="fw-medium">{{ emp.nome }}</td>
+                        <td class="text-muted text-truncate" style="max-width: 300px;">{{ emp.descricao || '-' }}</td>
+                        <td class="text-end">
+                          <div class="action-buttons">
+                            <button class="btn-icon" title="Editar" (click)="openEmpresaModal(emp)"><i
+                                class="fa-solid fa-pen"></i></button>
+                            <button class="btn-icon delete" title="Excluir"
+                              (click)="confirmarExclusaoEmpresa(emp.idEmpresas!)"><i
+                                class="fa-solid fa-trash"></i></button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr *ngIf="listaEmpresasConfig.length === 0">
+                        <td colspan="3" class="text-center text-muted py-4">Nenhuma empresa encontrada.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container" *ngIf="listaEmpresasConfig.length > 0">
+                  <span class="text-muted small">Total de {{ totalEmpresasConfig }} registros</span>
+                  <div class="pagination-actions">
+                    <button class="btn-page" [disabled]="currentEmpresaConfigPage === 1"
+                      (click)="goToEmpresaConfigPage(currentEmpresaConfigPage - 1)">
+                      <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span class="page-indicator">Página {{ currentEmpresaConfigPage }} de {{ totalEmpresaConfigPages
+                      }}</span>
+                    <button class="btn-page" [disabled]="currentEmpresaConfigPage === totalEmpresaConfigPages"
+                      (click)="goToEmpresaConfigPage(currentEmpresaConfigPage + 1)">
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<app-confirm-modal
+  [isOpen]="isConfirmModalOpen"
+  [title]="confirmTitle"
+  [message]="confirmMessage"
+  variant="danger"
+  confirmText="Confirmar"
+  (confirmed)="onConfirm()"
+  (canceled)="closeConfirmModal()"
+  [isLoading]="isConfirmLoading"
+></app-confirm-modal>
+
+<!-- Modal de Cadastro/Edição de Colaborador -->
+<app-modal [isOpen]="isColaboradorModalOpen"
+  [title]="colaboradorModalMode === 'create' ? 'Cadastrar Colaborador' : 'Editar Colaborador'"
+  (closed)="closeColaboradorModal()" size="md">
+  <div class="form-container py-2">
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">NOME DO COLABORADOR</label>
+      <input type="text" class="form-control" placeholder="Ex: João da Silva" [(ngModel)]="novoColaborador.nome">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">PAPEL</label>
+      <input type="text" class="form-control" placeholder="Ex: Diretor, Gerente, etc."
+        [(ngModel)]="novoColaborador.papel">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">CENTRO DE CUSTO</label>
+      <select class="form-select" [(ngModel)]="novoColaborador.idCentroCusto">
+        <option [value]="null" disabled selected>Selecione um centro de custo</option>
+        <option *ngFor="let c of listaCentrosCustoGeral" [value]="c.idCentroCusto">{{ c.codigo }} - {{ c.nome ? c.nome +
+          ' - ' : '' }}{{ c.estados.join(', ') }}</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">UNIDADE</label>
+      <select class="form-select" [(ngModel)]="novoColaborador.idUnidade">
+        <option [value]="null" selected>Sem unidade</option>
+        <option *ngFor="let u of listaUnidadesGeral" [value]="u.idUnidade">{{ u.codigo }} - {{ u.descricao }}</option>
+      </select>
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label text-muted small fw-medium">CARGO</label>
+      <div class="d-flex gap-2 align-items-center">
+        <select class="form-select" [(ngModel)]="novoColaborador.idCargoColaborador">
+          <option [value]="null" disabled selected>Selecione um cargo</option>
+          <option *ngFor="let cargo of listaCargos" [value]="cargo.idCargoColaborador">{{ cargo.nome }}</option>
+        </select>
+        <button class="btn btn-outline-primary" style="height: 38px; white-space: nowrap;"
+          (click)="openNovoCargoModal()" title="Cadastrar Novo Cargo">
+          <i class="fa-solid fa-plus me-1"></i> Novo
+        </button>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+      <app-button variant="ghost" (clicked)="closeColaboradorModal()">Cancelar</app-button>
+      <app-button variant="primary" (clicked)="salvarColaborador()"
+        [disabled]="!novoColaborador.nome || !novoColaborador.idCentroCusto || !novoColaborador.idCargoColaborador || isSalvandoColaborador">
+        <i class="fa-solid fa-spinner fa-spin me-2" *ngIf="isSalvandoColaborador"></i>
+        {{ isSalvandoColaborador ? 'Salvando...' : 'Salvar Colaborador' }}
+      </app-button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Modal de Importação de Colaboradores -->
+<app-modal [isOpen]="isImportColabModalOpen" title="Importar Colaboradores" (closed)="closeImportColabModal()"
+  [size]="importColabState === 'review' ? 'lg' : 'md'" [fixedHeight]="importColabState === 'review'">
+
+  @if (importColabState === 'idle') {
+  <div class="upload-zone" (click)="colabFileInput.click()">
+    <i class="fa-solid fa-file-excel upload-icon" style="color: #107c41;"></i>
+    <h4>Clique ou arraste sua planilha aqui</h4>
+    <p>Suporta apenas Excel (.xls, .xlsx)</p>
+    <input type="file" #colabFileInput hidden accept=".xls,.xlsx" (change)="onColabFileChange($event)">
+  </div>
+  <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+    <app-button variant="ghost" (clicked)="closeImportColabModal()">Cancelar</app-button>
+    <app-button variant="primary" (clicked)="colabFileInput.click()">Selecionar Arquivo</app-button>
+  </div>
+  }
+
+  @if (importColabState === 'loading' || importColabState === 'processing') {
+  <div class="processing-container text-center py-5">
+    <i class="fa-solid fa-spinner fa-spin fs-1 text-primary mb-3"></i>
+    <h5>{{ importColabState === 'loading' ? 'Lendo e analisando a planilha...' : 'Processando importação...' }}</h5>
+  </div>
+  }
+
+  @if (importColabState === 'error') {
+  <div class="alert alert-danger mt-2 mb-0 d-flex align-items-center">
+    <i class="fa-solid fa-circle-exclamation fs-4 me-3"></i>
+    <div>
+      <strong>Erro:</strong><br>
+      {{ importColabError }}
+    </div>
+  </div>
+  <div class="d-flex justify-content-end gap-2 mt-3">
+    <app-button variant="ghost" (clicked)="closeImportColabModal()">Fechar</app-button>
+  </div>
+  }
+
+  @if (importColabState === 'done' && importResumo) {
+  <div class="alert alert-success mt-2 mb-0 d-flex align-items-center">
+    <i class="fa-solid fa-check-circle fs-4 me-3"></i>
+    <div>
+      <strong>Importação concluída!</strong><br>
+      <ul class="mb-0 mt-1 ps-3 small">
+        <li>Cadastrados: <b>{{ importResumo.cadastrados }}</b></li>
+        <li>Atualizados: <b>{{ importResumo.atualizados }}</b></li>
+        <li>Desligados: <b>{{ importResumo.desligados }}</b></li>
+      </ul>
+    </div>
+  </div>
+  <div class="d-flex justify-content-end gap-2 mt-3">
+    <app-button variant="primary" (clicked)="closeImportColabModal()">Fechar</app-button>
+  </div>
+  }
+
+  @if (importColabState === 'review' && importPreview) {
+  <div class="import-review">
+
+    @if (importPreview.erros.length > 0) {
+    <div class="alert alert-warning small mb-3">
+      <strong><i class="fa-solid fa-triangle-exclamation me-1"></i> {{ importPreview.erros.length }} linha(s) da
+        planilha não puderam ser lidas e foram ignoradas:</strong>
+      <ul class="mb-0 mt-1 ps-3" style="max-height: 120px; overflow-y: auto;">
+        <li *ngFor="let erro of importPreview.erros">
+          Aba <b>{{ erro.aba }}</b>, linha {{ erro.linha }}{{ erro.nome ? ' (' + erro.nome + ')' : '' }}:
+          {{ erro.motivo }}
+        </li>
+      </ul>
+    </div>
+    }
+
+    @if (importPreview.novos.length > 0 || importPreview.divergentes.length > 0 || importPreview.desligados.length > 0) {
+    <div class="mb-3 d-flex gap-2 align-items-center">
+      <div class="position-relative flex-grow-1">
+        <i class="fa-solid fa-magnifying-glass position-absolute top-50 translate-middle-y ms-3 text-muted"></i>
+        <input type="text" class="form-control ps-5" placeholder="Buscar por nome, documento, unidade ou centro de custo..."
+          [(ngModel)]="importSearchTerm">
+      </div>
+      <button type="button" class="btn btn-sm text-nowrap" [class.btn-warning]="importMostrarDivergenciaOnly"
+        [class.btn-outline-warning]="!importMostrarDivergenciaOnly"
+        (click)="importMostrarDivergenciaOnly = !importMostrarDivergenciaOnly">
+        <i class="fa-solid" [class.fa-toggle-on]="importMostrarDivergenciaOnly"
+          [class.fa-toggle-off]="!importMostrarDivergenciaOnly"></i>
+        Mostrar divergência
+      </button>
+    </div>
+    }
+
+    <div class="import-review-sections">
+      @if (importNovosBase.length > 0) {
+      <div class="import-review-section">
+        <h6><i class="fa-solid fa-user-plus text-success me-1"></i> Novos colaboradores{{
+          importMostrarDivergenciaOnly ? ' com CC pendente' : '' }} ({{ importNovosFiltrados.length }}{{
+          importNovosFiltrados.length !== importNovosBase.length ? ' de ' + importNovosBase.length : '' }})</h6>
+        <div class="table-responsive import-review-scroll">
+          <table class="saas-table w-100 small">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Documento</th>
+                <th>Unidade(s)</th>
+                <th>Centro de Custo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let linha of importNovosFiltrados">
+                <td class="fw-medium">{{ linha.nome }}</td>
+                <td>{{ linha.documento }}</td>
+                <td>
+                  <span class="badge bg-light text-dark me-1" *ngFor="let u of linha.unidades">{{ u.codigo }}</span>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark" *ngIf="linha.ccEncontrado">{{ linha.centroCustoCodigo }} - {{
+                    linha.centroCustoNome }}</span>
+                  <div *ngIf="!linha.ccEncontrado" class="d-flex flex-column gap-1">
+                    <span class="badge bg-danger-subtle text-danger">CC {{ linha.centroCustoCodigo }} não
+                      cadastrado</span>
+                    <div class="d-flex gap-1 cc-select-wrap">
+                      <ng-select [items]="listaCentrosCustoGeral" bindLabel="nome" appendTo="body"
+                        [clearable]="false" [searchFn]="ccSearchFn" placeholder="Buscar por código ou nome..."
+                        class="cc-select flex-grow-1" (change)="onCcExistenteSelecionado(linha, $event)">
+                        <ng-template ng-label-tmp let-item="item">{{ item.codigo }} - {{ item.nome }}</ng-template>
+                        <ng-template ng-option-tmp let-item="item">{{ item.codigo }} - {{ item.nome }}</ng-template>
+                      </ng-select>
+                      <button type="button" class="btn btn-sm btn-outline-primary text-nowrap"
+                        (click)="abrirNovoCcParaImportLinha(linha)">+ Novo</button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="importNovosFiltrados.length === 0">
+                <td colspan="4" class="text-muted text-center py-3">Nenhum resultado para a busca.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      }
+
+      @if (importPreview.divergentes.length > 0) {
+      <div class="import-review-section">
+        <h6><i class="fa-solid fa-arrows-rotate text-warning me-1"></i> Divergências a atualizar ({{
+          importDivergentesFiltrados.length }}{{ importDivergentesFiltrados.length !==
+          importPreview.divergentes.length ? ' de ' + importPreview.divergentes.length : '' }})</h6>
+        <div class="table-responsive import-review-scroll">
+          <table class="saas-table w-100 small">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Documento</th>
+                <th>Alertas</th>
+                <th>Unidade(s)</th>
+                <th>Centro de Custo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let linha of importDivergentesFiltrados">
+                <td class="fw-medium">{{ linha.nome }}</td>
+                <td>{{ linha.documento }}</td>
+                <td>
+                  <span class="badge bg-info-subtle text-info d-block mb-1" *ngIf="linha.reativado">Estava
+                    desligado — será reativado</span>
+                  <span class="badge bg-warning-subtle text-warning d-block mb-1"
+                    *ngIf="linha.unidadesDivergentes">Unidade divergente</span>
+                  <span class="badge bg-warning-subtle text-warning d-block" *ngIf="linha.ccDivergente">Centro de
+                    custo divergente</span>
+                </td>
+                <td>
+                  <div class="mb-1">
+                    <span class="text-muted">Atual:</span>
+                    <span class="badge bg-light text-dark me-1" *ngFor="let u of linha.unidadesAtuais">{{ u.codigo
+                      }}</span>
+                    <span *ngIf="!linha.unidadesAtuais.length" class="text-muted">-</span>
+                  </div>
+                  <div>
+                    <span class="text-muted">Planilha:</span>
+                    <span class="badge bg-light text-dark me-1" *ngFor="let u of linha.unidades">{{ u.codigo }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="mb-1"><span class="text-muted">Atual:</span> {{ linha.centroCustoAtualNome || '-' }}
+                  </div>
+                  <span class="badge bg-light text-dark" *ngIf="linha.ccEncontrado">{{ linha.centroCustoCodigo }} - {{
+                    linha.centroCustoNome }}</span>
+                  <div *ngIf="!linha.ccEncontrado" class="d-flex flex-column gap-1">
+                    <span class="badge bg-danger-subtle text-danger">CC {{ linha.centroCustoCodigo }} não
+                      cadastrado</span>
+                    <div class="d-flex gap-1 cc-select-wrap">
+                      <ng-select [items]="listaCentrosCustoGeral" bindLabel="nome" appendTo="body"
+                        [clearable]="false" [searchFn]="ccSearchFn" placeholder="Buscar por código ou nome..."
+                        class="cc-select flex-grow-1" (change)="onCcExistenteSelecionado(linha, $event)">
+                        <ng-template ng-label-tmp let-item="item">{{ item.codigo }} - {{ item.nome }}</ng-template>
+                        <ng-template ng-option-tmp let-item="item">{{ item.codigo }} - {{ item.nome }}</ng-template>
+                      </ng-select>
+                      <button type="button" class="btn btn-sm btn-outline-primary text-nowrap"
+                        (click)="abrirNovoCcParaImportLinha(linha)">+ Novo</button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="importDivergentesFiltrados.length === 0">
+                <td colspan="5" class="text-muted text-center py-3">Nenhum resultado para a busca.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      }
+
+      @if (importPreview.desligados.length > 0) {
+      <div class="import-review-section">
+        <h6><i class="fa-solid fa-user-xmark text-danger me-1"></i> Colaboradores desligados ({{
+          importDesligadosFiltrados.length }}{{ importDesligadosFiltrados.length !== importPreview.desligados.length
+          ? ' de ' + importPreview.desligados.length : '' }})</h6>
+        <div class="table-responsive import-review-scroll">
+          <table class="saas-table w-100 small">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Documento</th>
+                <th>Unidade(s) atual(is)</th>
+                <th>Centro de Custo atual</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let linha of importDesligadosFiltrados">
+                <td class="fw-medium">{{ linha.nome }}</td>
+                <td>{{ linha.documento }}</td>
+                <td>
+                  <span class="badge bg-light text-dark me-1" *ngFor="let u of linha.unidadesAtuais">{{ u.codigo
+                    }}</span>
+                </td>
+                <td>{{ linha.centroCustoAtualNome || '-' }}</td>
+              </tr>
+              <tr *ngIf="importDesligadosFiltrados.length === 0">
+                <td colspan="4" class="text-muted text-center py-3">Nenhum resultado para a busca.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      }
+    </div>
+
+    @if (importPreview.novos.length === 0 && importPreview.divergentes.length === 0 && importPreview.desligados.length === 0) {
+    <div class="alert alert-info small mb-0">Nenhuma alteração identificada: a base já está de acordo com a
+      planilha.</div>
+    }
+
+    @if (importMostrarDivergenciaOnly && importPreview.divergentes.length === 0 && importPreview.desligados.length === 0 && importNovosBase.length === 0) {
+    <div class="alert alert-info small mb-0">Nenhuma divergência, desligamento ou pendência de Centro de Custo
+      identificado.</div>
+    }
+
+    <div class="d-flex justify-content-end gap-2 mt-3 pt-3 border-top">
+      <app-button variant="ghost" (clicked)="closeImportColabModal()">Cancelar</app-button>
+      <app-button variant="primary" [disabled]="!importColabPodePrecessar" (clicked)="processarImportacaoColab()">
+        Processar
+      </app-button>
+    </div>
+  </div>
+  }
+</app-modal>
+
+<!-- Modal de Cadastro/Edição de Centro de Custo -->
+<app-modal [isOpen]="isCentroCustoModalOpen"
+  [title]="centroCustoModalMode === 'create' ? 'Cadastrar Centro de Custo' : 'Editar Centro de Custo'"
+  (closed)="closeCentroCustoModal()" size="md">
+  <div class="form-container py-2">
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label text-muted small fw-medium">CÓDIGO (Numérico)</label>
+        <input type="number" class="form-control" placeholder="Ex: 102" [(ngModel)]="novoCentroCusto.codigo">
+      </div>
+      <div class="col-md-8 mb-3">
+        <label class="form-label text-muted small fw-medium">NOME (Opcional)</label>
+        <input type="text" class="form-control" placeholder="Ex: Diretoria" [(ngModel)]="novoCentroCusto.nome">
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label text-muted small fw-medium">ESTADOS ATENDIDOS</label>
+      <div class="states-grid">
+        <div class="form-check state-check" *ngFor="let estado of estadosBrasil">
+          <input class="form-check-input" type="checkbox" [id]="'state_' + estado"
+            [checked]="novoCentroCusto.estados.includes(estado)" (change)="toggleEstado(estado)">
+          <label class="form-check-label" [for]="'state_' + estado">
+            {{ estado }}
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+      <app-button variant="ghost" (clicked)="closeCentroCustoModal()">Cancelar</app-button>
+      <app-button variant="primary" (clicked)="salvarCentroCusto()"
+        [disabled]="!novoCentroCusto.codigo || novoCentroCusto.estados.length === 0 || isSalvandoCentroCusto">
+        <i class="fa-solid fa-spinner fa-spin me-2" *ngIf="isSalvandoCentroCusto"></i>
+        {{ isSalvandoCentroCusto ? 'Salvando...' : 'Salvar Centro de Custo' }}
+      </app-button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Modal de Cadastro/Edição de Categoria -->
+<app-modal [isOpen]="isCategoriaModalOpen"
+  [title]="categoriaModalMode === 'create' ? 'Cadastrar Categoria' : 'Editar Categoria'"
+  (closed)="closeCategoriaModal()" size="md">
+  <div class="form-container py-2">
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">NOME DA CATEGORIA</label>
+      <input type="text" class="form-control" placeholder="Ex: Alimentação" [(ngModel)]="novaCategoria.nome">
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label text-muted small fw-medium">DESCRIÇÃO</label>
+      <textarea class="form-control" rows="3" placeholder="Ex: Despesas com refeições e lanches..."
+        [(ngModel)]="novaCategoria.descricao"></textarea>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+      <app-button variant="ghost" (clicked)="closeCategoriaModal()">Cancelar</app-button>
+      <app-button variant="primary" (clicked)="salvarCategoria()"
+        [disabled]="!novaCategoria.nome || !novaCategoria.descricao || isSalvandoCategoria">
+        <i class="fa-solid fa-spinner fa-spin me-2" *ngIf="isSalvandoCategoria"></i>
+        {{ isSalvandoCategoria ? 'Salvando...' : 'Salvar Categoria' }}
+      </app-button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Modal Gerenciar Cargos de Colaborador -->
+<app-modal [isOpen]="isNovoCargoModalOpen" title="Gerenciar Cargos" (closed)="closeNovoCargoModal()" size="md">
+  <div class="form-container py-2">
+    <!-- Area do Formulário -->
+    <div class="row">
+      <div class="col-md-5 mb-3">
+        <label class="form-label text-muted small fw-medium">NOME DO CARGO</label>
+        <input type="text" class="form-control" placeholder="Ex: Analista" [(ngModel)]="novoCargo.nome">
+      </div>
+      <div class="col-md-7 mb-3">
+        <label class="form-label text-muted small fw-medium">DESCRIÇÃO (Opcional)</label>
+        <div class="d-flex gap-2">
+          <input type="text" class="form-control" placeholder="Ex: Responsável por..."
+            [(ngModel)]="novoCargo.descricao">
+          <button class="btn btn-primary" (click)="salvarNovoCargo()" [disabled]="!novoCargo.nome || isSalvandoCargo"
+            style="white-space: nowrap;">
+            <i class="fa-solid fa-spinner fa-spin me-2" *ngIf="isSalvandoCargo"></i>
+            {{ isSalvandoCargo ? 'Salvando...' : (cargoModalMode === 'create' ? 'Adicionar' : 'Alterar') }}
+          </button>
+          <button class="btn btn-outline-secondary" *ngIf="cargoModalMode === 'edit'" (click)="cancelarEdicaoCargo()"
+            title="Cancelar edição">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Area da Tabela -->
+    <div class="mt-4 border-top pt-3">
+      <h6 class="text-muted mb-3"><i class="fa-solid fa-list-ul me-2"></i> Cargos Cadastrados</h6>
+      <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+        <table class="saas-table w-100">
+          <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+            <tr>
+              <th>NOME</th>
+              <th>DESCRIÇÃO</th>
+              <th class="text-end">AÇÕES</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let cargo of listaCargos"
+              [class.bg-light]="novoCargo.idCargoColaborador === cargo.idCargoColaborador">
+              <td class="fw-medium">{{ cargo.nome }}</td>
+              <td class="text-muted">{{ cargo.descricao || '-' }}</td>
+              <td class="text-end">
+                <div class="action-buttons">
+                  <button class="btn-icon" title="Editar" (click)="editarCargo(cargo)"
+                    [disabled]="cargoModalMode === 'edit'">
+                    <i class="fa-solid fa-pen"></i>
+                  </button>
+                  <button class="btn-icon delete" title="Excluir"
+                    (click)="confirmarExclusaoCargo(cargo.idCargoColaborador!)" [disabled]="cargoModalMode === 'edit'">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="listaCargos.length === 0">
+              <td colspan="3" class="text-center text-muted py-4">Nenhum cargo cadastrado.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end pt-3 mt-3 border-top">
+      <app-button variant="ghost" (clicked)="closeNovoCargoModal()">Fechar</app-button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Modal de Cadastro/Edição de Unidade -->
+<app-modal [isOpen]="isUnidadeModalOpen"
+  [title]="unidadeModalMode === 'create' ? 'Cadastrar Unidade' : 'Editar Unidade'" (closed)="closeUnidadeModal()"
+  size="md">
+  <div class="form-container py-2">
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">CÓDIGO DA UNIDADE</label>
+      <input type="number" class="form-control" placeholder="Ex: 102" [(ngModel)]="novaUnidade.codigo">
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label text-muted small fw-medium">DESCRIÇÃO</label>
+      <input type="text" class="form-control" placeholder="Ex: Matriz São Paulo" [(ngModel)]="novaUnidade.descricao">
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+      <app-button variant="ghost" (clicked)="closeUnidadeModal()">Cancelar</app-button>
+      <app-button variant="primary" (clicked)="salvarUnidade()"
+        [disabled]="!novaUnidade.codigo || !novaUnidade.descricao || isSalvandoUnidade">
+        <i class="fa-solid fa-spinner fa-spin me-2" *ngIf="isSalvandoUnidade"></i>
+        {{ isSalvandoUnidade ? 'Salvando...' : 'Salvar Unidade' }}
+      </app-button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Modal de Cadastro/Edição de Empresa -->
+<app-modal [isOpen]="isEmpresaModalOpen"
+  [title]="empresaModalMode === 'create' ? 'Cadastrar Empresa' : 'Editar Empresa'" (closed)="closeEmpresaModal()"
+  size="md">
+  <div class="form-container py-2 d-flex flex-column" style="min-height: 420px;">
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">NOME DA EMPRESA</label>
+      <input type="text" class="form-control" placeholder="Ex: Cartão Corporativo Itaú" [(ngModel)]="novaEmpresa.nome">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">DESCRIÇÃO</label>
+      <textarea class="form-control" rows="3" placeholder="Ex: Faturas do cartão de crédito corporativo..."
+        [(ngModel)]="novaEmpresa.descricao"></textarea>
+    </div>
+    
+    <div class="mb-4">
+      <label class="form-label text-muted small fw-medium">MÓDULOS PERMITIDOS</label>
+      <ng-select [items]="modulosOptions"
+         bindLabel="nome"
+         bindValue="id"
+         [multiple]="true"
+         [closeOnSelect]="false"
+         appendTo="body"
+         placeholder="Selecione os módulos (opcional)"
+         [(ngModel)]="novaEmpresa.modulo_ids">
+         <ng-template ng-option-tmp let-item="item" let-item$="item$" let-index="index">
+           <input type="checkbox" [checked]="item$.selected" class="me-2" /> {{item.nome}}
+         </ng-template>
+      </ng-select>
+    </div>
+
+    <div class="mt-auto d-flex justify-content-end gap-2 pt-3 border-top">
+      <app-button variant="ghost" (clicked)="closeEmpresaModal()">Cancelar</app-button>
+      <app-button variant="primary" (clicked)="salvarEmpresa()" [disabled]="!novaEmpresa.nome || isSalvandoEmpresa">
+        <i class="fa-solid fa-spinner fa-spin me-2" *ngIf="isSalvandoEmpresa"></i>
+        {{ isSalvandoEmpresa ? 'Salvando...' : 'Salvar Empresa' }}
+      </app-button>
+    </div>
+  </div>
+</app-modal>
+
+
+<!-- Modal Novo Usuário -->
+<app-modal [isOpen]="isCadastroModalOpen" title="Novo Usuário" (closed)="closeCadastroModal()">
+  <form [formGroup]="cadastroForm" (ngSubmit)="onCadastroSubmit()" class="p-4">
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">NOME COMPLETO</label>
+      <input type="text" class="form-control" formControlName="name" placeholder="Ex: João Silva">
+    </div>
+    
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">EMAIL</label>
+      <input type="email" class="form-control" formControlName="email" placeholder="joao@stamaria.ind.br">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">SENHA PROVISÓRIA</label>
+      <input type="password" class="form-control" formControlName="password" placeholder="Mínimo 6 caracteres">
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label text-muted small fw-medium">CONFIRMAR SENHA</label>
+      <input type="password" class="form-control" formControlName="confirmPassword" placeholder="Confirme a senha">
+      <small class="text-danger mt-1 d-block" *ngIf="cadastroForm.hasError('mismatch') && cadastroForm.get('confirmPassword')?.touched">
+        As senhas não coincidem.
+      </small>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+      <app-button variant="ghost" type="button" (clicked)="closeCadastroModal()">Cancelar</app-button>
+      <app-button variant="primary" type="submit" [disabled]="cadastroForm.invalid">Cadastrar Usuário</app-button>
+    </div>
+  </form>
+</app-modal>
+
+<!-- Modal Alterar Senha -->
+<app-modal [isOpen]="isPasswordModalOpen" title="Alterar Senha" (closed)="closePasswordModal()">
+  <div class="p-4 border-bottom bg-light">
+    <p class="mb-1 text-muted small">Alterando senha de:</p>
+    <div class="fw-medium">{{ selectedUser?.name }}</div>
+    <div class="small text-muted">{{ selectedUser?.email }}</div>
+  </div>
+  
+  <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()" class="p-4">
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">NOVA SENHA</label>
+      <input type="password" class="form-control" formControlName="newPassword" placeholder="Mínimo 6 caracteres">
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label text-muted small fw-medium">CONFIRMAR NOVA SENHA</label>
+      <input type="password" class="form-control" formControlName="confirmNewPassword" placeholder="Confirme a nova senha">
+      <small class="text-danger mt-1 d-block" *ngIf="passwordForm.hasError('mismatch') && passwordForm.get('confirmNewPassword')?.touched">
+        As senhas não coincidem.
+      </small>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+      <app-button variant="ghost" type="button" (clicked)="closePasswordModal()">Cancelar</app-button>
+      <app-button variant="primary" type="submit" [disabled]="passwordForm.invalid">Salvar Nova Senha</app-button>
+    </div>
+  </form>
+</app-modal>

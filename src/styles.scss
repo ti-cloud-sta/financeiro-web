@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+// Importa FontAwesome Base CSS
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+
+// Importa ng-select theme
+@import "@ng-select/ng-select/themes/default.theme.css";
+
+// Importa ngx-daterangepicker-material base css (removido)
+@import "flatpickr/dist/flatpickr.min.css";
+
+// 1. Design Tokens de Tema
+@import 'styles/tokens';
+
+// 1. Variáveis customizadas (overrides do Bootstrap)
+@import 'styles/variables';
+
+// 2. Importa o Bootstrap completo
+@import "bootstrap/scss/bootstrap";
+
+// 3. Nossas customizações globais
+@import 'styles/global';
+
+// 4. Overrides do sistema de tema Light/Dark
+@import 'styles/theme_overrides';

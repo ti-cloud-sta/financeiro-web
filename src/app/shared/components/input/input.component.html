@@ -1,0 +1,40 @@
+<div class="mb-3 erp-input-wrapper" [class.is-disabled]="disabled">
+  @if (label) {
+    <label class="form-label fw-medium text-secondary mb-1 small">{{ label }}</label>
+  }
+  
+  <div class="position-relative">
+    @if (icon) {
+      <span class="position-absolute top-50 translate-middle-y text-muted erp-input-icon">
+        <i [class]="icon"></i>
+      </span>
+    }
+    <input 
+      class="form-control"
+      [class.ps-5]="!!icon"
+      [class.pe-5]="type === 'password'"
+      [class.is-invalid]="!!errorMessage"
+      [type]="currentType"
+      [placeholder]="placeholder"
+      [disabled]="disabled"
+      [value]="value"
+      (input)="onInput($event)"
+      (blur)="onTouch()"
+    />
+    @if (type === 'password') {
+      <button 
+        type="button" 
+        class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-muted text-decoration-none shadow-none" 
+        (click)="togglePasswordVisibility()"
+        tabindex="-1">
+        <i class="fa-solid" [class.fa-eye]="currentType === 'password'" [class.fa-eye-slash]="currentType !== 'password'"></i>
+      </button>
+    }
+  </div>
+
+  @if (errorMessage) {
+    <div class="invalid-feedback d-block mt-1">
+      {{ errorMessage }}
+    </div>
+  }
+</div>

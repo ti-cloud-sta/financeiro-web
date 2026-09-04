@@ -1,0 +1,956 @@
+<div class="page-container">
+
+  <div class="main-layout">
+    <aside class="main-sidebar" [class.collapsed]="isSidebarCollapsed">
+      <div class="sidebar-header d-flex justify-content-end mb-3 pb-2 border-bottom">
+        <button class="btn btn-sm text-muted sidebar-toggle" (click)="toggleSidebar()"
+          style="background: transparent; border: none; padding: 0.25rem 0.5rem; border-radius: 6px;">
+          <i class="fa-solid" [ngClass]="isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+        </button>
+      </div>
+      <ul class="main-nav">
+        <li>
+          <button class="main-nav-link" [class.active]="sidebarTab() === 'dashboard'"
+            (click)="setSidebarTab('dashboard')" title="Dashboard">
+            <i class="fa-solid fa-chart-pie"></i> <span class="nav-text">Dashboard</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="sidebarTab() === 'relatorios'"
+            (click)="setSidebarTab('relatorios')" title="Relatórios">
+            <i class="fa-solid fa-file-lines"></i> <span class="nav-text">Relatórios</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="sidebarTab() === 'atualizacao'"
+            (click)="setSidebarTab('atualizacao')" title="Atualização de Dados">
+            <i class="fa-solid fa-database"></i> <span class="nav-text">Atualização de Dados</span>
+          </button>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="tab-content custom-tab-content">
+
+        
+        <!-- DASHBOARD TAB -->
+        @if (sidebarTab() === 'dashboard') {
+        <div class="dashboard-header border-bottom">
+          <ul class="config-nav" style="margin-bottom: 0;">
+            <li class="config-nav-item">
+              <button class="config-nav-link active">
+                Visão Geral Analítica
+              </button>
+            </li>
+          </ul>
+        </div>
+        
+        <div class="dashboard-content p-4">
+          <!-- Painel de Filtros Premium -->
+          <div class="filters-panel-card mb-4">
+            <div class="filters-grid">
+              
+              <!-- Coluna de Período -->
+              <div class="filter-group period-filter-group">
+                <span class="filter-label mb-2 d-block">Período</span>
+
+                <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
+                  <div class="period-inputs">
+                    <div class="input-icon-wrapper" style="width: 130px;">
+                      <i class="fa-regular fa-calendar input-icon"></i>
+                      <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
+                        [locale]="locale" [convertModelValue]="true" [maxDate]="dashDataFim || ''"
+                        placeholder="Data inicial" [(ngModel)]="dashDataInicio"
+                        (ngModelChange)="onDataInicioChange()">
+                    </div>
+
+                    <span class="period-separator text-muted small px-1">à</span>
+
+                    <div class="input-icon-wrapper" style="width: 130px;">
+                      <i class="fa-regular fa-calendar input-icon"></i>
+                      <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
+                        [locale]="locale" [convertModelValue]="true" [minDate]="dashDataInicio || ''"
+                        placeholder="Data final" [(ngModel)]="dashDataFim" (ngModelChange)="onDataFimChange()">
+                    </div>
+                  </div>
+
+                  <select class="form-select form-select-sm shortcut-select" [(ngModel)]="activePeriodShortcut"
+                    (ngModelChange)="onShortcutSelectChange($event)">
+                    <option value="ultimo-bimestre">Últ. Bimestre</option>
+                    <option value="ultimo-semestre">Últ. Semestre</option>
+                    <option value="este-ano">Este Ano</option>
+                    <option value="ano-passado">Ano Passado</option>
+                    <option value="personalizado" disabled>Personalizado</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Coluna de Categoria (Plano vs Seguro) -->
+              <div class="filter-group">
+                <label class="filter-label mb-2">Categoria</label>
+                <select class="form-select form-select-sm" [(ngModel)]="dashFiltroCategoria"
+                  (ngModelChange)="carregarDadosDashboard()">
+                  <option value="TODOS">Todos (Planos e Seguros)</option>
+                  <option value="PLANO_SAUDE">Planos de Saúde</option>
+                  <option value="SEGURO">Seguros</option>
+                </select>
+              </div>
+
+              <!-- Coluna de Pessoa -->
+              <div class="filter-group">
+                <label class="filter-label mb-2">Funcionário</label>
+                <select class="form-select form-select-sm" [(ngModel)]="dashFiltroPessoa"
+                  (ngModelChange)="carregarDadosDashboard()">
+                  <option [value]="null">Todos</option>
+                  <option *ngFor="let c of listaColaboradoresGeral" [value]="c.idColaborador">{{ c.nome }}
+                  </option>
+                </select>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- SKELETON LOADING STATE -->
+          <div *ngIf="isDashboardLoading">
+            <div class="row g-4 mb-4">
+              <div class="col-12 col-xl-6">
+                <div class="dash-chart-card h-100 p-3 bg-white border rounded-3" style="min-height: 350px;">
+                  <app-skeleton type="text" width="40%" height="18px" class="mb-3"></app-skeleton>
+                  <app-skeleton type="rect" width="100%" height="280px"></app-skeleton>
+                </div>
+              </div>
+              <div class="col-12 col-xl-6">
+                <div class="dash-chart-card h-100 p-3 bg-white border rounded-3" style="min-height: 350px;">
+                  <app-skeleton type="text" width="40%" height="18px" class="mb-3"></app-skeleton>
+                  <div class="d-flex justify-content-center align-items-center h-100 pb-4">
+                    <app-skeleton type="circle" width="220px" height="220px"></app-skeleton>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CHARTS E GRIDS -->
+          <div *ngIf="!isDashboardLoading">
+            <div class="row g-4 mb-4">
+              <!-- Gráfico de Colunas 12 Meses -->
+              <div class="col-12 col-xl-8">
+                <div class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm">
+                  <h6 class="mb-3 fw-semibold text-secondary">Evolução Mensal</h6>
+                  <div echarts *ngIf="chartOptionsEvolucao" [options]="chartOptionsEvolucao" class="chart-container" style="min-height: 280px;"></div>
+                </div>
+              </div>
+
+              <!-- Gráfico de Donut Categorias -->
+              <div class="col-12 col-xl-4">
+                <div class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm">
+                  <h6 class="mb-3 fw-semibold text-secondary">Proporção por Tipo</h6>
+                  <div echarts *ngIf="chartOptionsCategorias" [options]="chartOptionsCategorias" class="chart-container" style="min-height: 280px;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabela Maiores Gastos (SaaS Style) -->
+            <div class="row g-4 mb-4">
+              <div class="col-12">
+                <div class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm">
+                  <h6 class="mb-3 fw-semibold text-secondary">Total por Empresa</h6>
+                  <div class="table-responsive">
+                    <table class="saas-table">
+                        <thead>
+                          <tr>
+                            <th style="width: 80px;">Posição</th>
+                            <th>Empresa</th>
+                            <th class="text-end">Valor (R$)</th>
+                            <th class="text-end">Part. (%)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr *ngFor="let row of topDespesas">
+                            <td class="text-muted small fw-medium">#{{ row.posicao }}</td>
+                            <td class="fw-medium text-dark">{{ row.nome }}</td>
+                            <td class="text-end fw-semibold tabular-nums text-danger">
+                              {{ row.valor | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                            </td>
+                            <td class="text-end text-muted small tabular-nums">
+                              {{ row.pct | number:'1.1-1':'pt-BR' }}%
+                            </td>
+                          </tr>
+                        <tr *ngIf="topDespesas.length === 0">
+                          <td colspan="4" class="text-center py-4 text-muted">
+                            Nenhum gasto encontrado para este período.
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+        }
+
+
+        <!-- CONFIGURAÇÕES TAB -->
+        
+
+        <!-- ATUALIZAÇÃO DE DADOS TAB -->
+        @if (sidebarTab() === 'atualizacao') {
+        <div class="config-layout">
+          <div class="dashboard-header d-flex justify-content-between align-items-center border-bottom">
+            <ul class="config-nav mb-0 border-bottom-0 pb-0">
+              <li class="config-nav-item">
+                <button class="config-nav-link" [class.active]="horizontalTab() === 'plano-saude'"
+                  (click)="setHorizontalTab('plano-saude')">
+                  Plano de Saúde
+                </button>
+              </li>
+              <li class="config-nav-item">
+                <button class="config-nav-link" [class.active]="horizontalTab() === 'seguro-vida'"
+                  (click)="setHorizontalTab('seguro-vida')">
+                  Seguro
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <main class="dashboard-content" style="flex-grow: 1;">
+            <div class="import-dashboard">
+
+              <div class="dashboard-section-header">
+                @if (horizontalTab() === 'plano-saude') {
+                <h3>Planos de Saúde</h3>
+                <p>Importação, conciliação e gestão de faturas e mensalidades de operadoras de saúde.</p>
+                } @else {
+                <h3>Seguros</h3>
+                <p>Importação de apólices e controle de movimentação de Seguros.</p>
+                }
+              </div>
+
+              <div class="companies-grid">
+                @for (empresa of filteredEmpresasAtualizacao; track empresa.idEmpresas) {
+                <div class="company-card" [class.active]="activeCard()?.id === empresa.idEmpresas?.toString()" (click)="activeCard.set({
+                      id: empresa.idEmpresas?.toString() || '',
+                      name: empresa.nome,
+                      icon: empresa.icon || 'fa-solid fa-building',
+                      colorClass: 'color-info',
+                      status: 'active',
+                      statusText: 'Importação Disponível',
+                      statusVariant: 'success',
+                      description: empresa.descricao || ''
+                    })">
+                  <div class="company-info">
+                    <div class="company-icon" [ngClass]="'color-info'">
+                      <i [class]="empresa.icon"></i>
+                    </div>
+                    <span class="company-name">{{ empresa.nome }}</span>
+                  </div>
+                  <app-button variant="ghost" size="sm" icon="fa-solid fa-cloud-arrow-up"
+                    (clicked)="triggerImport(activeCard()!)">
+                    Importar
+                  </app-button>
+                </div>
+                }
+                @if (filteredEmpresasAtualizacao.length === 0) {
+                <div class="w-100 py-4 text-center text-muted">
+                  Nenhuma empresa cadastrada para este módulo. Cadastre em Configurações > Empresas.
+                </div>
+                }
+              </div>
+
+              <div class="section-header d-flex justify-content-between align-items-center mb-3 mt-5">
+                <div>
+                  <h3>Histórico de Importações</h3>
+                  <p>Acompanhe os arquivos processados recentemente.</p>
+                </div>
+                <div class="search-box" style="max-width: 300px; width: 100%;">
+                  <i class="fa-solid fa-search text-muted"></i>
+                  <input type="text" placeholder="Buscar importação..." [ngModel]="searchImportacaoTerm"
+                    (ngModelChange)="onSearchImportacaoChange($event)">
+                </div>
+              </div>
+
+              <div class="table-card mb-5">
+                <div class="table-responsive">
+                  <table class="saas-table">
+                    <thead>
+                      <tr>
+                        <th>Nome do Arquivo</th>
+                        <th>Empresa</th>
+                        <th>Tipo</th>
+                        <th>Data</th>
+                        <th>Usuário</th>
+                        <th class="text-end">Valor Total</th>
+                        <th class="text-center">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (hist of listaImportacoes; track hist.idImportacoes) {
+                      <tr>
+                        <td>
+                          <div class="file-cell">
+                            <i class="fa-regular fa-file-excel excel-icon"
+                              *ngIf="hist.extensaoArquivo === 'xlsx' || hist.extensaoArquivo === 'xls'"></i>
+                            <i class="fa-regular fa-file-pdf pdf-icon" *ngIf="hist.extensaoArquivo === 'pdf'"></i>
+                            <i class="fa-regular fa-file file-icon"
+                              *ngIf="hist.extensaoArquivo !== 'xlsx' && hist.extensaoArquivo !== 'xls' && hist.extensaoArquivo !== 'pdf'"></i>
+                            <span>{{ hist.nomeArquivo }}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span>{{ hist.empresa?.nome || '-' }}</span>
+                        </td>
+                        <td>
+                          <span class="company-badge">{{ hist.tipo }}</span>
+                        </td>
+                        <td>{{ hist.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                        <td>
+                          <span class="text-muted small fw-medium">
+                            <i class="fa-regular fa-user me-1"></i>{{ hist.autor || '-' }}
+                          </span>
+                        </td>
+                        <td class="text-end amount-cell">{{ hist.valor_total | currency:'BRL' }}</td>
+                        <td>
+                          <div class="actions-cell justify-content-center">
+                            <button class="action-btn delete-btn" title="Excluir"
+                              (click)="confirmarExclusaoImportacao(hist.idImportacoes)">
+                              <i class="fa-solid fa-trash"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      }
+                      <tr *ngIf="listaImportacoes.length === 0">
+                        <td colspan="7" class="text-center text-muted py-4">Nenhuma importação encontrada.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container p-3" *ngIf="listaImportacoes.length > 0">
+                  <span class="text-muted small">Total de {{ totalImportacoes }} registros</span>
+                  <div class="pagination-actions">
+                    <button class="btn-page" [disabled]="currentImportacaoPage === 1"
+                      (click)="goToImportacaoPage(currentImportacaoPage - 1)">
+                      <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span class="page-indicator">Página {{ currentImportacaoPage }} de {{ totalImportacaoPages }}</span>
+                    <button class="btn-page" [disabled]="currentImportacaoPage === totalImportacaoPages"
+                      (click)="goToImportacaoPage(currentImportacaoPage + 1)">
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+        }
+
+        <!-- RELATÓRIOS TAB -->
+        @if (sidebarTab() === 'relatorios') {
+        <div class="config-layout">
+          <div class="dashboard-header border-bottom">
+            <ul class="config-nav" style="margin-bottom: 0;">
+              <li class="config-nav-item">
+                <button class="config-nav-link active">
+                  Relatório Geral
+                </button>
+              </li>
+            </ul>
+          </div>
+          <main class="dashboard-content" style="flex-grow: 1;">
+            <div class="p-4">
+
+              <!-- Painel de Filtros de Relatório -->
+              <div class="filters-panel-card mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap w-100 gap-3">
+                  <div class="filters-grid flex-grow-1" style="margin: 0; padding: 0;">
+                    <div class="filter-group period-filter-group">
+                      <span class="filter-label mb-2 d-block">Competência</span>
+                      <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
+                        <select class="form-select form-select-sm shortcut-select" style="width: 100px;" [ngModel]="relatorioAno()" (ngModelChange)="relatorioAno.set(+$event); onRelatorioPeriodoChange()">
+                          @for (a of anos(); track a) {
+                            <option [value]="a">{{ a }}</option>
+                          }
+                        </select>
+  
+                        <select class="form-select form-select-sm shortcut-select" style="width: 140px;" [ngModel]="relatorioMes()" (ngModelChange)="relatorioMes.set(+$event); onRelatorioPeriodoChange()">
+                          @for (m of meses; track m.value) {
+                            <option [value]="m.value">{{ m.label }}</option>
+                          }
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                      <span class="filter-label mb-2 d-block">Empresa</span>
+                      <select class="form-select form-select-sm" style="width: 200px;" [ngModel]="relatorioEmpresa()" (ngModelChange)="relatorioEmpresa.set($event ? +$event : null); onRelatorioPeriodoChange()">
+                        <option [value]="null">Todas as Empresas</option>
+                        @for (e of empresasAtualizacao; track e.idEmpresas) {
+                          <option [value]="e.idEmpresas">{{ e.nome }}</option>
+                        }
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <!-- Card Total Geral -->
+                  <div class="px-3 py-2 rounded border bg-light d-flex flex-column align-items-end" style="min-width: 160px;">
+                    <span class="text-muted small fw-medium mb-1">Total da Competência</span>
+                    <span class="fs-5 fw-bold text-dark tabular-nums">
+                      {{ totalGeralRelatorio() | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="section-header d-flex justify-content-end align-items-center mb-4 gap-2">
+                <div class="search-box" style="max-width: 350px; width: 100%;">
+                  <i class="fa-solid fa-search text-muted"></i>
+                  <input type="text" placeholder="Pesquisar por nome, empresa ou unidade..."
+                    [ngModel]="searchRelatorioTerm()" (ngModelChange)="onSearchRelatorioTermChange($event)">
+                </div>
+                <app-button variant="primary" icon="fa-solid fa-code-compare" (click)="isConciliacaoModalOpen = true">
+                  Conciliação
+                </app-button>
+                <app-button variant="outline-success" icon="fa-solid fa-file-excel" (click)="exportarRelatorio()" [disabled]="isRelatorioLoading()">
+                  Exportar Relatório (xlsx)
+                </app-button>
+              </div>
+
+              <div class="table-card mb-5">
+                <div class="table-responsive">
+                  <table class="saas-table">
+                    <thead>
+                      <tr>
+                        <th>Competência</th>
+                        <th>Unidade</th>
+                        <th>Empresa</th>
+                        <th>Nome</th>
+                        <th>Centro de Custo</th>
+                        <th class="text-end">Total (R$)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of relatoriosData(); track row.nome) {
+                      <tr>
+                        <td>
+                          <span class="badge text-bg-light border text-muted">{{ row.competencia }}</span>
+                        </td>
+                        <td class="text-muted small fw-medium">{{ row.unidade || 'N/D' }}</td>
+                        <td>
+                          <span class="company-badge text-dark fw-medium">{{ row.empresa }}</span>
+                        </td>
+                        <td class="fw-semibold text-dark">{{ row.nome }}</td>
+                        <td class="text-muted small">{{ row.centro_custo || 'N/D' }}</td>
+                        <td class="text-end amount-cell tabular-nums text-danger">
+                          {{ row.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                        </td>
+                      </tr>
+                      }
+                      @if (relatoriosData().length === 0) {
+                      <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                          @if (isRelatorioLoading()) {
+                            <i class="fa-solid fa-circle-notch fa-spin me-2"></i> Carregando relatórios...
+                          } @else {
+                            Nenhum registro encontrado.
+                          }
+                        </td>
+                      </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container p-3" *ngIf="totalRelatorioItems() > 0">
+                  <span class="text-muted small">Total de {{ totalRelatorioItems() }} registros</span>
+                  <div class="pagination-actions">
+                    <button class="btn-page" [disabled]="currentRelatorioPage() === 1"
+                      (click)="goToRelatorioPage(currentRelatorioPage() - 1)">
+                      <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span class="page-indicator">Página {{ currentRelatorioPage() }} de {{ totalRelatorioPages() }}</span>
+                    <button class="btn-page" [disabled]="currentRelatorioPage() === totalRelatorioPages()"
+                      (click)="goToRelatorioPage(currentRelatorioPage() + 1)">
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </main>
+        </div>
+        }
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Hidden File Input -->
+  <input type="file" #fileInput (change)="onFileSelected($event)" accept=".xlsx, .xls, .pdf" style="display: none;">
+
+  <!-- Import Processing Modal -->
+  <app-modal [isOpen]="isUploadModalOpen()" [title]="'Importação - ' + (activeCard()?.name || '')"
+    [size]="(processingStep() === 5) ? 'lg' : 'sm'" (closed)="!isProcessing() && !isSaving() ? closeModal() : null">
+
+    <div class="text-center py-3">
+
+      <!-- ERROR DISPLAY -->
+      @if (processingError()) {
+      <div class="alert alert-danger py-2 px-3 mb-3 text-start small mx-auto" style="max-width: 480px;">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>
+        {{ processingError() }}
+      </div>
+      }
+
+      <!-- STEP: FILE SELECTED / READY TO PROCESS -->
+      @if (processingStep() === 0) {
+      <div class="text-primary mb-3">
+        <i class="fa-regular fa-file-excel fs-1"></i>
+      </div>
+      <h4 class="mb-2">{{ activeCard()?.name }}</h4>
+      <p class="text-muted small">
+        Arquivo carregado: <strong>{{ selectedFile()?.name }}</strong>
+      </p>
+      <p class="text-muted small px-3">
+        Confirme abaixo para iniciar o processamento e a conciliação automatizada deste arquivo.
+      </p>
+
+      <div class="mt-4 d-flex justify-content-center gap-2">
+        <app-button variant="secondary" (clicked)="closeModal()">
+          Cancelar
+        </app-button>
+        <app-button variant="primary" (clicked)="processFile()">
+          Processar
+        </app-button>
+      </div>
+      }
+
+      <!-- STEP: PROCESSING / LOADING -->
+      @else if (isProcessing()) {
+      <div class="processing-spinner mb-3">
+        <app-loading type="spinner" size="lg"></app-loading>
+      </div>
+      <h4 class="mb-2">Processando arquivo...</h4>
+      <div class="progress-steps-list text-start mx-auto mt-4 px-3" style="max-width: 320px;">
+        <div class="step-item" [class.active]="processingStep() === 1" [class.done]="processingStep() > 1">
+          <i class="fa-solid" [class.fa-spinner]="processingStep() === 1"
+            [class.fa-circle-notch]="processingStep() === 1" [class.fa-spin]="processingStep() === 1"
+            [class.fa-check]="processingStep() > 1"></i>
+          <span>Leitura e estrutura</span>
+        </div>
+        <div class="step-item" [class.active]="processingStep() === 2" [class.done]="processingStep() > 2">
+          <i class="fa-solid" [class.fa-spinner]="processingStep() === 2"
+            [class.fa-circle-notch]="processingStep() === 2" [class.fa-spin]="processingStep() === 2"
+            [class.fa-check]="processingStep() > 2" [class.fa-circle]="processingStep() < 2"></i>
+          <span>Cruzamento com folha</span>
+        </div>
+        <div class="step-item" [class.active]="processingStep() === 3" [class.done]="processingStep() > 3">
+          <i class="fa-solid" [class.fa-spinner]="processingStep() === 3"
+            [class.fa-circle-notch]="processingStep() === 3" [class.fa-spin]="processingStep() === 3"
+            [class.fa-check]="processingStep() > 3" [class.fa-circle]="processingStep() < 3"></i>
+          <span>Apurando dados dos colaboradores</span>
+        </div>
+      </div>
+      <p class="text-muted small mt-4 px-3 italic">
+        {{ processingText() }}
+      </p>
+      }
+
+      <!-- STEP: SORRISO AUDIT & CONFIRMATION TABLE -->
+      @else if (processingStep() === 5) {
+      <div class="text-start px-2">
+        <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <h4 class="mb-1 text-primary">Conferência e Consolidação</h4>
+            <p class="text-muted small mb-0">Confirme os valores do grupo familiar (Titular + Dependentes) antes de
+              gravar.</p>
+          </div>
+
+          <div class="d-flex gap-2">
+            @if (validacoes()?.sem_titulares_duplicados) {
+            <app-badge variant="success" text="Sem duplicados"></app-badge>
+            } @else {
+            <app-badge variant="danger" text="Duplicações detectadas"></app-badge>
+            }
+            @if (validacoes()?.sem_dependentes_como_titulares) {
+            <app-badge variant="success" text="Sem dependentes como titular"></app-badge>
+            } @else {
+            <app-badge variant="danger" text="Conflito dependente/titular"></app-badge>
+            }
+            @if (validacoes()?.soma_individual_bate_com_total_geral) {
+            <app-badge variant="success" text="Total matemático OK"></app-badge>
+            } @else {
+            <app-badge variant="danger" text="Erro de soma"></app-badge>
+            }
+          </div>
+        </div>
+
+        <!-- Search Box -->
+        <div class="mb-3">
+          <div class="search-box position-relative" style="max-width: 100%; width: 100%;">
+            <i class="fa-solid fa-magnifying-glass text-muted position-absolute" style="left: 0.85rem; top: 50%; transform: translateY(-50%); font-size: 0.85rem;"></i>
+            <input type="text" class="form-control" placeholder="Pesquisar por nome do beneficiário..." 
+              style="padding-left: 2.25rem; height: 38px; border-radius: 8px;"
+              [ngModel]="searchBeneficiaryTerm()" (ngModelChange)="searchBeneficiaryTerm.set($event)">
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="audit-table-container">
+          <table class="table table-hover align-middle mb-0 text-start audit-table">
+            <thead class="table-light sticky-top">
+              <tr>
+                <th style="width: 90px;">Unidade</th>
+                <th>Beneficiário (Titular)</th>
+                <th class="text-end" style="width: 150px;">Valor Total</th>
+                <th class="text-end" style="width: 100px;">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (titular of filteredParsedTitulares(); track titular._id) {
+              <tr [class.bg-danger-subtle]="titular.centro_custo === 'N/D'"
+                  [class.bg-warning-subtle]="isDuplicated(titular.nome_db || titular.nome_pdf) && titular.centro_custo !== 'N/D'">
+                <!-- Unidade -->
+                <td class="text-muted">
+                  @if (editingRowId() === titular._id) {
+                  <input type="text" class="form-control form-control-sm" [value]="editUnidade()"
+                     (input)="onEditUnidadeChange($event)" placeholder="Ex: 101, 104">
+                  } @else {
+                  {{ titular.unidade && titular.unidade !== 'N/D' ? titular.unidade : '-' }}
+                  }
+                </td>
+
+                <!-- Beneficiário -->
+                <td class="fw-semibold text-dark">
+                  @if (editingRowId() === titular._id) {
+                  <ng-select [items]="colaboradoresList()" bindLabel="nome" bindValue="nome" [ngModel]="editNome()"
+                     (ngModelChange)="editNome.set($event); onColaboradorSelected($event)" [clearable]="false"
+                     class="custom-ng-select w-100">
+                  </ng-select>
+                  } @else {
+                  {{ titular.nome_db || titular.nome_pdf }}
+                  @if (isDuplicated(titular.nome_db || titular.nome_pdf)) {
+                  <span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem; border-radius: 4px; padding: 0.15rem 0.35rem;">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i>Duplicado
+                  </span>
+                  }
+                  }
+                </td>
+
+                <!-- Valor Total -->
+                <td class="text-end fw-semibold text-dark tabular-nums">
+                  @if (editingRowId() === titular._id) {
+                  <input type="number" class="form-control form-control-sm text-end" [value]="editValor()"
+                     (input)="onEditValorChange($event)">
+                  } @else {
+                  {{ titular.valor_total | currency:'BRL':'symbol':'1.2-2' }}
+                  }
+                </td>
+
+                <!-- Ações -->
+                <td class="text-end">
+                  @if (editingRowId() === titular._id) {
+                  <div class="d-flex justify-content-end gap-1">
+                    <button class="btn btn-sm-action btn-outline-primary hover-lift"
+                      (click)="openCreateColaboradorModal(titular._id, titular)" title="Cadastrar novo colaborador">
+                      <i class="fa-solid fa-user-plus"></i>
+                    </button>
+                    <button class="btn btn-sm-action btn-success" (click)="saveEdit(titular._id)">
+                      <i class="fa-solid fa-check"></i>
+                    </button>
+                    <button class="btn btn-sm-action btn-secondary" (click)="cancelEdit()">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+                  } @else {
+                  <div class="d-flex justify-content-end gap-1">
+                    @if (titular.centro_custo === 'N/D' || isDuplicated(titular.nome_db || titular.nome_pdf)) {
+                    <button class="btn btn-sm-action btn-outline-primary hover-lift" [disabled]="isAddingBeneficiario()"
+                      (click)="openCreateColaboradorModal(titular._id, titular)" title="Cadastrar novo colaborador">
+                      <i class="fa-solid fa-user-plus"></i>
+                    </button>
+                    }
+                    <button class="btn btn-sm-action btn-link hover-lift" [disabled]="isAddingBeneficiario()"
+                      (click)="startEdit(titular._id, titular)" title="Editar">
+                      <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                  </div>
+                  }
+                </td>
+              </tr>
+              }
+              <!-- ADICIONAR BENEFICIÁRIO MANUALMENTE -->
+              @if (isAddingBeneficiario()) {
+              <tr class="table-active">
+                <td>
+                  <ng-select [items]="colaboradoresList()" bindLabel="nome" bindValue="nome"
+                     [ngModel]="newBeneficiarioNome()" (ngModelChange)="newBeneficiarioNome.set($event)"
+                     [clearable]="false" placeholder="Selecione o colaborador..." class="custom-ng-select w-100">
+                  </ng-select>
+                </td>
+                <td class="text-end">
+                  <input type="number" class="form-control form-control-sm text-end" [value]="newBeneficiarioValor()"
+                     (input)="onNewBeneficiarioValorChange($event)" placeholder="0,00">
+                </td>
+                <td class="text-end">
+                  <div class="d-flex justify-content-end gap-1">
+                    <button class="btn btn-sm-action btn-success" (click)="confirmAddBeneficiario()"
+                      [disabled]="!newBeneficiarioNome()" title="Adicionar">
+                      <i class="fa-solid fa-check"></i>
+                    </button>
+                    <button class="btn btn-sm-action btn-secondary" (click)="cancelAddBeneficiario()" title="Cancelar">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              } @else {
+              <tr>
+                <td colspan="3" class="text-center py-2">
+                  <button class="btn btn-sm btn-outline-primary" (click)="startAddBeneficiario()"
+                    [disabled]="editingRowId() !== null">
+                    <i class="fa-solid fa-plus me-1"></i>Adicionar Beneficiário
+                  </button>
+                </td>
+              </tr>
+              }
+              <!-- TOTAL GERAL ROW -->
+              <tr class="table-light fw-bold">
+                <td>TOTAL GERAL</td>
+                <td class="text-end text-primary tabular-nums">
+                  {{ totalGeral() | currency:'BRL':'symbol':'1.2-2' }}
+                </td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Statistics Alert -->
+        <div
+          class="alert alert-info py-2 px-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2 stats-alert">
+          <span>
+            <i class="fa-solid fa-circle-info me-1"></i>
+            Total de beneficiários auditados: <strong>{{ validacoes()?.total_count }}</strong>
+            ({{ validacoes()?.titulares_count }} titulares, {{ validacoes()?.dependentes_count }} dependentes).
+          </span>
+          <span class="text-secondary">
+            Arquivo: <strong>{{ selectedFile()?.name }}</strong>
+          </span>
+        </div>
+
+
+      </div>
+      }
+
+      <!-- STEP: SUCCESS / REPORT -->
+      @else if (processingStep() === 4) {
+      <div class="text-success mb-3">
+        <i class="fa-solid fa-circle-check fs-1"></i>
+      </div>
+      <h4 class="mb-2 text-success">Importação Concluída</h4>
+      <p class="text-muted small px-3">
+        O demonstrativo da <strong>{{ activeCard()?.name }}</strong> foi processado e conciliado com sucesso no sistema.
+      </p>
+
+      <div class="import-summary-box mx-auto my-4 p-3 bg-light rounded text-start">
+        <div class="summary-row d-flex justify-content-between mb-2">
+          <span class="text-secondary small">Total Processado:</span>
+          <span class="fw-semibold">{{ importedCount() }} registros</span>
+        </div>
+        <div class="summary-row d-flex justify-content-between">
+          <span class="text-secondary small">Divergências Encontradas:</span>
+          @if (divergencesCount() > 0) {
+          <span class="text-warning fw-semibold d-flex align-items-center gap-1">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            {{ divergencesCount() }} pendentes
+          </span>
+          } @else {
+          <span class="text-success fw-semibold">Nenhuma</span>
+          }
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <app-button variant="secondary" (clicked)="closeModal()">
+          Fechar Relatório
+        </app-button>
+      </div>
+      }
+
+    </div>
+    @if (processingStep() === 5) {
+      <div class="erp-modal-footer" modal-footer>
+        <app-button variant="secondary" (clicked)="closeModal()" [disabled]="isSaving()">
+          Cancelar
+        </app-button>
+        <app-button variant="primary" (clicked)="confirmAndSave()" [loading]="isSaving()"
+          [disabled]="isSaving() || editingRowId() !== null || isAddingBeneficiario()">
+          Confirmar
+        </app-button>
+      </div>
+    }
+  </app-modal>
+
+  <!-- Colaborador Modal (Renderizado por último para ficar sobreposto) -->
+  <app-colaborador-modal [isOpen]="isColaboradorModalOpen" [modalMode]="'create'"
+    [initialName]="colaboradorToCreateName" (closed)="isColaboradorModalOpen = false"
+    (saved)="onColaboradorSaved($event)">
+  </app-colaborador-modal>
+
+  <!-- Modal Conciliação -->
+  <app-modal [isOpen]="isConciliacaoModalOpen" title="Conciliação de Valores" (closed)="fecharModalConciliacao()" size="lg">
+    <div modal-body class="p-4" [style.min-height]="conciliacaoStep() === 1 ? '300px' : 'auto'">
+      
+      <!-- Passo 1: Upload -->
+      @if (conciliacaoStep() === 1) {
+        <div class="d-flex flex-column align-items-center justify-content-center h-100 mt-4">
+          <div class="upload-area border border-2 border-dashed rounded p-5 text-center bg-light w-100"
+               style="cursor: pointer; transition: all 0.2s ease; max-width: 600px;"
+               (click)="fileInput.click()"
+               (dragover)="onConciliacaoDragOver($event)"
+               (drop)="onConciliacaoFileDropped($event)"
+               onmouseover="this.classList.add('border-primary', 'bg-white')"
+               onmouseout="this.classList.remove('border-primary', 'bg-white')">
+            <i class="fa-solid fa-cloud-arrow-up text-primary mb-3" style="font-size: 3rem;"></i>
+            <h5 class="fw-semibold text-dark mb-2">Clique ou arraste a planilha aqui</h5>
+            <p class="text-muted small mb-0">Arquivos suportados: .xlsx, .xls</p>
+            <input #fileInput type="file" accept=".xlsx, .xls" class="d-none" (change)="onConciliacaoFileSelected($event)">
+          </div>
+          <p class="text-muted small mt-4 text-center" style="max-width: 500px;">
+            A planilha deve conter as colunas <strong>Estab</strong>, <strong>Débito</strong> e <strong>Data Trans</strong> para que o sistema consiga cruzar com os dados já processados.
+          </p>
+        </div>
+      }
+
+      <!-- Passo 2: Processando -->
+      @if (conciliacaoStep() === 2) {
+        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+          <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Processando...</span>
+          </div>
+          <h5 class="fw-semibold text-dark">Cruzando os dados...</h5>
+          <p class="text-muted small">Aguarde enquanto comparamos a planilha com o banco de dados.</p>
+        </div>
+      }
+
+      <!-- Passo 3: Resultados -->
+      @if (conciliacaoStep() === 3 && conciliacaoResult()) {
+        <div class="conciliacao-results fade-in">
+          
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+              <h5 class="fw-semibold text-dark mb-1">Resultados da Conciliação</h5>
+              <span class="badge bg-light text-dark border"><i class="fa-regular fa-calendar me-1"></i> Competência: {{ conciliacaoResult()?.competencia }}</span>
+            </div>
+            <app-button variant="secondary" icon="fa-solid fa-arrow-rotate-left" (click)="abrirModalConciliacao()">
+              Nova Conciliação
+            </app-button>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <div class="card border-0 shadow-sm rounded-3 bg-white p-3 h-100">
+                <span class="text-muted small fw-medium mb-1">Total de Unidades</span>
+                <span class="fs-3 fw-bold text-dark">{{ conciliacaoResult()?.total_processado }}</span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border-0 shadow-sm rounded-3 bg-white p-3 h-100">
+                <span class="text-muted small fw-medium mb-1">Divergências</span>
+                <span class="fs-3 fw-bold" [class.text-danger]="(conciliacaoResult()?.total_divergencias || 0) > 0" [class.text-success]="(conciliacaoResult()?.total_divergencias || 0) === 0">
+                  {{ conciliacaoResult()?.total_divergencias }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive rounded border bg-white">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem;">
+              <thead class="bg-light text-uppercase text-muted" style="letter-spacing: 0.5px; font-size: 0.75rem;">
+                <tr>
+                  <th class="border-0 fw-semibold py-3 px-4">Status</th>
+                  <th class="border-0 fw-semibold py-3 px-4">Unidade</th>
+                  <th class="border-0 fw-semibold py-3 px-4 text-end">Planilha (R$)</th>
+                  <th class="border-0 fw-semibold py-3 px-4 text-end">Sistema (R$)</th>
+                  <th class="border-0 fw-semibold py-3 px-4 text-end">Diferença (R$)</th>
+                </tr>
+              </thead>
+              <tbody class="border-top-0">
+                @for (row of conciliacaoResult()?.linhas; track row.unidade_codigo + row.empresa_abrev) {
+                  <tr>
+                    <td class="px-4 border-bottom-light">
+                      @if (row.status === 'OK') {
+                        <app-badge variant="success" icon="fa-solid fa-check">OK</app-badge>
+                      } @else if (row.status === 'DIVERGENTE') {
+                        <app-badge variant="danger" icon="fa-solid fa-triangle-exclamation">Divergente</app-badge>
+                      } @else if (row.status === 'NAO_ENCONTRADO_SISTEMA') {
+                        <app-badge variant="warning" icon="fa-solid fa-circle-question">Falta no Sist.</app-badge>
+                      } @else if (row.status === 'NAO_ENCONTRADO_PLANILHA') {
+                        <app-badge variant="warning" icon="fa-solid fa-file-circle-question">Falta na Plan.</app-badge>
+                      }
+                    </td>
+                    <td class="px-4 border-bottom-light">
+                      <div class="fw-semibold text-dark">Unidade: {{ row.unidade_codigo }}</div>
+                      <div class="text-muted small" style="font-size: 0.75rem;">Empresa: {{ row.empresa_abrev }}</div>
+                    </td>
+                    <td class="px-4 text-end tabular-nums border-bottom-light text-dark">
+                      {{ row.total_planilha | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </td>
+                    <td class="px-4 text-end tabular-nums border-bottom-light text-dark">
+                      {{ row.total_sistema | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </td>
+                    <td class="px-4 text-end tabular-nums border-bottom-light fw-semibold" [class.text-danger]="row.diferenca !== 0" [class.text-success]="row.diferenca === 0">
+                      {{ row.diferenca | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      }
+
+    </div>
+  </app-modal>
+
+</div>
+
+<!-- Modal de Cadastro/Edição de Empresa -->
+<app-modal [isOpen]="isEmpresaModalOpen"
+  [title]="empresaModalMode === 'create' ? 'Cadastrar Empresa' : 'Editar Empresa'" (closed)="closeEmpresaModal()"
+  size="md">
+  <div class="form-container py-2">
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">NOME DA EMPRESA</label>
+      <input type="text" class="form-control" placeholder="Ex: Cartão Corporativo Itaú" [(ngModel)]="novaEmpresa.nome">
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label text-muted small fw-medium">DESCRIÇÃO</label>
+      <textarea class="form-control" rows="3" placeholder="Ex: Faturas do cartão de crédito corporativo..."
+        [(ngModel)]="novaEmpresa.descricao"></textarea>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+      <app-button variant="ghost" (clicked)="closeEmpresaModal()">Cancelar</app-button>
+      <app-button variant="primary" (clicked)="salvarEmpresa()" [disabled]="!novaEmpresa.nome || isSalvandoEmpresa">
+        <i class="fa-solid fa-spinner fa-spin me-2" *ngIf="isSalvandoEmpresa"></i>
+        {{ isSalvandoEmpresa ? 'Salvando...' : 'Salvar Empresa' }}
+      </app-button>
+    </div>
+  </div>
+</app-modal>
+
+<app-confirm-modal [isOpen]="isConfirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
+  [isLoading]="isConfirmLoading" (confirmed)="executeConfirm()" (canceled)="closeConfirmModal()">
+</app-confirm-modal>

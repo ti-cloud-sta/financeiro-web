@@ -1,0 +1,531 @@
+@import 'styles/variables';
+
+.page-container {
+  padding: 0;
+  max-width: 1400px;
+  margin: 0 auto;
+  margin-top: -0.75rem;
+  padding-bottom: 3rem;
+}
+
+/* ==========================================================================
+   1. CABEÇALHO (PAGE HEADER PREMIUM)
+   ========================================================================== */
+.page-header-premium {
+  margin-bottom: 1.5rem;
+
+  .title-row {
+    display: flex;
+    align-items: center;
+
+    i {
+      font-size: 0.875rem;
+      color: $gray-400;
+    }
+
+    .page-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: $gray-800;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+
+    .page-description {
+      font-size: 0.8125rem;
+      color: $gray-500;
+      margin: 0;
+      font-weight: 400;
+    }
+  }
+}
+
+/* ==========================================================================
+   2. LAYOUT PRINCIPAL (VERTICAL TABS)
+   ========================================================================== */
+.main-layout {
+  display: flex;
+  gap: 2rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+}
+
+.main-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden;
+
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+
+  .sidebar-header {
+    .sidebar-toggle:hover {
+      background: $gray-100 !important;
+    }
+  }
+
+  &.collapsed {
+    width: 60px;
+
+    .sidebar-header {
+      justify-content: center !important;
+    }
+
+    .main-nav-link {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+      justify-content: center;
+
+      i {
+        margin-right: 0;
+        font-size: 1.25rem;
+      }
+
+      .nav-text {
+        opacity: 0;
+        width: 0;
+        visibility: hidden;
+      }
+    }
+  }
+}
+
+.main-content {
+  flex-grow: 1;
+  min-width: 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-nav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  li {
+    width: 100%;
+  }
+
+  .main-nav-link {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    color: $gray-600;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+
+    i {
+      width: 20px;
+      text-align: center;
+      margin-right: 0.75rem;
+      font-size: 1.1rem;
+      transition: margin 0.3s ease;
+      color: #cbd3df;
+    }
+
+    .nav-text {
+      transition: opacity 0.2s ease, width 0.2s ease;
+      opacity: 1;
+      width: auto;
+    }
+
+    &:hover {
+      background: rgba($gray-100, 0.6);
+      color: $gray-900;
+
+      i {
+        color: $gray-900;
+      }
+    }
+
+    &.active {
+      background: rgba($primary, 0.08);
+      color: $primary;
+      font-weight: 600;
+
+      i {
+        color: $primary;
+      }
+    }
+  }
+}
+
+.custom-tab-content {
+  min-height: 400px;
+}
+
+/* ==========================================================================
+   3. IMPORT DASHBOARD — CARDS E GRID (Idêntico a Despesas de Viagens)
+   ========================================================================== */
+.import-dashboard {
+  .dashboard-section-header {
+    margin-bottom: 1.5rem;
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: $gray-500;
+      margin: 0 0 0.25rem 0;
+    }
+
+    p {
+      font-size: 0.8125rem;
+      color: $gray-500;
+      margin: 0;
+    }
+  }
+
+  .section-header {
+    margin-top: 2.5rem;
+
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: $gray-900;
+      margin-bottom: 0.25rem;
+    }
+
+    p {
+      color: $gray-500;
+      font-size: 0.8125rem;
+      margin: 0;
+    }
+  }
+
+  .companies-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+
+    @media (max-width: 992px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+
+    .company-card {
+      background-color: $white;
+      border: 1px solid $border-color;
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.01);
+
+      &:hover {
+        border-color: rgba($primary, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        transform: translateY(-1px);
+      }
+
+      .company-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+
+        .company-icon {
+          width: 55px;
+          height: 55px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1rem;
+        }
+
+        .company-name {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: $gray-800;
+        }
+      }
+    }
+  }
+
+  /* ==========================================================================
+     4. TABELA SAAS (Idêntica a Despesas de Viagens)
+     ========================================================================== */
+  .table-card {
+    background-color: $white;
+    border: 1px solid $border-color;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.01);
+  }
+
+  .saas-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    thead {
+      background-color: $gray-50;
+      border-bottom: 1px solid $border-color;
+
+      th {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: $gray-500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        text-align: left;
+        white-space: nowrap;
+      }
+    }
+
+    tbody {
+      tr {
+        border-bottom: 1px solid $gray-100;
+        transition: background-color 0.15s ease;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &:hover {
+          background-color: rgba($gray-50, 0.5);
+        }
+
+        td {
+          padding: 1rem 1.25rem;
+          font-size: 0.8125rem;
+          color: $gray-700;
+          vertical-align: middle;
+        }
+      }
+    }
+
+    .file-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 500;
+      color: $gray-800;
+
+      .pdf-icon {
+        color: $danger;
+        font-size: 1rem;
+      }
+
+      .excel-icon {
+        color: $success;
+        font-size: 1rem;
+      }
+    }
+
+    .company-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background-color: rgba($info, 0.1);
+      color: darken($info, 20%);
+    }
+
+    .amount-cell {
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+    }
+
+    .actions-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+
+      .action-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: none;
+        background: transparent;
+        color: $gray-400;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
+
+        &:hover {
+          background-color: $gray-100;
+          color: $gray-700;
+        }
+
+        &.delete-btn {
+          &:hover {
+            background-color: rgba($danger, 0.1);
+            color: $danger;
+          }
+        }
+      }
+    }
+  }
+}
+
+/* ==========================================================================
+   5. SEARCH BOX
+   ========================================================================== */
+.search-box {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+
+  i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $gray-400;
+  }
+
+  input {
+    width: 100%;
+    height: 40px;
+    padding: 0.5rem 1rem 0.5rem 2.5rem;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: $gray-900;
+    transition: all 0.2s ease;
+
+    &::placeholder {
+      color: $gray-400;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $primary;
+      box-shadow: 0 0 0 3px rgba($primary, 0.1);
+    }
+  }
+}
+
+/* ==========================================================================
+   8. UPLOAD ZONE
+   ========================================================================== */
+.upload-zone {
+  border: 2px dashed $border-color;
+  border-radius: 12px;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: rgba($primary, 0.02);
+
+  &:hover {
+    border-color: $primary;
+    background-color: rgba($primary, 0.05);
+  }
+
+  .upload-icon {
+    font-size: 2.5rem;
+    color: $primary;
+    margin-bottom: 0.75rem;
+  }
+
+  h4 {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: $gray-800;
+    margin-bottom: 0.35rem;
+  }
+
+  p {
+    color: $gray-500;
+    font-size: 0.8rem;
+    margin: 0;
+  }
+}
+
+/* ==========================================================================
+   9. MODAL UNIFICADO DE PRORROGAÇÃO (SPLIT LAYOUT)
+   ========================================================================== */
+.prorrogacao-modal-content {
+  padding: 0.5rem 0;
+}
+
+.upload-split-layout {
+  display: flex;
+  align-items: stretch;
+  gap: 1.5rem;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+  }
+}
+
+.upload-split-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.upload-split-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: $gray-700;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+
+  i {
+    color: $primary;
+    font-size: 0.9rem;
+  }
+}
+
+.upload-split-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.25rem;
+
+  @media (max-width: 640px) {
+    flex-direction: row;
+    padding: 0.5rem 0;
+
+    .divider-line {
+      width: 100%;
+      height: 1px;
+    }
+  }
+
+  .divider-line {
+    flex: 1;
+    width: 1px;
+    background-color: $border-color;
+  }
+
+  .divider-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: $gray-400;
+    text-transform: uppercase;
+    padding: 0.5rem 0;
+    letter-spacing: 0.05em;
+  }
+}

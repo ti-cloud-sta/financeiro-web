@@ -1,0 +1,158 @@
+@import 'styles/variables';
+@import 'styles/mixins';
+
+.login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  background-color: $white;
+}
+
+.login-illustration {
+  display: none;
+  
+  @include respond-to('md') {
+    display: flex;
+    flex: 1;
+    background: linear-gradient(135deg, $primary 0%, $indigo 100%);
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      content: '';
+      position: absolute;
+      width: 150%;
+      height: 150%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+      top: -25%;
+      left: -25%;
+    }
+
+    .illustration-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      color: $white;
+      padding: 3rem;
+      max-width: 500px;
+
+      h2 {
+        font-weight: $font-weight-bold;
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+      }
+      p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        line-height: 1.6;
+      }
+    }
+  }
+}
+
+.login-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background-color: $gray-50;
+
+  @include respond-to('md') {
+    background-color: $white;
+  }
+}
+
+.login-container {
+  width: 100%;
+  max-width: 420px;
+}
+
+.login-header {
+  text-align: left;
+  margin-bottom: 2.5rem;
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.75rem;
+    font-weight: $font-weight-bold;
+    color: $gray-900;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.025em;
+    
+    i {
+      color: $primary;
+    }
+  }
+
+  .subtitle {
+    color: $gray-500;
+    font-size: 1rem;
+    margin: 0;
+  }
+}
+
+.login-error-alert {
+  background-color: rgba($danger, 0.1);
+  color: $danger;
+  padding: 0.75rem 1rem;
+  border-radius: $border-radius;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba($danger, 0.2);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: shake 0.5s ease-in-out;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+
+  .form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: $gray-600;
+      cursor: pointer;
+    }
+
+    .forgot-password {
+      font-size: 0.9rem;
+      color: $primary;
+      text-decoration: none;
+      font-weight: $font-weight-medium;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.w-full {
+  width: 100%;
+  ::ng-deep .btn {
+    width: 100%;
+    padding: 0.75rem;
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}

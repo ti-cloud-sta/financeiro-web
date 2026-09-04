@@ -1,0 +1,46 @@
+@import 'styles/variables';
+@import 'styles/mixins';
+
+.erp-empty-state {
+  @include flex-center;
+  flex-direction: column;
+  padding: $spacing-10 $spacing-4;
+  text-align: center;
+  border-radius: $radius-lg;
+  background-color: $color-white;
+  border: 1px dashed $theme-border;
+
+  .icon-wrapper {
+    width: 80px;
+    height: 80px;
+    @include flex-center;
+    background-color: $color-gray-50;
+    border-radius: 50%;
+    margin-bottom: $spacing-4;
+
+    .icon {
+      font-size: $font-size-4xl;
+    }
+  }
+
+  .title {
+    font-family: $font-family-heading;
+    font-weight: $font-weight-semibold;
+    font-size: $font-size-xl;
+    color: $theme-text;
+    margin: 0 0 $spacing-2 0;
+  }
+
+  .description {
+    color: $color-gray-500;
+    font-size: $font-size-md;
+    max-width: 400px;
+    margin: 0 0 $spacing-6 0;
+  }
+
+  .actions {
+    &:empty {
+      display: none;
+    }
+  }
+}

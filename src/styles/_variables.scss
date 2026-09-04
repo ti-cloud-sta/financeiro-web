@@ -1,0 +1,79 @@
+// ==========================================
+// 🎨 DESIGN SYSTEM & BOOTSTRAP OVERRIDES
+// ==========================================
+// Este arquivo centraliza TODAS as variáveis e injeta
+// no Bootstrap 5 para manter consistência absoluta.
+
+@import 'styles/colors';
+@import 'styles/spacing';
+@import 'styles/typography';
+@import 'styles/theme';
+
+
+// 1. Cores Base (Paleta Premium Light)
+$blue:        #2563eb; // Primary - Azul Vibrante e Sofisticado
+$indigo:      #4f46e5;
+$purple:      #7c3aed;
+$pink:        #db2777;
+$red:         #ef4444; // Danger
+$orange:      #f97316;
+$yellow:      #eab308; // Warning
+$green:       #10b981; // Success
+$teal:        #14b8a6;
+$cyan:        #06b6d4;
+
+// 2. Grays (Tons de Cinza Suaves)
+$white:       #ffffff;
+$gray-50:     #f8fafc;
+$gray-100:    #f1f5f9; // Fundo muito claro
+$gray-200:    #e2e8f0; // Fundo secundário
+$gray-300:    #cbd5e1; // Bordas claras
+$gray-400:    #94a3b8; // Bordas normais
+$gray-500:    #64748b; // Textos mutados
+$gray-600:    #475569; // Textos secundários
+$gray-700:    #334155;
+$gray-800:    #1e293b; // Títulos / Textos primários
+$gray-900:    #0f172a; // Pretos suaves
+$black:       #000000;
+
+// 3. Mapeamento Semântico do Bootstrap
+$primary:     $blue;
+$secondary:   $gray-600;
+$success:     $green;
+$info:        $cyan;
+$warning:     $yellow;
+$danger:      $red;
+$light:       $gray-100;
+$dark:        $gray-800;
+
+// 4. Backgrounds & Body
+$body-bg:                   $gray-100; // Fundo da aplicação muito claro
+$body-color:                $gray-700; // Cor da tipografia geral
+$card-bg:                   $white;
+
+// 5. Tipografia & Espaçamentos
+$font-family-sans-serif:    'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-family-base:          $font-family-sans-serif;
+$font-weight-normal:        400;
+$font-weight-medium:        500;
+$font-weight-semibold:      600;
+$font-weight-bold:          700;
+$headings-color:            $gray-800;
+$headings-font-weight:      $font-weight-bold;
+
+// 6. Componentes e Estética Visual
+$border-radius:             0.5rem; // 8px para um feel mais quadrado e moderno, sem ser infantil
+$border-radius-sm:          0.25rem;
+$border-radius-lg:          0.75rem;
+
+$border-color:              $gray-300;
+$border-width:              1px;
+
+$box-shadow:                0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03); // Sombra super discreta
+$box-shadow-sm:             0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$box-shadow-lg:             0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+
+// 7. Configurações de Transição
+$transition-base:           all .2s ease-in-out;
+
+// Fim das variáveis

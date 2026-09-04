@@ -1,0 +1,23 @@
+@import 'styles/variables';
+
+// O Bootstrap já cuida da maioria do estilo através das classes (btn, btn-primary).
+// Adicionamos apenas refinamentos premium, como animação de hover mais suave
+// e controle fino de tipografia.
+
+.btn {
+  font-weight: $font-weight-medium;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
+}

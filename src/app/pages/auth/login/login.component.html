@@ -1,0 +1,68 @@
+<div class="login-wrapper">
+  
+  <!-- Left Side: Illustration / Branding -->
+  <div class="login-illustration">
+    <div class="illustration-content">
+      <h2>
+        <img src="images/logo-nobg.png" style="margin-bottom: 100px; width: 400px;" alt="">
+        <a href="http://localhost:4200/" style="color: inherit; text-decoration: none;">Cuidamos da sua casa, como cuidamos da nossa!</a>
+      </h2>
+    </div>
+  </div>
+
+  <!-- Right Side: Form -->
+  <div class="login-content">
+    <div class="login-container">
+      
+      <div class="login-header d-flex align-items-center flex-column justify-content-center">
+        <!-- <div class="logo">
+          <img src="/images/logo.jpg" alt="Logo" style="max-height: 40px; border-radius: 4px;">
+        </div> -->
+        <img src="images/logo.jpg" class="rounded-3 d-block d-sm-none mb-4" style="width: 150px;" alt="">
+        <span class="text-primary h2">Sistemas Integrados Financeiro</span>
+        <p class="subtitle">Bem-vindo de volta! Acesse sua conta.</p>
+      </div>
+
+      @if (errorMessage) {
+        <div class="login-error-alert">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          {{ errorMessage }}
+        </div>
+      }
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+        
+        <app-input
+          type="email"
+          label="Email corporativo"
+          placeholder="seu@email.com"
+          formControlName="email"
+          [errorMessage]="emailError"
+          icon="fa-regular fa-envelope">
+        </app-input>
+
+        <app-input
+          type="password"
+          label="Senha"
+          placeholder="••••••••"
+          formControlName="password"
+          [errorMessage]="passwordError"
+          icon="fa-solid fa-lock">
+        </app-input>
+
+
+
+        <app-button
+          variant="primary"
+          size="lg"
+          [loading]="isLoading"
+          class="w-full"
+          (clicked)="onSubmit()">
+          Entrar na Plataforma
+        </app-button>
+        
+      </form>
+      
+    </div>
+  </div>
+</div>

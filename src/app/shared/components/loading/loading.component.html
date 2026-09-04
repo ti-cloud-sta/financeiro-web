@@ -1,0 +1,11 @@
+<div class="erp-loading" [ngClass]="['erp-loading--' + type, 'erp-loading--' + size, 'erp-loading--' + color]">
+  @if (type === 'spinner') {
+    <div class="spinner"></div>
+  } @else if (type === 'dots') {
+    <div class="dots">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  }
+</div>

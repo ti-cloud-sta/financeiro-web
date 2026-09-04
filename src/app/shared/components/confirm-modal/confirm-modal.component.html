@@ -1,0 +1,27 @@
+<app-modal
+  [isOpen]="isOpen"
+  [title]="title"
+  (closed)="onCancel()"
+  size="sm"
+>
+  <div class="confirm-content text-center py-4">
+    <div class="icon-circle mb-3 mx-auto" [ngClass]="variant">
+      <i class="fa-solid" [ngClass]="{
+        'fa-triangle-exclamation text-danger': variant === 'danger',
+        'fa-circle-question text-primary': variant === 'primary',
+        'fa-circle-check text-success': variant === 'success'
+      }"></i>
+    </div>
+    <p class="mb-0 text-muted">{{ message }}</p>
+  </div>
+  
+  <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+    @if (showCancel) {
+    <app-button variant="ghost" (clicked)="onCancel()" [disabled]="isLoading">{{ cancelText }}</app-button>
+    }
+    <app-button [variant]="variant" (clicked)="onConfirm()" [disabled]="isLoading">
+      <i class="fa-solid fa-spinner fa-spin me-2" *ngIf="isLoading"></i>
+      {{ confirmText }}
+    </app-button>
+  </div>
+</app-modal>

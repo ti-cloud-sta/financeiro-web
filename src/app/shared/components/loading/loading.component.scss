@@ -1,0 +1,54 @@
+@import 'styles/variables';
+
+.erp-loading {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+
+  // Colors
+  &--primary { color: $color-primary; }
+  &--white { color: $color-white; }
+  &--gray { color: $color-gray-500; }
+
+  // Sizes for Spinner
+  &.erp-loading--spinner {
+    .spinner {
+      border: 3px solid rgba(0,0,0,0.1);
+      border-right-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    &.erp-loading--sm .spinner { width: 16px; height: 16px; border-width: 2px; }
+    &.erp-loading--md .spinner { width: 32px; height: 32px; }
+    &.erp-loading--lg .spinner { width: 64px; height: 64px; border-width: 4px; }
+  }
+
+  // Sizes for Dots
+  &.erp-loading--dots {
+    .dots {
+      display: flex;
+      gap: 4px;
+      
+      .dot {
+        background-color: currentColor;
+        border-radius: 50%;
+        animation: bounce 1.4s infinite ease-in-out both;
+      }
+      .dot:nth-child(1) { animation-delay: -0.32s; }
+      .dot:nth-child(2) { animation-delay: -0.16s; }
+    }
+    
+    &.erp-loading--sm .dot { width: 4px; height: 4px; }
+    &.erp-loading--md .dot { width: 8px; height: 8px; }
+    &.erp-loading--lg .dot { width: 12px; height: 12px; gap: 8px; }
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
