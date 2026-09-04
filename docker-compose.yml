@@ -8,7 +8,7 @@ services:
       MYSQL_DATABASE: stamariabd
     volumes:
       - db_data:/var/lib/mysql
-      - ./deploy:/docker-entrypoint-initdb.d
+      - ./databse:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 5s
