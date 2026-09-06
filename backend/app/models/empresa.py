@@ -9,5 +9,6 @@ class Empresa(Base):
     nome = Column(String(80), nullable=False)
     nomeAbrev = Column(String(45), nullable=True)
     descricao = Column(String(200), nullable=True)
+    tipo = Column(String(100), nullable=True)
     createdAt = Column(DateTime, default=func.now())
     updatedAte = Column(DateTime, nullable=True)

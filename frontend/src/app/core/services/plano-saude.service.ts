@@ -80,6 +80,42 @@ export class PlanoSaudeService {
     });
   }
 
+  gerarRelatorioContabilidade(mes: number, ano: number, search?: string, idEmpresa?: number): Observable<Blob> {
+    let params = new HttpParams()
+      .set('mes', mes.toString())
+      .set('ano', ano.toString());
+
+    if (search) {
+      params = params.set('search', search);
+    }
+    if (idEmpresa) {
+      params = params.set('id_empresa', idEmpresa.toString());
+    }
+
+    return this.http.get(`${this.apiUrl}/relatorio-geral/contabilidade`, {
+      params,
+      responseType: 'blob'
+    });
+  }
+
+  gerarRelatorioContabilidadeTxt(mes: number, ano: number, search?: string, idEmpresa?: number): Observable<Blob> {
+    let params = new HttpParams()
+      .set('mes', mes.toString())
+      .set('ano', ano.toString());
+
+    if (search) {
+      params = params.set('search', search);
+    }
+    if (idEmpresa) {
+      params = params.set('id_empresa', idEmpresa.toString());
+    }
+
+    return this.http.get(`${this.apiUrl}/relatorio-geral/contabilidade-txt`, {
+      params,
+      responseType: 'blob'
+    });
+  }
+
   conciliarPlanilha(file: File): Observable<ConciliacaoResponse> {
     const formData = new FormData();
     formData.append('file', file);

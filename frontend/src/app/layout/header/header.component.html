@@ -1,10 +1,12 @@
 <header class="header">
 
   <!-- LEFT: LOGO -->
-  <div class="header-brand d-flex align-items-center justify-content-between w-100 align-items-center">
-    <a routerLink="/" class="logo d-flex align-items-center">
+  <div class="header-brand d-flex align-items-center">
+    <a routerLink="/" class="logo d-flex align-items-center text-decoration-none">
       <img src="images/logo.jpg" class="rounded-pill" width="100" alt="">
-      <span class="h5">Cuidamos da sua casa, como cuidamos da nossa!</span>
+      <span class="d-none d-lg-block ms-3 text-muted" style="font-size: 0.95rem; font-weight: 500;">
+        Cuidamos da sua casa, como cuidamos da nossa!
+      </span>
     </a>
   </div>
 
@@ -32,7 +34,7 @@
     </button>
 
     <div class="user-profile d-flex align-items-center gap-3">
-      <span class="name text-nowrap fw-semibold text-secondary fs-6 mb-0">{{ user()?.name }}</span>
+      <span class="name d-none d-md-block text-nowrap fw-semibold text-secondary fs-6 mb-0">{{ user()?.name }}</span>
       <button class="btn btn-sm btn-outline-danger text-nowrap" (click)="logout()" title="Sair do sistema">
         <i class="fa-solid fa-arrow-right-from-bracket"></i> Sair
       </button>

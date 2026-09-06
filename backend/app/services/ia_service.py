@@ -96,6 +96,7 @@ class TitularExtraidoUnimed(BaseModel):
     valor_total: float
     centro_custo: Optional[str] = "N/D"
     unidade: Optional[str] = "N/D"
+    documento: Optional[str] = None
 
 class EstruturaExtracaoUnimedOdonto(BaseModel):
     titulares: List[TitularExtraidoUnimed]
@@ -130,6 +131,23 @@ class IAService:
         return -valor if negativo else valor
 
     @staticmethod
+    def _normaliza_cpf(digitos: str) -> Optional[str]:
+        """Normaliza um CPF extraído do PDF para 11 dígitos.
+
+        Alguns sistemas de origem guardam o CPF como número (não como texto), o que
+        derruba os zeros à esquerda (ex.: 3365098550 em vez de 03365098550, ou até
+        365098550 quando são 2 zeros perdidos). Não dá pra saber de antemão quantos
+        zeros faltam, então aceitamos de 8 a 11 dígitos e completamos à esquerda até
+        11 — CPF sempre tem 11 dígitos.
+        """
+        if not digitos:
+            return None
+        digitos = re.sub(r'\D', '', digitos)
+        if 8 <= len(digitos) <= 11:
+            return digitos.zfill(11)
+        return None
+
+    @staticmethod
     def _add_titular(titulares_dict, key, name, valor, documento=None):
         if key in titulares_dict:
             titulares_dict[key]["valor_titular"] = round(titulares_dict[key]["valor_titular"] + valor, 2)
@@ -152,6 +170,8 @@ class IAService:
         tp_pattern = re.compile(r'\s([TDA])\s')
         val_pattern = re.compile(r'(\d+,\d{2}-?)')
         name_re = re.compile(r'^([A-Z\u00C0-\u00FF][A-Z\u00C0-\u00FF\s\.\,\-\'\?\&]+?)(?=\d)')
+        cpf_fmt_re = re.compile(r'\b(\d{3}\.\d{3}\.\d{3}-\d{2})\b')
+        cpf_raw_re = re.compile(r'(?<!\d)(\d{8,11})(?!\d)')
 
         titulares_dict = {}
         dependentes_list = []
@@ -182,10 +202,21 @@ class IAService:
                 continue
             valor = self._parse_brl(vals[0])
 
+            # CPF do benefici\u00E1rio (com ou sem formata\u00E7\u00E3o), quando presente na linha.
+            documento = None
+            cpf_fmt_match = cpf_fmt_re.search(line)
+            if cpf_fmt_match:
+                documento = self._normaliza_cpf(cpf_fmt_match.group(1))
+            else:
+                linha_sem_matricula = benef_pattern.sub('', line)
+                cpf_raw_match = cpf_raw_re.search(linha_sem_matricula)
+                if cpf_raw_match:
+                    documento = self._normaliza_cpf(cpf_raw_match.group(1))
+
             if tp == 'T':
                 key = f"{name.upper()}::{matricula}"
                 current_titular_key = key
-                self._add_titular(titulares_dict, key, name, valor)
+                self._add_titular(titulares_dict, key, name, valor, documento=documento)
             else:
                 if current_titular_key:
                     dependentes_list.append({"nome": name, "valor": valor, "_parent": current_titular_key})
@@ -278,9 +309,9 @@ class IAService:
             name = m.group(3).strip()
             tp = m.group(4)
             matricula = m.group(5) or ""
-            # Neste layout, quando o campo após T/D tem 11 dígitos, é o CPF do
+            # Neste layout, quando o campo após T/D tem 10 ou 11 dígitos, é o CPF do
             # beneficiário (o campo "Matrícula" do cabeçalho geralmente vem vazio).
-            documento = matricula if len(matricula) == 11 else None
+            documento = self._normaliza_cpf(matricula) if 8 <= len(matricula) <= 11 else None
 
             if len(name) < 3:
                 continue
@@ -305,7 +336,7 @@ class IAService:
             r'(?:Titular|Dependente|Agregado|Inclus[\u00e3a]o\s+Retroativa|Exclus[\u00e3a]o\s+Retroativa)\s*'
             r'(?:Pre\u00e7o\s*M\u00e9dio)?\s+(-?[\d.]+,\d{2})'
         )
-        cpf_name_re = re.compile(r'([A-Z\u00C0-\u00FF][A-Z\u00C0-\u00FF\s]{2,60}?)\s+(?:\d{1,6}\s+)?(\d{11})\b')
+        cpf_name_re = re.compile(r'([A-Z\u00C0-\u00FF][A-Z\u00C0-\u00FF\s]{2,60}?)\s+(?:\d{1,6}\s+)?(\d{8,11})\b')
 
         normalized_pages = [re.sub(r'\s+', ' ', pt) for pt in page_texts]
         total_matches = sum(len(rubrica_re.findall(p)) for p in normalized_pages)
@@ -323,7 +354,7 @@ class IAService:
                 if not name_matches:
                     continue
                 name = re.sub(r'\s+', ' ', name_matches[-1].group(1)).strip()
-                documento = name_matches[-1].group(2)
+                documento = self._normaliza_cpf(name_matches[-1].group(2))
                 if len(name) < 3:
                     continue
 
@@ -419,7 +450,7 @@ class IAService:
         stopwords_name = {'PLANO', 'SUBTOTAL:', 'TOTAL:', 'BENEFICI\u00c1RIO', 'CARTEIRINHA'}
         decimal_re = re.compile(r'^-?\d+\.\d{2}$')
         boundary_re = re.compile(r'^(PLANO|SUBTOTAL:|TOTAL:)$', re.IGNORECASE)
-        cpf_re = re.compile(r'^\d{11}$')
+        cpf_re = re.compile(r'^\d{8,11}$')
 
         n = len(lines)
         titulares_dict = {}
@@ -455,7 +486,7 @@ class IAService:
                 if boundary_re.match(lines[k]):
                     break
                 if documento is None and cpf_re.match(lines[k]):
-                    documento = lines[k]
+                    documento = self._normaliza_cpf(lines[k])
                 if decimal_re.match(lines[k]):
                     valor = self._parse_brl(lines[k])
             if valor is None:
@@ -708,6 +739,13 @@ class IAService:
                 titulares_dict, dependentes_list, method_used = candidato_titulares, candidato_dependentes, nome_metodo
                 break
 
+        # Formatos cujo layout nunca traz coluna de CPF (Unimed "Analítico de Taxa de
+        # Faturamento" e "Analítico de Serviço"/Co-participação) — para esses, e só
+        # para esses, a identificação do beneficiário precisa cair para o nome, já
+        # que não existe outra informação de identidade no documento.
+        FORMATOS_SEM_CPF = {"unimed_matricula_sufixo", "coparticipacao"}
+        permite_fallback_nome = method_used in FORMATOS_SEM_CPF
+
         for dep in dependentes_list:
             parent_key = dep.pop("_parent", None)
             if parent_key and parent_key in titulares_dict:
@@ -751,10 +789,124 @@ class IAService:
 
         metrics = {
             "total_ms": elapsed, "method": method_used,
+            "permite_fallback_nome": permite_fallback_nome,
             "pages": total_pages, "total_chars": len(full_text),
             "titulares_found": len(titulares_list), "dependentes_found": n_dependentes,
             "total_esperado": total_esperado, "usou_fallback_ia": usou_fallback_ia,
             "tentou_fallback_ia": tentou_fallback_ia, "gemini_configurado": self.client is not None,
+            "upload_pdf_ms": 0.0, "file_ready_ms": 0.0,
+            "gemini_generation_ms": 0.0, "structured_output_ms": 0.0,
+            "post_processing_ms": elapsed,
+            "input_tokens": 0, "output_tokens": 0, "total_tokens": 0
+        }
+
+        return {"titulares": titulares_list, "metrics": metrics, "file_name_to_delete": None}
+
+    # ------------------------------------------------------------------
+    # Planilha (CSV/Excel) de demonstrativo de fatura — colunas fixas por posição
+    # ------------------------------------------------------------------
+    def extrair_beneficiarios_planilha(self, file_content: bytes, file_name: str) -> Dict[str, Any]:
+        """Extrai titulares/dependentes de um demonstrativo em CSV ou Excel.
+
+        Layout com posição de coluna fixa (letras do Excel, 0-indexado):
+        B (1) = Cod Titular — agrupa dependentes ao titular
+        C (2) = Tit/Dep — 'T' ou 'D'
+        J (9) = Valor da mensalidade daquela linha
+        P (15) = CPF do titular do grupo (mesmo valor em todas as linhas T/D da família)
+        """
+        import io
+        import pandas as pd
+
+        t0 = time.time()
+
+        COL_COD_TITULAR = 1
+        COL_TIT_DEP = 2
+        COL_VALOR = 9
+        COL_CPF = 15
+        MIN_COLS = COL_CPF + 1
+
+        buf = io.BytesIO(file_content)
+        is_excel = file_name.lower().endswith((".xlsx", ".xls"))
+        if is_excel:
+            df = pd.read_excel(buf, dtype=str, header=0)
+        else:
+            try:
+                df = pd.read_csv(buf, sep=';', dtype=str, encoding='utf-8-sig', engine='python')
+            except UnicodeDecodeError:
+                buf.seek(0)
+                df = pd.read_csv(buf, sep=';', dtype=str, encoding='latin1', engine='python')
+        df = df.fillna('')
+
+        headers_lower = [str(h).strip().lower() for h in df.columns]
+
+        def _find_col(*termos):
+            for i, h in enumerate(headers_lower):
+                if all(t in h for t in termos):
+                    return i
+            return None
+
+        col_nome_benef = _find_col('nome', 'benefici')
+        col_nome_tit = _find_col('nome', 'titular')
+
+        titulares = {}
+        for row in df.itertuples(index=False, name=None):
+            if len(row) < MIN_COLS:
+                continue
+
+            cod_titular = str(row[COL_COD_TITULAR]).strip()
+            tipo = str(row[COL_TIT_DEP]).strip().upper()
+            if not cod_titular or tipo not in ('T', 'D'):
+                continue
+
+            valor_str = str(row[COL_VALOR]).strip()
+            if not valor_str:
+                continue
+            try:
+                valor = self._parse_brl(valor_str)
+            except ValueError:
+                continue
+
+            documento = self._normaliza_cpf(str(row[COL_CPF]))
+            nome_benef = str(row[col_nome_benef]).strip() if col_nome_benef is not None else ''
+            nome_tit = str(row[col_nome_tit]).strip() if col_nome_tit is not None else ''
+            nome_grupo = nome_tit or nome_benef
+
+            if cod_titular not in titulares:
+                titulares[cod_titular] = {
+                    "nome_pdf": nome_grupo, "nome_db": nome_grupo,
+                    "valor_titular": 0.0, "dependentes": [],
+                    "valor_total": 0.0, "centro_custo": "N/D",
+                    "documento": documento,
+                }
+            grupo = titulares[cod_titular]
+            if documento and not grupo.get("documento"):
+                grupo["documento"] = documento
+
+            if tipo == 'T':
+                grupo["valor_titular"] = round(grupo["valor_titular"] + valor, 2)
+                grupo["valor_total"] = round(grupo["valor_total"] + valor, 2)
+                if nome_grupo:
+                    grupo["nome_pdf"] = nome_grupo
+                    grupo["nome_db"] = nome_grupo
+            else:
+                grupo["dependentes"].append({"nome": nome_benef, "valor": valor})
+                grupo["valor_total"] = round(grupo["valor_total"] + valor, 2)
+
+        titulares_list = list(titulares.values())
+        titulares_list.sort(key=lambda t: (t.get("nome_pdf") or "").lower())
+        n_dependentes = sum(len(t.get("dependentes", [])) for t in titulares_list)
+
+        elapsed = round((time.time() - t0) * 1000, 2)
+        print(f"[PARSER PLANILHA] {len(titulares_list)} titulares | {n_dependentes} deps | "
+              f"{len(df)} linhas | {elapsed}ms", flush=True)
+
+        metrics = {
+            "total_ms": elapsed, "method": "planilha_csv_excel",
+            "permite_fallback_nome": False,
+            "pages": 1, "total_chars": len(df),
+            "titulares_found": len(titulares_list), "dependentes_found": n_dependentes,
+            "total_esperado": None, "usou_fallback_ia": False,
+            "tentou_fallback_ia": False, "gemini_configurado": self.client is not None,
             "upload_pdf_ms": 0.0, "file_ready_ms": 0.0,
             "gemini_generation_ms": 0.0, "structured_output_ms": 0.0,
             "post_processing_ms": elapsed,
@@ -1237,11 +1389,16 @@ class IAService:
             tp_pattern = re.compile(r'\s([TDA])\s')
             val_pattern = re.compile(r'(\d+,\d{2}-?)')
             
+            # Log das primeiras linhas com matrícula para debug de CPF
+            _debug_count = 0
             for line in lines:
                 line = line.strip()
                 benef_match = beneficiary_pattern.search(line)
                 if not benef_match:
                     continue
+                if _debug_count < 5:
+                    print(f"[DEBUG UNIMED LINE] {repr(line)}")
+                    _debug_count += 1
                     
                 num_benef = benef_match.group(1)
                 prefix = num_benef[:-4]
@@ -1251,10 +1408,25 @@ class IAService:
                     continue
                 tp = tp_match.group(1)
                 
-                name_match = re.match(r'^([A-Z\s\.\,\-\'\?]+?)(?=\d)', line)
+                name_match = re.match(r'^([A-Z\u00C0-\u00FF\s\.\,\-\'\?]+?)\s*(?=\d)', line)
                 if not name_match:
                     continue
                 name = name_match.group(1).strip()
+                
+                # Busca CPF em qualquer posição da linha (com ou sem formatação)
+                documento = None
+                # Tenta primeiro CPF formatado: 000.000.000-00
+                cpf_fmt_match = re.search(r'\b(\d{3}\.\d{3}\.\d{3}-\d{2})\b', line)
+                if cpf_fmt_match:
+                    documento = self._normaliza_cpf(cpf_fmt_match.group(1))
+                else:
+                    # Tenta CPF como 8 a 11 dígitos consecutivos (não parte de matrícula
+                    # longa) — pode vir com 1 a 3 zeros à esquerda faltando. A matrícula
+                    # tem formato X.XXXXXXX.XXXXXXXX-X — excluímos ela.
+                    linha_sem_matricula = beneficiary_pattern.sub('', line)
+                    cpf_raw_match = re.search(r'(?<!\d)(\d{8,11})(?!\d)', linha_sem_matricula)
+                    if cpf_raw_match:
+                        documento = self._normaliza_cpf(cpf_raw_match.group(1))
                 
                 val_matches = val_pattern.findall(line)
                 if not val_matches:
@@ -1270,6 +1442,9 @@ class IAService:
                     if prefix in titulares:
                         titulares[prefix]["valor_titular"] = round(titulares[prefix]["valor_titular"] + valor, 2)
                         titulares[prefix]["valor_total"] = round(titulares[prefix]["valor_total"] + valor, 2)
+                        # If a later line has the CPF, update it
+                        if documento and not titulares[prefix].get("documento"):
+                            titulares[prefix]["documento"] = documento
                     else:
                         # Match name to database colaboradores using diff
                         nome_db = name
@@ -1285,7 +1460,8 @@ class IAService:
                             "dependentes": [],
                             "valor_total": valor,
                             "centro_custo": "N/D",
-                            "unidade": "N/D"
+                            "unidade": "N/D",
+                            "documento": documento
                         }
                 else:
                     dependentes.append({

@@ -46,36 +46,36 @@
           </ul>
         </div>
         
-        <div class="dashboard-content p-4">
+        <div class="dashboard-content px-2 py-3 p-md-4">
           <!-- Painel de Filtros Premium -->
           <div class="filters-panel-card mb-4">
             <div class="filters-grid">
               
               <!-- Coluna de Período -->
-              <div class="filter-group period-filter-group">
-                <span class="filter-label mb-2 d-block">Período</span>
+              <div class="filter-group period-filter-group flex-grow-1" style="max-width: 100%;">
+                <span class="filter-label mb-2 d-block text-uppercase text-muted" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Período</span>
 
                 <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
-                  <div class="period-inputs">
-                    <div class="input-icon-wrapper" style="width: 130px;">
+                  <div class="period-inputs d-flex flex-row align-items-center gap-2" style="flex: 1; max-width: 320px;">
+                    <div class="input-icon-wrapper flex-grow-1" style="min-width: 0;">
                       <i class="fa-regular fa-calendar input-icon"></i>
-                      <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
+                      <input type="text" class="form-control form-control-sm w-100" mwlFlatpickr dateFormat="d/m/Y"
                         [locale]="locale" [convertModelValue]="true" [maxDate]="dashDataFim || ''"
                         placeholder="Data inicial" [(ngModel)]="dashDataInicio"
                         (ngModelChange)="onDataInicioChange()">
                     </div>
 
-                    <span class="period-separator text-muted small px-1">à</span>
+                    <span class="period-separator text-muted small">à</span>
 
-                    <div class="input-icon-wrapper" style="width: 130px;">
+                    <div class="input-icon-wrapper flex-grow-1" style="min-width: 0;">
                       <i class="fa-regular fa-calendar input-icon"></i>
-                      <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
+                      <input type="text" class="form-control form-control-sm w-100" mwlFlatpickr dateFormat="d/m/Y"
                         [locale]="locale" [convertModelValue]="true" [minDate]="dashDataInicio || ''"
                         placeholder="Data final" [(ngModel)]="dashDataFim" (ngModelChange)="onDataFimChange()">
                     </div>
                   </div>
 
-                  <select class="form-select form-select-sm shortcut-select" [(ngModel)]="activePeriodShortcut"
+                  <select class="form-select form-select-sm shortcut-select flex-grow-1 flex-md-grow-0" style="min-width: 140px;" [(ngModel)]="activePeriodShortcut"
                     (ngModelChange)="onShortcutSelectChange($event)">
                     <option value="ultimo-bimestre">Últ. Bimestre</option>
                     <option value="ultimo-semestre">Últ. Semestre</option>
@@ -87,9 +87,9 @@
               </div>
 
               <!-- Coluna de Categoria (Plano vs Seguro) -->
-              <div class="filter-group">
-                <label class="filter-label mb-2">Categoria</label>
-                <select class="form-select form-select-sm" [(ngModel)]="dashFiltroCategoria"
+              <div class="filter-group w-100 flex-md-grow-0" style="max-width: 250px;">
+                <label class="filter-label mb-2 text-uppercase text-muted" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Categoria</label>
+                <select class="form-select form-select-sm w-100" [(ngModel)]="dashFiltroCategoria"
                   (ngModelChange)="carregarDadosDashboard()">
                   <option value="TODOS">Todos (Planos e Seguros)</option>
                   <option value="PLANO_SAUDE">Planos de Saúde</option>
@@ -98,9 +98,9 @@
               </div>
 
               <!-- Coluna de Pessoa -->
-              <div class="filter-group">
-                <label class="filter-label mb-2">Funcionário</label>
-                <select class="form-select form-select-sm" [(ngModel)]="dashFiltroPessoa"
+              <div class="filter-group w-100 flex-md-grow-0" style="max-width: 250px;">
+                <label class="filter-label mb-2 text-uppercase text-muted" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Funcionário</label>
+                <select class="form-select form-select-sm w-100" [(ngModel)]="dashFiltroPessoa"
                   (ngModelChange)="carregarDadosDashboard()">
                   <option [value]="null">Todos</option>
                   <option *ngFor="let c of listaColaboradoresGeral" [value]="c.idColaborador">{{ c.nome }}
@@ -261,12 +261,12 @@
                 }
               </div>
 
-              <div class="section-header d-flex justify-content-between align-items-center mb-3 mt-5">
+              <div class="section-header d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center mb-3 mt-5 gap-3">
                 <div>
                   <h3>Histórico de Importações</h3>
-                  <p>Acompanhe os arquivos processados recentemente.</p>
+                  <p class="mb-0">Acompanhe os arquivos processados recentemente.</p>
                 </div>
-                <div class="search-box" style="max-width: 300px; width: 100%;">
+                <div class="search-box ms-md-auto" style="width: 100%; max-width: 400px;">
                   <i class="fa-solid fa-search text-muted"></i>
                   <input type="text" placeholder="Buscar importação..." [ngModel]="searchImportacaoTerm"
                     (ngModelChange)="onSearchImportacaoChange($event)">
@@ -353,7 +353,6 @@
 
         <!-- RELATÓRIOS TAB -->
         @if (sidebarTab() === 'relatorios') {
-        <div class="config-layout">
           <div class="dashboard-header border-bottom">
             <ul class="config-nav" style="margin-bottom: 0;">
               <li class="config-nav-item">
@@ -363,23 +362,23 @@
               </li>
             </ul>
           </div>
-          <main class="dashboard-content" style="flex-grow: 1;">
-            <div class="p-4">
+          <main class="dashboard-content px-2 py-3 p-md-4" style="flex-grow: 1;">
 
               <!-- Painel de Filtros de Relatório -->
-              <div class="filters-panel-card mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap w-100 gap-3">
-                  <div class="filters-grid flex-grow-1" style="margin: 0; padding: 0;">
-                    <div class="filter-group period-filter-group">
-                      <span class="filter-label mb-2 d-block">Competência</span>
-                      <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
-                        <select class="form-select form-select-sm shortcut-select" style="width: 100px;" [ngModel]="relatorioAno()" (ngModelChange)="relatorioAno.set(+$event); onRelatorioPeriodoChange()">
+              <div class="filters-panel-card mb-4 p-3 p-md-4">
+                <div class="d-flex flex-column flex-xl-row justify-content-between align-items-stretch align-items-xl-center gap-4">
+                  <div class="d-flex flex-column flex-lg-row flex-grow-1 gap-3" style="margin: 0; padding: 0;">
+                    
+                    <div class="filter-group period-filter-group w-100" style="max-width: 320px;">
+                      <span class="filter-label mb-2 d-block text-uppercase text-muted" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Competência</span>
+                      <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 w-100">
+                        <select class="form-select form-select-sm shortcut-select flex-grow-1" [ngModel]="relatorioAno()" (ngModelChange)="relatorioAno.set(+$event); onRelatorioPeriodoChange()">
                           @for (a of anos(); track a) {
                             <option [value]="a">{{ a }}</option>
                           }
                         </select>
   
-                        <select class="form-select form-select-sm shortcut-select" style="width: 140px;" [ngModel]="relatorioMes()" (ngModelChange)="relatorioMes.set(+$event); onRelatorioPeriodoChange()">
+                        <select class="form-select form-select-sm shortcut-select flex-grow-1" [ngModel]="relatorioMes()" (ngModelChange)="relatorioMes.set(+$event); onRelatorioPeriodoChange()">
                           @for (m of meses; track m.value) {
                             <option [value]="m.value">{{ m.label }}</option>
                           }
@@ -387,9 +386,9 @@
                       </div>
                     </div>
                     
-                    <div class="filter-group">
-                      <span class="filter-label mb-2 d-block">Empresa</span>
-                      <select class="form-select form-select-sm" style="width: 200px;" [ngModel]="relatorioEmpresa()" (ngModelChange)="relatorioEmpresa.set($event ? +$event : null); onRelatorioPeriodoChange()">
+                    <div class="filter-group w-100" style="max-width: 300px;">
+                      <span class="filter-label mb-2 d-block text-uppercase text-muted" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Empresa</span>
+                      <select class="form-select form-select-sm w-100" [ngModel]="relatorioEmpresa()" (ngModelChange)="relatorioEmpresa.set($event ? +$event : null); onRelatorioPeriodoChange()">
                         <option [value]="null">Todas as Empresas</option>
                         @for (e of empresasAtualizacao; track e.idEmpresas) {
                           <option [value]="e.idEmpresas">{{ e.nome }}</option>
@@ -399,27 +398,35 @@
                   </div>
                   
                   <!-- Card Total Geral -->
-                  <div class="px-3 py-2 rounded border bg-light d-flex flex-column align-items-end" style="min-width: 160px;">
-                    <span class="text-muted small fw-medium mb-1">Total da Competência</span>
-                    <span class="fs-5 fw-bold text-dark tabular-nums">
+                  <div class="p-3 rounded-3 d-flex flex-row flex-xl-column justify-content-between align-items-center align-items-xl-end border w-100 flex-xl-grow-0 mt-2 mt-xl-0" style="background-color: #f8fafc; border-color: #e2e8f0 !important; min-width: 240px;">
+                    <span class="text-muted text-uppercase mb-xl-1 mb-0" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Total da Competência</span>
+                    <span class="fs-4 fw-bold text-primary tabular-nums" style="line-height: 1;">
                       {{ totalGeralRelatorio() | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
                     </span>
                   </div>
                 </div>
               </div>
               
-              <div class="section-header d-flex justify-content-end align-items-center mb-4 gap-2">
-                <div class="search-box" style="max-width: 350px; width: 100%;">
+              <div class="section-header d-flex flex-column flex-md-row justify-content-end align-items-stretch align-items-md-center mb-4 gap-2">
+                <div class="search-box ms-md-auto" style="width: 100%; max-width: 400px;">
                   <i class="fa-solid fa-search text-muted"></i>
                   <input type="text" placeholder="Pesquisar por nome, empresa ou unidade..."
                     [ngModel]="searchRelatorioTerm()" (ngModelChange)="onSearchRelatorioTermChange($event)">
                 </div>
-                <app-button variant="primary" icon="fa-solid fa-code-compare" (click)="isConciliacaoModalOpen = true">
-                  Conciliação
-                </app-button>
-                <app-button variant="outline-success" icon="fa-solid fa-file-excel" (click)="exportarRelatorio()" [disabled]="isRelatorioLoading()">
-                  Exportar Relatório (xlsx)
-                </app-button>
+                <div class="d-flex gap-2">
+                  <app-button variant="primary" icon="fa-solid fa-code-compare" (click)="isConciliacaoModalOpen = true" class="flex-grow-1">
+                    Conciliação
+                  </app-button>
+                  <app-button variant="outline-success" icon="fa-solid fa-file-excel" (click)="exportarRelatorio()" [disabled]="isRelatorioLoading()" class="flex-grow-1">
+                    Exportar
+                  </app-button>
+                  <app-button variant="primary" icon="fa-solid fa-file-invoice-dollar" (click)="exportarContabilidade()" [disabled]="isRelatorioLoading()" class="flex-grow-1">
+                    Contabilidade
+                  </app-button>
+                  <app-button variant="primary" icon="fa-solid fa-file-lines" (click)="exportarContabilidadeTxt()" [disabled]="isRelatorioLoading()" class="flex-grow-1">
+                    Contabilidade TXT
+                  </app-button>
+                </div>
               </div>
 
               <div class="table-card mb-5">
@@ -484,9 +491,7 @@
                 </div>
               </div>
 
-            </div>
           </main>
-        </div>
         }
 
       </div>
@@ -494,7 +499,7 @@
   </div>
 
   <!-- Hidden File Input -->
-  <input type="file" #fileInput (change)="onFileSelected($event)" accept=".xlsx, .xls, .pdf" style="display: none;">
+  <input type="file" #fileInput (change)="onFileSelected($event)" accept=".xlsx, .xls, .pdf, .csv" style="display: none;">
 
   <!-- Import Processing Modal -->
   <app-modal [isOpen]="isUploadModalOpen()" [title]="'Importação - ' + (activeCard()?.name || '')"
@@ -593,14 +598,28 @@
           </div>
         </div>
 
-        <!-- Search Box -->
-        <div class="mb-3">
-          <div class="search-box position-relative" style="max-width: 100%; width: 100%;">
+        <!-- Search and Date Box -->
+        <div class="mb-3 d-flex flex-column flex-md-row gap-2 align-items-md-center">
+          <div class="d-flex align-items-center gap-2">
+            <label class="text-muted small fw-semibold text-nowrap mb-0" style="letter-spacing: 0.5px;">Data Competência:</label>
+            <input type="date" class="form-control" style="width: 145px; height: 38px; border-radius: 8px;"
+                   [ngModel]="dataCompetencia()" (ngModelChange)="dataCompetencia.set($event)">
+          </div>
+          
+          <div class="search-box position-relative flex-grow-1 ms-md-2">
             <i class="fa-solid fa-magnifying-glass text-muted position-absolute" style="left: 0.85rem; top: 50%; transform: translateY(-50%); font-size: 0.85rem;"></i>
-            <input type="text" class="form-control" placeholder="Pesquisar por nome do beneficiário..." 
+            <input type="text" class="form-control" placeholder="Pesquisar por nome do beneficiário..."
               style="padding-left: 2.25rem; height: 38px; border-radius: 8px;"
               [ngModel]="searchBeneficiaryTerm()" (ngModelChange)="searchBeneficiaryTerm.set($event)">
           </div>
+          
+          <button type="button" class="btn btn-sm text-nowrap ms-md-2" [class.btn-warning]="mostrarDivergenciaOnly()"
+            [class.btn-outline-warning]="!mostrarDivergenciaOnly()" style="height: 38px; border-radius: 8px;"
+            (click)="mostrarDivergenciaOnly.set(!mostrarDivergenciaOnly())">
+            <i class="fa-solid" [class.fa-toggle-on]="mostrarDivergenciaOnly()"
+              [class.fa-toggle-off]="!mostrarDivergenciaOnly()"></i>
+            Mostrar divergência
+          </button>
         </div>
 
         <!-- Table Container -->
@@ -682,6 +701,10 @@
                       (click)="startEdit(titular._id, titular)" title="Editar">
                       <i class="fa-solid fa-pen-to-square"></i>
                     </button>
+                    <button class="btn btn-sm-action text-danger hover-lift" [disabled]="isAddingBeneficiario()"
+                      (click)="removerBeneficiario(titular._id, titular.nome_db || titular.nome_pdf)" title="Excluir">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
                   </div>
                   }
                 </td>
@@ -690,6 +713,7 @@
               <!-- ADICIONAR BENEFICIÁRIO MANUALMENTE -->
               @if (isAddingBeneficiario()) {
               <tr class="table-active">
+                <td class="text-muted">-</td>
                 <td>
                   <ng-select [items]="colaboradoresList()" bindLabel="nome" bindValue="nome"
                      [ngModel]="newBeneficiarioNome()" (ngModelChange)="newBeneficiarioNome.set($event)"
@@ -813,6 +837,12 @@
       <!-- Passo 1: Upload -->
       @if (conciliacaoStep() === 1) {
         <div class="d-flex flex-column align-items-center justify-content-center h-100 mt-4">
+          @if (conciliacaoError()) {
+            <div class="alert alert-danger w-100 d-flex align-items-start gap-2" style="max-width: 600px;">
+              <i class="fa-solid fa-triangle-exclamation mt-1"></i>
+              <div>{{ conciliacaoError() }}</div>
+            </div>
+          }
           <div class="upload-area border border-2 border-dashed rounded p-5 text-center bg-light w-100"
                style="cursor: pointer; transition: all 0.2s ease; max-width: 600px;"
                (click)="fileInput.click()"

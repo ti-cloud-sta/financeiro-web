@@ -43,12 +43,14 @@ class TitularConfirmar(BaseModel):
     valor_total: float
     centro_custo: Optional[str] = "N/D"
     documento: Optional[str] = None
+    id_db: Optional[int] = None
 
 class ConfirmarImportacaoSorrisoPayload(BaseModel):
     nomeArquivo: str
     titulares: List[TitularConfirmar]
     idEmpresa: Optional[int] = None
     idUserInc: Optional[int] = None
+    dataCompetencia: Optional[str] = None
 
 class ExportarSorrisoExcelPayload(BaseModel):
     titulares: List[TitularConfirmar]
@@ -67,12 +69,15 @@ class TitularConfirmarUnimed(BaseModel):
     valor_total: float
     centro_custo: Optional[str] = "N/D"
     unidade: Optional[str] = "N/D"
+    documento: Optional[str] = None
+    id_db: Optional[int] = None
 
 class ConfirmarImportacaoUnimedPayload(BaseModel):
     nomeArquivo: str
     titulares: List[TitularConfirmarUnimed]
     idEmpresa: Optional[int] = None
     idUserInc: Optional[int] = None
+    dataCompetencia: Optional[str] = None
 
 class ExportarUnimedExcelPayload(BaseModel):
     titulares: List[TitularConfirmarUnimed]

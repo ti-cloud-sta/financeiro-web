@@ -1,3 +1,5 @@
+import re
+import unicodedata
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_
 from typing import List, Tuple, Optional
@@ -26,8 +28,40 @@ class ColaboradorRepository:
     def get_by_nome(self, nome: str) -> Optional[Colaborador]:
         return self.db.query(Colaborador).filter(Colaborador.nome == nome).first()
 
+    @staticmethod
+    def _normaliza_nome(nome: str) -> str:
+        # Maiúsculas, sem acento, sem espaço duplicado — comparação EXATA (não
+        # aproximada) usada apenas quando não há nenhum CPF disponível no documento.
+        sem_acento = unicodedata.normalize('NFKD', nome or '').encode('ascii', 'ignore').decode('ascii')
+        return re.sub(r'\s+', ' ', sem_acento).strip().upper()
+
+    def get_by_nome_normalizado(self, nome: str) -> Optional[Colaborador]:
+        alvo = self._normaliza_nome(nome)
+        if not alvo:
+            return None
+        for c in self._base_query().all():
+            if self._normaliza_nome(c.nome) == alvo:
+                return c
+        return None
+
+    @staticmethod
+    def _normaliza_cpf(documento) -> str:
+        # Normaliza para 11 dígitos antes de comparar: o banco pode guardar o CPF
+        # formatado ("112.342.117-00") ou sem formatação ("11234211700"), e tanto o
+        # PDF quanto o cadastro podem ter perdido de 1 a 3 zeros à esquerda ao passar
+        # por algum sistema que trata o CPF como número.
+        digitos = re.sub(r'\D', '', str(documento or ''))
+        if 8 <= len(digitos) <= 11:
+            digitos = digitos.zfill(11)
+        return digitos
+
     def get_by_documento(self, documento: str) -> Optional[Colaborador]:
-        return self._base_query().filter(Colaborador.documento == documento).first()
+        doc_normalizado = self._normaliza_cpf(documento)
+        results = self._base_query().all()
+        for c in results:
+            if c.documento and self._normaliza_cpf(c.documento) == doc_normalizado:
+                return c
+        return None
 
     def get_documentos_ativos(self) -> List[str]:
         rows = self.db.query(Colaborador.documento).filter(

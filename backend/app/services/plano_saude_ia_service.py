@@ -1,6 +1,6 @@
-import difflib
 import io
 import re
+from datetime import datetime
 
 import pandas as pd
 from fastapi import HTTPException, UploadFile
@@ -37,37 +37,58 @@ class PlanoSaudeIAService:
     def __init__(self, db: Session):
         self.db = db
 
+    @staticmethod
+    def _normaliza_cpf(documento) -> str:
+        """Normaliza um CPF para 11 dígitos, completando com zero(s) à esquerda quando
+        vier mais curto (o sistema de origem do PDF às vezes guarda o CPF como número,
+        o que derruba de 1 a 3 zeros à esquerda — não dá pra saber quantos de antemão)."""
+        digitos = re.sub(r'\D', '', str(documento or ''))
+        if 8 <= len(digitos) <= 11:
+            digitos = digitos.zfill(11)
+        return digitos
+
     # ------------------------------------------------------------------
     # Resolução de colaborador (compartilhada entre Sorriso e a rota universal)
     # ------------------------------------------------------------------
-    def _resolver_colaborador(self, colab_repo, alias_repo, nomes_colaboradores, documento, nome_pdf):
+    def _resolver_colaborador(self, colab_repo, alias_repo, nomes_colaboradores, documento, nome_pdf, permite_fallback_nome=False):
         """Resolve o Colaborador de um beneficiário extraído de um PDF de plano de saúde.
 
-        Prioriza o CPF (campo 'documento') extraído do próprio PDF — mais confiável que o
-        nome, que costuma vir abreviado/divergente do cadastro. Só recorre ao fluxo antigo
-        (alias aprendido + nome mais parecido) quando o CPF não foi extraído daquele layout
-        de PDF ou não corresponde a nenhum colaborador cadastrado.
+        A identificação é feita EXCLUSIVAMENTE pelo CPF ('documento') sempre que o
+        documento traz esse campo — nunca por aproximação/comparação de nome, já que
+        o nome do beneficiário no PDF frequentemente diverge do cadastro (abreviações,
+        "DA"/"DE" omitidos, acentuação, etc.) e usar nome como critério de identidade
+        nesses casos gera vínculos incorretos.
+
+        Quando o PDF traz CPF → busca o Colaborador somente por ele.
+        Quando o PDF NÃO traz CPF:
+        - primeiro tenta um vínculo já ensinado manualmente antes para aquele texto
+          exato (alias) — não é aproximação, é recall de uma decisão humana anterior;
+        - se `permite_fallback_nome` for True (layout do fornecedor estruturalmente
+          nunca tem CPF, ex.: Analítico de Taxa/Serviço da Unimed), tenta ainda uma
+          comparação EXATA de nome com o cadastro (maiúsculas, sem acento, sem espaço
+          duplicado — nunca por similaridade/aproximação);
+        - caso contrário, fica sem vínculo automático e precisa ser associado
+          manualmente na tela de conferência.
         """
         if documento:
-            doc_normalizado = re.sub(r'\D', '', str(documento))
+            doc_normalizado = self._normaliza_cpf(documento)
             if len(doc_normalizado) == 11:
                 colab = colab_repo.get_by_documento(doc_normalizado)
                 if colab:
                     return colab, colab.nome
+            # CPF fornecido mas não encontrado no banco → não inventa vínculo por nome
+            return None, nome_pdf
 
         alias_record = alias_repo.get_by_nome_divergente(nome_pdf)
         if alias_record and alias_record.colaborador:
-            nome_db = alias_record.colaborador.nome
-        else:
-            nome_db = nome_pdf
-            closest = difflib.get_close_matches(nome_pdf, nomes_colaboradores, n=1, cutoff=0.8)
-            if closest:
-                nome_db = closest[0]
+            return alias_record.colaborador, alias_record.colaborador.nome
 
-        colab = colab_repo.get_by_nome(nome_db)
-        if not colab:
-            colab = colab_repo.get_by_nome(nome_pdf)
-        return colab, nome_db
+        if permite_fallback_nome:
+            colab = colab_repo.get_by_nome_normalizado(nome_pdf)
+            if colab:
+                return colab, colab.nome
+
+        return None, nome_pdf
 
     @staticmethod
     def _montar_validacoes(titulares_extraidos):
@@ -171,10 +192,17 @@ class PlanoSaudeIAService:
         nomes_colaboradores = [c.nome for c in colabs_db]
 
         ia = IAService()
-        res = await ia.extrair_beneficiarios_pdf_universal(
-            file_content=content,
-            file_name=file.filename,
-        )
+        eh_planilha = file.filename.lower().endswith(('.csv', '.xlsx', '.xls'))
+        if eh_planilha:
+            res = ia.extrair_beneficiarios_planilha(
+                file_content=content,
+                file_name=file.filename,
+            )
+        else:
+            res = await ia.extrair_beneficiarios_pdf_universal(
+                file_content=content,
+                file_name=file.filename,
+            )
 
         titulares_extraidos = res.get("titulares", [])
         metrics = res.get("metrics", {})
@@ -196,15 +224,18 @@ class PlanoSaudeIAService:
             raise HTTPException(status_code=422, detail=detalhe)
 
         alias_repo = ColaboradorAliasRepository(self.db)
+        permite_fallback_nome = metrics.get("permite_fallback_nome", False)
 
         for t in titulares_extraidos:
             nome_pdf = t.get("nome_pdf", "")
             documento = t.get("documento")
 
             colab, nome_db = self._resolver_colaborador(
-                colab_repo, alias_repo, nomes_colaboradores, documento, nome_pdf
+                colab_repo, alias_repo, nomes_colaboradores, documento, nome_pdf,
+                permite_fallback_nome=permite_fallback_nome
             )
             t["nome_db"] = nome_db
+            t["id_db"] = colab.idColaborador if colab else None
 
             if colab and colab.centro_custo:
                 t["centro_custo"] = str(colab.centro_custo.codigo)
@@ -261,6 +292,7 @@ class PlanoSaudeIAService:
                 colab_repo, alias_repo, nomes_colaboradores, documento, nome_pdf
             )
             t["nome_db"] = nome_db
+            t["id_db"] = colab.idColaborador if colab else None
 
             if colab and colab.centro_custo:
                 t["centro_custo"] = str(colab.centro_custo.codigo)
@@ -305,23 +337,17 @@ class PlanoSaudeIAService:
 
         for t in payload.titulares:
             colab = None
-            if t.documento:
-                doc_normalizado = re.sub(r'\D', '', str(t.documento))
+            if t.id_db:
+                # Vínculo feito manualmente pelo usuário na tela de conferência
+                # (ex.: beneficiário sem CPF no PDF) — usa diretamente, sem reavaliar.
+                colab = colab_repo.get_by_id(t.id_db)
+            if not colab and t.documento:
+                doc_normalizado = self._normaliza_cpf(t.documento)
                 if len(doc_normalizado) == 11:
                     colab = colab_repo.get_by_documento(doc_normalizado)
 
             if not colab:
-                colab = colab_repo.get_by_nome(t.nome_db)
-            if not colab:
-                colab = colab_repo.get_by_nome(t.nome_pdf)
-            if not colab:
-                colab = self.db.query(Colaborador).filter(Colaborador.nome.ilike(t.nome_db)).first()
-            if not colab:
-                clean_name = t.nome_db.replace(" da ", " ").replace(" de ", " ").replace(" dos ", " ").replace(" do ", " ").replace(" e ", " ")
-                colab = self.db.query(Colaborador).filter(Colaborador.nome.ilike(f"%{clean_name}%")).first()
-
-            if not colab:
-                erros_colaboradores.append(t.nome_db)
+                erros_colaboradores.append(t.nome_pdf)
                 continue
 
             # --- SALVAR O ALIAS / APRENDIZADO ---
@@ -350,6 +376,14 @@ class PlanoSaudeIAService:
                 idImportacoes=nova_importacao.idImportacoes,
                 valor=t.valor_total,
             )
+            
+            if payload.dataCompetencia:
+                try:
+                    data_comp = datetime.strptime(payload.dataCompetencia, "%Y-%m-%d")
+                    nova_mov.createdAt = data_comp
+                except ValueError:
+                    pass
+
             self.db.add(nova_mov)
             movimentacoes_criadas += 1
 
@@ -420,17 +454,25 @@ class PlanoSaudeIAService:
 
         titulares_extraidos = res_ia.get("titulares", [])
 
-        for t in titulares_extraidos:
-            colab = self.db.query(Colaborador).options(
-                joinedload(Colaborador.centro_custo),
-                joinedload(Colaborador.colaborador_unidades).joinedload(ColaboradorUnidade.unidade),
-            ).filter(Colaborador.nome == t.get("nome_db", "")).first()
+        colab_repo = ColaboradorRepository(self.db)
+        alias_repo = ColaboradorAliasRepository(self.db)
 
-            if not colab:
+        for t in titulares_extraidos:
+            nome_pdf = t.get("nome_pdf", "")
+            documento = t.get("documento")
+
+            colab_base, nome_db = self._resolver_colaborador(
+                colab_repo, alias_repo, nomes_colaboradores, documento, nome_pdf
+            )
+            t["nome_db"] = nome_db
+            t["id_db"] = colab_base.idColaborador if colab_base else None
+
+            colab = None
+            if colab_base:
                 colab = self.db.query(Colaborador).options(
                     joinedload(Colaborador.centro_custo),
                     joinedload(Colaborador.colaborador_unidades).joinedload(ColaboradorUnidade.unidade),
-                ).filter(Colaborador.nome == t.get("nome_pdf", "")).first()
+                ).filter(Colaborador.idColaborador == colab_base.idColaborador).first()
 
             if colab:
                 if colab.centro_custo:
@@ -477,14 +519,15 @@ class PlanoSaudeIAService:
         erros_colaboradores = []
 
         for t in payload.titulares:
-            colab = colab_repo.get_by_nome(t.nome_db)
-            if not colab:
-                colab = colab_repo.get_by_nome(t.nome_pdf)
-            if not colab:
-                colab = self.db.query(Colaborador).filter(Colaborador.nome.ilike(t.nome_db)).first()
-            if not colab:
-                clean_name = t.nome_db.replace(" da ", " ").replace(" de ", " ").replace(" dos ", " ").replace(" do ", " ").replace(" e ", " ")
-                colab = self.db.query(Colaborador).filter(Colaborador.nome.ilike(f"%{clean_name}%")).first()
+            colab = None
+            if t.id_db:
+                # Vínculo feito manualmente pelo usuário na tela de conferência
+                # (ex.: beneficiário sem CPF no PDF) — usa diretamente, sem reavaliar.
+                colab = colab_repo.get_by_id(t.id_db)
+            if not colab and t.documento:
+                doc_normalizado = self._normaliza_cpf(t.documento)
+                if len(doc_normalizado) == 11:
+                    colab = colab_repo.get_by_documento(doc_normalizado)
 
             if not colab:
                 erros_colaboradores.append(t.nome_db)
@@ -516,6 +559,14 @@ class PlanoSaudeIAService:
                 idImportacoes=nova_importacao.idImportacoes,
                 valor=t.valor_total,
             )
+            
+            if payload.dataCompetencia:
+                try:
+                    data_comp = datetime.strptime(payload.dataCompetencia, "%Y-%m-%d")
+                    nova_mov.createdAt = data_comp
+                except ValueError:
+                    pass
+
             self.db.add(nova_mov)
             movimentacoes_criadas += 1
 

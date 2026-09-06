@@ -30,15 +30,16 @@
 }
 
 [data-theme='dark'] {
-  --color-primary: #3b82f6;
-  --color-primary-hover: #60a5fa;
-  --color-primary-light: rgba(59, 130, 246, 0.15);
+  --color-primary: #6366f1; // Indigo-500
+  --color-primary-hover: #818cf8; // Indigo-400
+  --color-primary-light: rgba(99, 102, 241, 0.15);
 
-  --color-bg: #261f6b;
-  --color-surface: #014f75;
-  --color-surface-hover: #0ea5e9;
-  --color-border: #0077b3;
-  --color-border-light: #0ea5e9;
+  // Corporate Identity - Cohesive Dark Mode
+  --color-bg: #151136; // Very deep, almost black indigo
+  --color-surface: #261f6b; // The corporate identity blue/purple
+  --color-surface-hover: #32298c;
+  --color-border: rgba(255, 255, 255, 0.12);
+  --color-border-light: rgba(255, 255, 255, 0.06);
 
   --color-text-primary: #f8fafc;
   --color-text-secondary: #cbd5e1;
@@ -49,13 +50,13 @@
   --color-danger: #ef4444;
   --color-info: #06b6d4;
 
-  --color-shadow: rgba(0, 0, 0, 0.4);
-  --color-shadow-lg: rgba(0, 0, 0, 0.5);
+  --color-shadow: rgba(0, 0, 0, 0.3);
+  --color-shadow-lg: rgba(0, 0, 0, 0.45);
 
-  --scrollbar-thumb: #475569;
-  --scrollbar-thumb-hover: #64748b;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
 
-  --flatpickr-bg: #014f75;
-  --flatpickr-border: #0077b3;
-  --flatpickr-day-hover: #0ea5e9;
+  --flatpickr-bg: #261f6b;
+  --flatpickr-border: rgba(255, 255, 255, 0.12);
+  --flatpickr-day-hover: #32298c;
 }
