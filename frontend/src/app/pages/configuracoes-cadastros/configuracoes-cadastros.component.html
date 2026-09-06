@@ -529,6 +529,11 @@
     </div>
 
     <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">CPF</label>
+      <input type="text" class="form-control" placeholder="Ex: 000.000.000-00" [(ngModel)]="novoColaborador.documento">
+    </div>
+
+    <div class="mb-3">
       <label class="form-label text-muted small fw-medium">PAPEL</label>
       <input type="text" class="form-control" placeholder="Ex: Diretor, Gerente, etc."
         [(ngModel)]="novoColaborador.papel">
@@ -1018,7 +1023,13 @@
       <textarea class="form-control" rows="3" placeholder="Ex: Faturas do cartão de crédito corporativo..."
         [(ngModel)]="novaEmpresa.descricao"></textarea>
     </div>
-    
+
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">TIPO</label>
+      <input type="text" class="form-control" maxlength="100" placeholder="Ex: Plano de Saúde"
+        [(ngModel)]="novaEmpresa.tipo">
+    </div>
+
     <div class="mb-4">
       <label class="form-label text-muted small fw-medium">MÓDULOS PERMITIDOS</label>
       <ng-select [items]="modulosOptions"

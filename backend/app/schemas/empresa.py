@@ -5,6 +5,7 @@ from datetime import datetime
 class EmpresaBase(BaseModel):
     nome: Optional[str] = Field(None, max_length=80)
     descricao: Optional[str] = Field(None, max_length=200)
+    tipo: Optional[str] = Field(None, max_length=100)
 
 class EmpresaCreate(EmpresaBase):
     nome: str = Field(..., max_length=80)

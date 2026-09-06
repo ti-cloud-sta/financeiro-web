@@ -442,12 +442,23 @@ html, body {
   }
 }
 
-// Dark theme overrides for standard alert components
+// Dark theme overrides for standard alert components and buttons
 [data-theme='dark'] {
   .alert-secondary {
     background-color: var(--color-surface-hover) !important;
     border-color: var(--color-border) !important;
     color: var(--color-text-secondary) !important;
+  }
+  
+  .btn-outline-danger {
+    color: var(--color-danger) !important;
+    border-color: rgba(239, 68, 68, 0.35) !important;
+    
+    &:hover {
+      background-color: rgba(239, 68, 68, 0.15) !important;
+      border-color: var(--color-danger) !important;
+      color: var(--color-danger) !important;
+    }
   }
 }
 

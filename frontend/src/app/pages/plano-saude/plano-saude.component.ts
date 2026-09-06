@@ -279,15 +279,21 @@ export class PlanoSaudeComponent implements OnInit {
   // States for Sorriso health plan import
   parsedTitulares = signal<any[]>([]);
   searchBeneficiaryTerm = signal<string>('');
+  mostrarDivergenciaOnly = signal<boolean>(false);
 
   filteredParsedTitulares = computed(() => {
     const term = this.searchBeneficiaryTerm().trim().toLowerCase();
-    const list = this.parsedTitulares();
-    if (!term) return list;
-    return list.filter(t => {
-      const name = (t.nome_db || t.nome_pdf || '').toLowerCase();
-      return name.includes(term);
-    });
+    let list = this.parsedTitulares();
+    if (term) {
+      list = list.filter(t => {
+        const name = (t.nome_db || t.nome_pdf || '').toLowerCase();
+        return name.includes(term);
+      });
+    }
+    if (this.mostrarDivergenciaOnly()) {
+      list = list.filter(t => t.centro_custo === 'N/D' || this.isDuplicated(t.nome_db || t.nome_pdf));
+    }
+    return list;
   });
 
   // ==========================================
@@ -377,6 +383,58 @@ export class PlanoSaudeComponent implements OnInit {
     });
   }
 
+  exportarContabilidade() {
+    this.isRelatorioLoading.set(true);
+    this.planoSaudeService.gerarRelatorioContabilidade(
+      this.relatorioMes(),
+      this.relatorioAno(),
+      this.searchRelatorioTerm(),
+      this.relatorioEmpresa() ? Number(this.relatorioEmpresa()) : undefined
+    ).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `contabilidade_planosaude_${this.relatorioMes().toString().padStart(2, '0')}_${this.relatorioAno()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.isRelatorioLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Erro ao gerar relatório de contabilidade', err);
+        this.isRelatorioLoading.set(false);
+      }
+    });
+  }
+
+  exportarContabilidadeTxt() {
+    this.isRelatorioLoading.set(true);
+    this.planoSaudeService.gerarRelatorioContabilidadeTxt(
+      this.relatorioMes(),
+      this.relatorioAno(),
+      this.searchRelatorioTerm(),
+      this.relatorioEmpresa() ? Number(this.relatorioEmpresa()) : undefined
+    ).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `contabilidade_planosaude_${this.relatorioMes().toString().padStart(2, '0')}_${this.relatorioAno()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.isRelatorioLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Erro ao gerar relatório de contabilidade (txt)', err);
+        this.isRelatorioLoading.set(false);
+      }
+    });
+  }
+
   onRelatorioPeriodoChange() {
     this.currentRelatorioPage.set(1);
     this.carregarRelatoriosGerais();
@@ -410,6 +468,7 @@ export class PlanoSaudeComponent implements OnInit {
   conciliacaoStep = signal<1 | 2 | 3>(1); // 1 = Upload, 2 = Loading, 3 = Resultado
   conciliacaoResult = signal<ConciliacaoResponse | null>(null);
   conciliacaoFile = signal<File | null>(null);
+  conciliacaoError = signal<string>('');
 
   colaboradorToCreateName = '';
   editingColaboradorRowId = signal<number | null>(null);
@@ -450,6 +509,7 @@ export class PlanoSaudeComponent implements OnInit {
     this.conciliacaoStep.set(1);
     this.conciliacaoResult.set(null);
     this.conciliacaoFile.set(null);
+    this.conciliacaoError.set('');
     this.isConciliacaoModalOpen = true;
   }
 
@@ -478,6 +538,7 @@ export class PlanoSaudeComponent implements OnInit {
 
   private processarArquivoConciliacao(file: File) {
     this.conciliacaoFile.set(file);
+    this.conciliacaoError.set('');
     this.conciliacaoStep.set(2); // Loading
 
     this.planoSaudeService.conciliarPlanilha(file).subscribe({
@@ -487,6 +548,7 @@ export class PlanoSaudeComponent implements OnInit {
       },
       error: (err) => {
         console.error('Erro ao processar conciliação', err);
+        this.conciliacaoError.set(err.error?.detail || 'Erro ao processar a planilha. Verifique o arquivo e tente novamente.');
         // Fallback to step 1 on error
         this.conciliacaoStep.set(1);
       }
@@ -499,6 +561,7 @@ export class PlanoSaudeComponent implements OnInit {
   editCentroCusto = signal<string>('');
   editUnidade = signal<string>('');
   editValor = signal<number>(0);
+  editColabId = signal<number | null>(null);
 
   setParsedTitulares(dados: any[]) {
     const mapped = (dados || []).map((t, idx) => ({ ...t, _id: idx }));
@@ -827,6 +890,7 @@ export class PlanoSaudeComponent implements OnInit {
   processingError = signal<string>('');
   importedCount = signal<number>(0);
   divergencesCount = signal<number>(0);
+  dataCompetencia = signal<string>('');
 
   triggerImport(card: HealthPlanCard) {
     this.activeCard.set(card);
@@ -834,6 +898,7 @@ export class PlanoSaudeComponent implements OnInit {
     this.processingError.set('');
     this.processingStep.set(0);
     this.isProcessing.set(false);
+    this.dataCompetencia.set('');
     
     if (this.fileInput) {
       this.fileInput.nativeElement.value = '';
@@ -893,7 +958,7 @@ export class PlanoSaudeComponent implements OnInit {
     const useUnimedOdontoSchema = !isSeguroTab && (activeId === 'unimed-odonto' || cardNameLower.includes('unimed') || cardNameLower.includes('odonto'));
 
     if (useUnimedOdontoSchema) {
-      this.importacoesService.confirmarUnimedOdonto(this.selectedFile()!.name, this.parsedTitulares(), idEmpresa).subscribe({
+      this.importacoesService.confirmarUnimedOdonto(this.selectedFile()!.name, this.parsedTitulares(), idEmpresa, undefined, this.dataCompetencia() || undefined).subscribe({
         next: (res) => {
           this.isSaving.set(false);
           if (res.sucesso) {
@@ -912,7 +977,7 @@ export class PlanoSaudeComponent implements OnInit {
       });
     } else {
       // Use Sorriso schema/endpoint (standard for Gemini dynamic extractions, including Seguros)
-      this.importacoesService.confirmarSorriso(this.selectedFile()!.name, this.parsedTitulares(), idEmpresa).subscribe({
+      this.importacoesService.confirmarSorriso(this.selectedFile()!.name, this.parsedTitulares(), idEmpresa, undefined, this.dataCompetencia() || undefined).subscribe({
         next: (res) => {
           this.isSaving.set(false);
           if (res.sucesso) {
@@ -939,6 +1004,9 @@ export class PlanoSaudeComponent implements OnInit {
     this.processingStep.set(0);
     this.editingRowId.set(null);
     this.isAddingBeneficiario.set(false);
+    this.searchBeneficiaryTerm.set('');
+    this.mostrarDivergenciaOnly.set(false);
+    this.dataCompetencia.set('');
     if (this.isPeriodoValido()) {
       this.carregarDadosDashboard();
     }
@@ -947,6 +1015,7 @@ export class PlanoSaudeComponent implements OnInit {
   onColaboradorSelected(colabNome: string) {
     const colab = this.colaboradoresList().find(c => c.nome === colabNome);
     if (colab) {
+      this.editColabId.set(colab.idColaborador);
       if (colab.centro_custo) {
         this.editCentroCusto.set(colab.centro_custo.codigo.toString());
       }
@@ -983,6 +1052,7 @@ export class PlanoSaudeComponent implements OnInit {
     this.editCentroCusto.set(titular.centro_custo || 'N/D');
     this.editUnidade.set(titular.unidade || 'N/D');
     this.editValor.set(titular.valor_total);
+    this.editColabId.set(titular.id_db ?? null);
   }
 
   saveEdit(id: number) {
@@ -994,6 +1064,9 @@ export class PlanoSaudeComponent implements OnInit {
       item.centro_custo = this.editCentroCusto()?.toString() || 'N/D';
       item.unidade = this.editUnidade() || 'N/D';
       item.valor_total = this.editValor();
+      if (this.editColabId() != null) {
+        item.id_db = this.editColabId();
+      }
       updatedList[index] = item;
       
       // Re-sort alphabetically since the name might have changed!
@@ -1011,6 +1084,19 @@ export class PlanoSaudeComponent implements OnInit {
 
   cancelEdit() {
     this.editingRowId.set(null);
+  }
+
+  removerBeneficiario(id: number, titularNome: string) {
+    this.openConfirmModal(
+      'Remover Linha',
+      `Tem certeza que deseja remover "${titularNome}" desta importação?`,
+      () => {
+        const updatedList = this.parsedTitulares().filter(t => t._id !== id);
+        this.parsedTitulares.set(updatedList);
+        this.recalculateTotalGeral();
+        this.closeConfirmModal();
+      }
+    );
   }
 
   recalculateTotalGeral() {
@@ -1058,7 +1144,8 @@ export class PlanoSaudeComponent implements OnInit {
       dependentes: [],
       valor_total: valor,
       centro_custo: centroCusto,
-      unidade: unidade
+      unidade: unidade,
+      id_db: colab?.idColaborador ?? null
     };
 
     const updatedList = [...currentList, novoItem];

@@ -7,6 +7,7 @@ export interface Empresa {
   idEmpresas?: number;
   nome: string;
   descricao?: string;
+  tipo?: string;
   createdAt?: string;
   updatedAte?: string;
   icon?: string; // Propriedade extra para o front-end

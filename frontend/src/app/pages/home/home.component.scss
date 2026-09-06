@@ -12,12 +12,12 @@
 
 :host-context([data-theme='dark']) {
   // Theme Variables - Dark Mode
-  --home-card-bg: #13253a;
-  --home-card-border: rgba(255, 255, 255, 0.08);
-  --home-card-title: #f8fafc;
-  --home-card-desc: #cbd5e1;
-  --home-card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.25);
-  --home-card-hover-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.35);
+  --home-card-bg: var(--color-surface);
+  --home-card-border: var(--color-border);
+  --home-card-title: var(--color-text-primary);
+  --home-card-desc: var(--color-text-secondary);
+  --home-card-shadow: 0 4px 6px -1px var(--color-shadow);
+  --home-card-hover-shadow: 0 20px 25px -5px var(--color-shadow-lg);
 }
 
 .home-container {
@@ -27,6 +27,11 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: 1rem 0 2rem 0;
+
+  @media (max-width: 768px) {
+    padding: 1rem 1rem 2rem 1rem;
+    gap: 1.25rem;
+  }
 }
 
 /* WELCOME SECTION */
@@ -86,25 +91,26 @@
 
   .datetime-pill {
     display: inline-flex;
-    background-color: $white;
+    background-color: var(--color-surface);
     border-radius: $border-radius;
-    box-shadow: $box-shadow-sm;
-    border: 1px solid $border-color;
+    box-shadow: 0 1px 3px var(--color-shadow);
+    border: 1px solid var(--color-border);
     padding: 0.4rem 0.8rem;
     gap: 1.25rem;
     position: relative;
     z-index: 2;
+    transition: all 0.25s ease;
 
     .pill-item {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      color: $gray-600;
+      color: var(--color-text-secondary);
       font-size: 0.85rem;
       font-weight: $font-weight-medium;
 
       i {
-        color: $primary;
+        color: var(--color-primary);
       }
     }
   }

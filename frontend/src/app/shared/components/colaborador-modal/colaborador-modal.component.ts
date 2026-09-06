@@ -33,7 +33,7 @@ export class ColaboradorModalComponent implements OnInit, OnChanges {
   listaUnidades: any[] = [];
   listaCargos: CargoColaborador[] = [];
 
-  novoColaborador: any = { nome: '', idCentroCusto: null, idCargoColaborador: null, idUnidade: null, papel: '' };
+  novoColaborador: any = { nome: '', idCentroCusto: null, idCargoColaborador: null, idUnidade: null, papel: '', documento: '' };
   isSalvando = false;
   isCargoModalOpen = false;
 
@@ -50,7 +50,7 @@ export class ColaboradorModalComponent implements OnInit, OnChanges {
           idUnidade: this.colaboradorData.unidades?.[0]?.idUnidade ?? null
         };
       } else {
-        this.novoColaborador = { nome: this.initialName || '', idCentroCusto: null, idCargoColaborador: null, idUnidade: null, papel: '' };
+        this.novoColaborador = { nome: this.initialName || '', idCentroCusto: null, idCargoColaborador: null, idUnidade: null, papel: '', documento: '' };
       }
     }
   }

@@ -459,9 +459,9 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
   totalPages = 1;
   listaColaboradores: Colaborador[] = [];
 
-  colaboradorModalMode: 'create' | 'edit' = 'create';
   isColaboradorModalOpen = false;
-  novoColaborador: any = { nome: '', idCentroCusto: null, idCargoColaborador: null, idUnidade: null, papel: '' };
+  colaboradorModalMode: 'create' | 'edit' = 'create';
+  novoColaborador: any = { nome: '', idCentroCusto: null, idCargoColaborador: null, idUnidade: null, papel: '', documento: '' };
   isSalvandoColaborador = false;
 
   getUnidadesCodigos(colab: Colaborador): string {
@@ -498,7 +498,7 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
       this.novoColaborador = { ...colaborador };
     } else {
       this.colaboradorModalMode = 'create';
-      this.novoColaborador = { nome: '', idCentroCusto: null, idCargoColaborador: null, idUnidade: null, papel: '' };
+      this.novoColaborador = { nome: '', idCentroCusto: null, idCargoColaborador: null, idUnidade: null, papel: '', documento: '' };
     }
     this.isColaboradorModalOpen = true;
   }
