@@ -65,20 +65,20 @@ export const MOCK_MENU: MenuItem[] = [
     route: '/plano-saude',
     order: 1
   },
-  // {
-  //   id: 'menu-despesas-viagens',
-  //   label: 'Despesas de Viagens',
-  //   icon: 'fa-solid fa-plane-departure',
-  //   route: '/despesas-viagens',
-  //   order: 2
-  // },
-  // {
-  //   id: 'menu-extratores',
-  //   label: 'Extratores',
-  //   icon: 'fa-solid fa-file-import',
-  //   route: '/extratores',
-  //   order: 3
-  // },
+  {
+    id: 'menu-despesas-viagens',
+    label: 'Despesas de Viagens',
+    icon: 'fa-solid fa-plane-departure',
+    route: '/despesas-viagens',
+    order: 2
+  },
+  {
+    id: 'menu-extratores',
+    label: 'Extratores',
+    icon: 'fa-solid fa-file-import',
+    route: '/extratores',
+    order: 3
+  },
   // {
   //   id: 'menu-inadimplencia',
   //   label: 'Inadimplência',

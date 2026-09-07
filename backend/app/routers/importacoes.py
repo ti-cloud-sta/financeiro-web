@@ -9,7 +9,6 @@ from app.models.user import User
 from app.schemas.importacao import ImportacaoPaginatedResponse
 from app.services.importacao_service import ImportacaoService
 from app.services.ia_service import IAService
-from app.services.dashboard_service import DashboardService
 from app.services.inadimplencia_service import InadimplenciaService
 from app.repositories.categoria_repository import CategoriaRepository
 from app.repositories.colaborador_repository import ColaboradorRepository
@@ -39,93 +38,7 @@ def get_importacoes(
 ):
     return service.listar_importacoes(page=page, size=size, search=search, categoria=categoria)
 
-@router.post("/ia/analise-extrato")
-async def analise_extrato_ia(
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
-    empresa_nome: str = Form(...),
-    db: Session = Depends(get_db)
-):
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="Arquivo inválido")
-        
-    try:
-        t0_overall = time.time() if 'time' in globals() else __import__('time').time()
-        content = await file.read()
-        
-        # Buscar listas base do DB para passar como contexto
-        cat_repo = CategoriaRepository(db)
-        colab_repo = ColaboradorRepository(db)
-        
-        categorias_db, _ = cat_repo.get_all(limit=1000)
-        nomes_categorias = [c.nome for c in categorias_db]
-        
-        colabs_db, _ = colab_repo.get_all(limit=5000)
-        nomes_colaboradores = [c.nome for c in colabs_db]
-        
-        ia = IAService()
-        ia_result = await ia.analisar_extrato(
-            file_content=content,
-            file_name=file.filename,
-            categorias=nomes_categorias,
-            colaboradores=nomes_colaboradores,
-            empresa_context=empresa_nome
-        )
-        
-        despesas_brutas = ia_result.get("despesas", [])
-        metrics = ia_result.get("metrics", {})
-        file_to_delete = ia_result.get("file_name_to_delete")
-        
-        # Se for necessário deletar arquivo da Files API, agenda em background
-        if file_to_delete:
-            background_tasks.add_task(ia.deletar_arquivo, file_to_delete)
-            
-        # Consolidar os valores por Colaborador + Categoria (somar)
-        t0_consolidation = (__import__('time').time() if 'time' not in globals() else time.time())
-        consolidadas = {}
-        for d in despesas_brutas:
-            chave = f"{d['colaborador']}|{d['categoria']}"
-            if chave not in consolidadas:
-                consolidadas[chave] = d
-            else:
-                consolidadas[chave]['valor'] += d['valor']
-                
-        resultado_final = list(consolidadas.values())
-        
-        # Atualiza métricas
-        post_proc_ms = metrics.get("post_processing_ms", 0.0)
-        time_module = (__import__('time') if 'time' not in globals() else time)
-        metrics["post_processing_ms"] = round(post_proc_ms + (time_module.time() - t0_consolidation) * 1000, 2)
-        metrics["total_ms"] = round((time_module.time() - t0_overall) * 1000, 2)
-        
-        # Logging exigido de métricas de latência
-        print(f"[IA] Upload PDF: {metrics['upload_pdf_ms']} ms")
-        print(f"[IA] File ready: {metrics['file_ready_ms']} ms")
-        print(f"[IA] Gemini generation: {metrics['gemini_generation_ms']} ms")
-        print(f"[IA] Structured output: {metrics['structured_output_ms']} ms")
-        print(f"[IA] Post processing: {metrics['post_processing_ms']} ms")
-        print(f"[IA] Total: {metrics['total_ms']} ms")
-        
-        return {"sucesso": True, "dados": resultado_final}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
-from app.schemas.movimentacao import SalvarImportacaoIAPayload
-from app.services.movimentacao_service import MovimentacaoService
-
-@router.post("/ia/salvar")
-def salvar_movimentacoes_ia(
-    payload: SalvarImportacaoIAPayload,
-    db: Session = Depends(get_db)
-):
-    try:
-        service = MovimentacaoService(db)
-        resultado = service.salvar_importacao_ia(payload)
-        return resultado
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/inadimplencia/pendencias")
 def listar_pendencias_inadimplencia(
@@ -290,51 +203,6 @@ def excluir_importacao(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/dashboard")
-def get_dashboard(
-    data_inicio: str = Query(None),
-    data_fim: str = Query(None),
-    id_empresa: int = Query(None),
-    id_colaborador: int = Query(None),
-    id_categoria: int = Query(None),
-    tipo_importacao: str = Query(None),
-    db: Session = Depends(get_db)
-):
-    try:
-        service = DashboardService(db)
-        return service.obter_dados(
-            data_inicio=data_inicio,
-            data_fim=data_fim,
-            id_empresa=id_empresa,
-            id_colaborador=id_colaborador,
-            id_categoria=id_categoria,
-            tipo_importacao=tipo_importacao
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/dashboard/analitico")
-def get_dashboard_analitico(
-    data_inicio: str = Query(None),
-    data_fim: str = Query(None),
-    id_empresa: int = Query(None),
-    id_colaborador: int = Query(None),
-    id_categoria: int = Query(None),
-    tipo_importacao: str = Query(None),
-    db: Session = Depends(get_db)
-):
-    try:
-        service = DashboardService(db)
-        return service.obter_dados_analitico(
-            data_inicio=data_inicio,
-            data_fim=data_fim,
-            id_empresa=id_empresa,
-            id_colaborador=id_colaborador,
-            id_categoria=id_categoria,
-            tipo_importacao=tipo_importacao
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 import re
 import io
