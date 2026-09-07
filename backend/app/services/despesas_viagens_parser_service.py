@@ -49,7 +49,25 @@ class DespesasViagensParserService:
                 # Verifica se é Onfly
                 reader = pypdf.PdfReader(io.BytesIO(file_content))
                 first_page = reader.pages[0].extract_text() or ""
-                if "fatura" in file_name.lower() or "fatura" in first_page.lower():
+                if "kinto" in first_page.lower():
+                    parsed_data = self._parse_kinto_pdf(file_content, db)
+                    if parsed_data:
+                        despesas_list = parsed_data
+                        parsed_via_python = True
+                
+                if not parsed_via_python and "localiza rent" in first_page.lower():
+                    parsed_data = self._parse_localiza_rent_pdf(file_content, db)
+                    if parsed_data:
+                        despesas_list = parsed_data
+                        parsed_via_python = True
+                
+                if not parsed_via_python and ("localiza fleet" in first_page.lower() or "fatura de aluguel" in first_page.lower()):
+                    parsed_data = self._parse_localiza_pdf(file_content, db)
+                    if parsed_data:
+                        despesas_list = parsed_data
+                        parsed_via_python = True
+                
+                if not parsed_via_python and ("fatura" in file_name.lower() or "fatura" in first_page.lower()):
                     parsed_data = self._parse_onfly_fatura_pdf(file_content, db)
                     if parsed_data:
                         despesas_list = parsed_data
@@ -372,6 +390,216 @@ class DespesasViagensParserService:
                     cat_name = cat.nome
                     categoria_encontrada = True
 
+            despesas.append({
+                "colaborador": viajante_nome,
+                "idColaborador": colaborador_id,
+                "cpf": "",
+                "pessoa_encontrada": pessoa_encontrada,
+                "categoria": cat_name,
+                "idCategoria": cat_id,
+                "categoria_encontrada": categoria_encontrada,
+                "valor": float(valor_str),
+                "codigo_rdv": codigo_rdv
+            })
+
+        return despesas
+
+    def _parse_localiza_pdf(self, file_content: bytes, db) -> List[Dict]:
+        from app.repositories.colaborador_repository import ColaboradorRepository
+        from app.repositories.colaborador_alias_repository import ColaboradorAliasRepository
+        from app.models.categoria import Categoria
+        from app.models.categoria_alias import CategoriaAlias
+
+        reader = pypdf.PdfReader(io.BytesIO(file_content))
+        full_text = ""
+        for page in reader.pages:
+            full_text += (page.extract_text() or "") + "\n"
+
+        fatura_match = re.search(r'Fatura[:\s]*[A-Z]*[- ]?(\d+)', full_text)
+        codigo_rdv = fatura_match.group(1) if fatura_match else None
+        
+        pattern = r'Condutor:\s*(.*?)\s*Início Cobrança:.*?Total\s+([\d\.,]+)'
+        matches = re.finditer(pattern, full_text, flags=re.DOTALL)
+
+        despesas = []
+        colab_repo = ColaboradorRepository(db) if db else None
+        alias_repo = ColaboradorAliasRepository(db) if db else None
+
+        cat_name = "Locação de Veiculo"
+        cat_id = None
+        categoria_encontrada = False
+
+        if db:
+            cat = db.query(Categoria).filter(Categoria.nome == cat_name).first()
+            if not cat:
+                alias = db.query(CategoriaAlias).filter(CategoriaAlias.alias == cat_name).first()
+                if alias:
+                    cat = db.query(Categoria).filter(Categoria.idCategorias == alias.idCategoria).first()
+            
+            if cat:
+                cat_id = cat.idCategorias
+                cat_name = cat.nome
+                categoria_encontrada = True
+
+        for m in matches:
+            condutor = m.group(1).replace('\n', ' ').strip()
+            valor_str = m.group(2).replace('.', '').replace(',', '.').strip()
+            
+            viajante_nome = condutor
+            colaborador_id = None
+            pessoa_encontrada = False
+            
+            if db and viajante_nome:
+                colab = colab_repo.get_by_nome_normalizado(viajante_nome)
+                if not colab:
+                    colab_alias = alias_repo.get_by_nome_divergente(viajante_nome)
+                    if colab_alias:
+                        colab = colab_repo.get_by_id(colab_alias.idColaborador)
+                
+                if colab:
+                    colaborador_id = colab.idColaborador
+                    viajante_nome = colab.nome
+                    pessoa_encontrada = True
+
+            despesas.append({
+                "colaborador": viajante_nome,
+                "idColaborador": colaborador_id,
+                "cpf": "",
+                "pessoa_encontrada": pessoa_encontrada,
+                "categoria": cat_name,
+                "idCategoria": cat_id,
+                "categoria_encontrada": categoria_encontrada,
+                "valor": float(valor_str),
+                "codigo_rdv": codigo_rdv
+            })
+
+        return despesas
+
+    def _parse_localiza_rent_pdf(self, file_content: bytes, db) -> List[Dict]:
+        from app.repositories.colaborador_repository import ColaboradorRepository
+        from app.repositories.colaborador_alias_repository import ColaboradorAliasRepository
+        from app.models.categoria import Categoria
+        from app.models.categoria_alias import CategoriaAlias
+
+        reader = pypdf.PdfReader(io.BytesIO(file_content))
+        full_text = ""
+        for page in reader.pages:
+            full_text += (page.extract_text() or "") + "\n"
+
+        fatura_match = re.search(r'Fatura\s+(\d+)', full_text, flags=re.IGNORECASE)
+        codigo_rdv = f"FATURA {fatura_match.group(1)}" if fatura_match else None
+        
+        usuario_match = re.search(r'Usuário:\s*\d*\s*(.*?)\n', full_text, flags=re.IGNORECASE)
+        viajante_nome = usuario_match.group(1).strip() if usuario_match else "Não Identificado"
+        
+        saldo_match = re.search(r'SALDO DEVIDO\s+([\d\.,]+)', full_text, flags=re.IGNORECASE)
+        valor_str = saldo_match.group(1).replace('.', '').replace(',', '.').strip() if saldo_match else "0"
+
+        despesas = []
+        colab_repo = ColaboradorRepository(db) if db else None
+        alias_repo = ColaboradorAliasRepository(db) if db else None
+
+        cat_name = "Locação de Veiculo"
+        cat_id = None
+        categoria_encontrada = False
+
+        if db:
+            cat = db.query(Categoria).filter(Categoria.nome == cat_name).first()
+            if not cat:
+                alias = db.query(CategoriaAlias).filter(CategoriaAlias.alias == cat_name).first()
+                if alias:
+                    cat = db.query(Categoria).filter(Categoria.idCategorias == alias.idCategoria).first()
+            
+            if cat:
+                cat_id = cat.idCategorias
+                cat_name = cat.nome
+                categoria_encontrada = True
+
+        colaborador_id = None
+        pessoa_encontrada = False
+        
+        if db and viajante_nome != "Não Identificado":
+            colab = colab_repo.get_by_nome_normalizado(viajante_nome)
+            if not colab:
+                colab_alias = alias_repo.get_by_nome_divergente(viajante_nome)
+                if colab_alias:
+                    colab = colab_repo.get_by_id(colab_alias.idColaborador)
+            
+            if colab:
+                colaborador_id = colab.idColaborador
+                viajante_nome = colab.nome
+                pessoa_encontrada = True
+
+        if float(valor_str) > 0 or viajante_nome != "Não Identificado":
+            despesas.append({
+                "colaborador": viajante_nome,
+                "idColaborador": colaborador_id,
+                "cpf": "",
+                "pessoa_encontrada": pessoa_encontrada,
+                "categoria": cat_name,
+                "idCategoria": cat_id,
+                "categoria_encontrada": categoria_encontrada,
+                "valor": float(valor_str),
+                "codigo_rdv": codigo_rdv
+            })
+
+        return despesas
+
+    def _parse_kinto_pdf(self, file_content: bytes, db) -> List[Dict]:
+        from app.repositories.colaborador_repository import ColaboradorRepository
+        from app.repositories.colaborador_alias_repository import ColaboradorAliasRepository
+        from app.models.categoria import Categoria
+        from app.models.categoria_alias import CategoriaAlias
+
+        reader = pypdf.PdfReader(io.BytesIO(file_content))
+        full_text = ""
+        for page in reader.pages:
+            full_text += (page.extract_text() or "") + "\n"
+
+        fatura_match = re.search(r'(\d+)http://www\.kinto', full_text, flags=re.IGNORECASE)
+        codigo_rdv = f"FATURA {fatura_match.group(1)}" if fatura_match else None
+        
+        viajante_nome = "Rubens P. V. A. Netto"
+        
+        saldo_match = re.search(r'([\d\.,]+)VALOR TOTAL', full_text, flags=re.IGNORECASE)
+        valor_str = saldo_match.group(1).replace('.', '').replace(',', '.').strip() if saldo_match else "0"
+
+        despesas = []
+        colab_repo = ColaboradorRepository(db) if db else None
+        alias_repo = ColaboradorAliasRepository(db) if db else None
+
+        cat_name = "Locação de Veiculo"
+        cat_id = None
+        categoria_encontrada = False
+
+        if db:
+            cat = db.query(Categoria).filter(Categoria.nome == cat_name).first()
+            if not cat:
+                alias = db.query(CategoriaAlias).filter(CategoriaAlias.alias == cat_name).first()
+                if alias:
+                    cat = db.query(Categoria).filter(Categoria.idCategorias == alias.idCategoria).first()
+            
+            if cat:
+                cat_id = cat.idCategorias
+                cat_name = cat.nome
+                categoria_encontrada = True
+
+        colaborador_id = None
+        pessoa_encontrada = False
+        
+        if db and viajante_nome != "Não Identificado":
+            colab = colab_repo.get_by_nome_normalizado(viajante_nome)
+            if not colab:
+                colab_alias = alias_repo.get_by_nome_divergente(viajante_nome)
+                if colab_alias:
+                    colab = colab_repo.get_by_id(colab_alias.idColaborador)
+            
+            if colab:
+                colaborador_id = colab.idColaborador
+                viajante_nome = colab.nome
+                pessoa_encontrada = True
+
+        if float(valor_str) > 0:
             despesas.append({
                 "colaborador": viajante_nome,
                 "idColaborador": colaborador_id,
