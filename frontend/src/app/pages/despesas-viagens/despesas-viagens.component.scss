@@ -795,6 +795,56 @@
   }
 }
 
+/* Select da linha "Adicionar Despesa" — precisa parecer um campo vazio clicável
+   (com borda, seta e placeholder visíveis), diferente do estilo minimalista
+   usado na edição inline de uma célula que já tem texto */
+::ng-deep .despesa-add-select {
+  .ng-select-container {
+    background-color: $white;
+    border: 1px solid $border-color;
+    border-radius: 6px;
+    box-shadow: none !important;
+    min-height: 31px;
+    height: 31px;
+
+    .ng-value-container {
+      padding-left: 0.5rem;
+
+      .ng-placeholder {
+        color: $gray-400;
+        font-size: 0.85rem;
+      }
+
+      .ng-value {
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+    }
+  }
+
+  &.ng-select-focused:not(.ng-select-opened) .ng-select-container {
+    border-color: rgba($primary, 0.5);
+    box-shadow: 0 0 0 3px rgba($primary, 0.1) !important;
+  }
+
+  &.ng-select-opened .ng-select-container {
+    border-color: rgba($primary, 0.5);
+  }
+
+  .ng-dropdown-panel {
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin-top: 4px;
+    min-width: 220px;
+
+    .ng-dropdown-panel-items .ng-option {
+      font-size: 0.85rem;
+      padding: 0.5rem 0.75rem;
+    }
+  }
+}
+
 /* =========================================
    DASHBOARD VISÃO GERAL (PREMIUM UI)
 ========================================= */
@@ -1384,5 +1434,176 @@
       border-bottom: 1px solid var(--color-border-light) !important;
       color: var(--color-text-secondary) !important;
     }
+  }
+}
+
+// ----------------------------------------------------
+// Modal de Conferência de Despesas (fixedHeight 90vh)
+// Força o erp-modal-body a ser flex para que o conteúdo
+// filho possa crescer corretamente
+// ----------------------------------------------------
+::ng-deep .erp-modal--fixed-height .erp-modal-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.import-conferencia-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  text-align: left;
+  padding: 0 0.5rem;
+  overflow: hidden;
+}
+
+// ----------------------------------------------------
+// Audit Table Styling (SaaS style / Premium UI)
+// ----------------------------------------------------
+.audit-table-container {
+  overflow-y: auto;
+  border: 1px solid $gray-200;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.import-audit-table {
+  // Dentro do modal fixedHeight cresce para preencher o espaço
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+.audit-table {
+  width: 100%;
+  font-size: 0.825rem; // 13px
+  border-collapse: collapse;
+
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: $gray-50;
+    border-bottom: 1px solid $gray-200;
+
+    th {
+      font-size: 0.725rem; // ~11px-12px
+      text-transform: uppercase;
+      color: $gray-500;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+      padding: 10px 16px;
+      border-bottom: 1px solid $gray-200;
+      
+      &:not(.text-end) {
+        text-align: left;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid $gray-100;
+      transition: background-color 0.15s ease;
+
+      &:hover {
+        background-color: rgba($gray-50, 0.5);
+      }
+
+      &.table-light.fw-bold {
+        background-color: $gray-50;
+        font-weight: $font-weight-bold;
+        border-top: 2px solid $gray-200;
+        
+        td {
+          padding: 12px 16px;
+          font-size: 0.875rem; // 14px
+          color: $gray-900;
+          
+          &.text-primary {
+            color: $primary !important;
+          }
+        }
+      }
+    }
+
+    td {
+      padding: 8px 16px;
+      color: $gray-600;
+
+      &.fw-semibold.text-dark {
+        font-weight: $font-weight-semibold;
+        color: $gray-900;
+      }
+
+      &.tabular-nums {
+        font-variant-numeric: tabular-nums;
+      }
+
+      &.text-end {
+        text-align: right;
+      }
+
+      .custom-ng-select {
+        font-size: 0.825rem;
+      }
+
+      .form-control {
+        font-size: 0.825rem;
+        height: 32px;
+        border-radius: 6px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      // Small action buttons (24x24px)
+      .btn-sm-action {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        cursor: pointer;
+        transition: $transition-base;
+
+        &.btn-success {
+          background-color: $success;
+          color: $white;
+          
+          &:hover {
+            opacity: 0.9;
+          }
+        }
+
+        &.btn-secondary {
+          background-color: $gray-200;
+          color: $gray-600;
+          
+          &:hover {
+            background-color: $gray-300;
+          }
+        }
+
+        &.btn-link {
+          background: transparent;
+          color: $primary;
+          
+          &:hover {
+            color: darken($primary, 10%);
+            transform: translateY(-1px);
+          }
+
+          i {
+            font-size: 0.875rem; // 14px
+          }
+        }
+      }
+    }
+  }
+
+  .text-end {
+    text-align: right;
   }
 }

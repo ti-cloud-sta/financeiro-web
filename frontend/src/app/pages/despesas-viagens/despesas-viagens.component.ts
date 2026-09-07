@@ -1,4 +1,4 @@
-import { Component, OnInit, effect, inject } from '@angular/core';
+import { Component, OnInit, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -20,6 +20,7 @@ import { CargosColaboradoresService, CargoColaborador } from '../../core/service
 import { CentrosCustoService, CentroCusto } from '../../core/services/centros-custo.service';
 import { UnidadesService, Unidade } from '../../core/services/unidades.service';
 import { ImportacoesService, Importacao, DespesaExtraida } from '../../core/services/importacoes.service';
+import { DespesasViagensService } from '../../core/services/despesas-viagens.service';
 import { EmpresasService, Empresa } from '../../core/services/empresas.service';
 import { IAuthService } from '../../core/interfaces/auth.service';
 import { ViewChild, ElementRef, HostListener } from '@angular/core';
@@ -29,19 +30,20 @@ import * as XLSX from 'xlsx';
 import { FlatpickrModule } from 'angularx-flatpickr';
 import { Portuguese } from 'flatpickr/dist/l10n/pt.js';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
+import { LoadingComponent } from '../../shared/components/loading/loading.component';
 import { ThemeService } from '../../core/services/theme.service';
 
 @Component({
   selector: 'app-despesas-viagens',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, NgSelectModule, CardComponent, ButtonComponent, BadgeComponent, ModalComponent, ConfirmModalComponent, NgxEchartsDirective, FlatpickrModule, SkeletonComponent],
+  imports: [CommonModule, RouterModule, FormsModule, NgSelectModule, CardComponent, ButtonComponent, BadgeComponent, ModalComponent, ConfirmModalComponent, NgxEchartsDirective, FlatpickrModule, SkeletonComponent, LoadingComponent],
   templateUrl: './despesas-viagens.component.html',
   styleUrl: './despesas-viagens.component.scss'
 })
 export class DespesasViagensComponent implements OnInit {
   isDashboardLoading = false;
-  activeTab: 'dashboard' | 'atualizacao' | 'configuracoes' = 'dashboard';
-  activeDashboardTab: 'visao-geral' | 'categorias' | 'comercial-marketing' | 'relatorio' = 'visao-geral';
+  sidebarTab = signal<'dashboard' | 'atualizacao' | 'configuracoes'>('dashboard');
+  activeDashboardTab = signal<'visao-geral' | 'categorias' | 'comercial-marketing' | 'relatorio'>('visao-geral');
 
   isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') !== null
     ? localStorage.getItem('sidebarCollapsed') === 'true'
@@ -141,6 +143,7 @@ export class DespesasViagensComponent implements OnInit {
     private centrosCustoService: CentrosCustoService,
     private unidadesService: UnidadesService,
     private importacoesService: ImportacoesService,
+    private despesasViagensService: DespesasViagensService,
     private empresasService: EmpresasService,
     private authService: IAuthService
   ) {
@@ -149,7 +152,7 @@ export class DespesasViagensComponent implements OnInit {
       const theme = this.themeService.activeTheme();
 
       // Forçar atualização dos gráficos recreando suas opções
-      if (this.activeTab === 'dashboard') {
+      if (this.sidebarTab() === 'dashboard') {
         this.carregarDadosDashboard();
         if (this.selectedCategoryId) {
           this.carregarDetalhesCategoria();
@@ -174,6 +177,8 @@ export class DespesasViagensComponent implements OnInit {
   }
 
   carregarDadosDashboard() {
+    this.isDashboardLoading = false;
+    const desc = true; if (desc) return; // TODO: DESCONECTADO DO BACKEND ANTIGO
     this.isDashboardLoading = true;
     const filtros: any = {};
     if (this.dashDataInicio) {
@@ -423,12 +428,12 @@ export class DespesasViagensComponent implements OnInit {
     return [year, month, day].join('-');
   }
 
-  setActiveTab(tab: 'dashboard' | 'atualizacao' | 'configuracoes') {
-    this.activeTab = tab;
+  setSidebarTab(tab: 'dashboard' | 'atualizacao' | 'configuracoes') {
+    this.sidebarTab.set(tab);
   }
 
   setActiveDashboardTab(tab: 'visao-geral' | 'categorias' | 'comercial-marketing' | 'relatorio'): void {
-    this.activeDashboardTab = tab;
+    this.activeDashboardTab.set(tab);
     if (tab === 'relatorio') {
       this.atualizarDadosRelatorio();
     }
@@ -507,6 +512,7 @@ export class DespesasViagensComponent implements OnInit {
   searchImportacaoTerm = '';
 
   carregarImportacoes() {
+    const desc = true; if (desc) return; // TODO: DESCONECTADO DO BACKEND ANTIGO
     this.importacoesService.listar(this.currentImportacaoPage, this.itemsImportacaoPerPage, this.searchImportacaoTerm, 'IA_DESPESAS').subscribe({
       next: (res: any) => {
         this.listaImportacoes = res.items;
@@ -536,6 +542,7 @@ export class DespesasViagensComponent implements OnInit {
 
 
   confirmarExclusaoImportacao(id: number) {
+    const desc = true; if (desc) return; // TODO: DESCONECTADO DO BACKEND ANTIGO
     this.openConfirmModal('Excluir Importação', 'Tem certeza que deseja excluir esta importação? Isso apagará permanentemente todas as movimentações e despesas associadas a ela.', () => {
       this.importacoesService.excluir(id).subscribe({
         next: () => {
@@ -607,6 +614,7 @@ export class DespesasViagensComponent implements OnInit {
   isSalvandoExtraidos = false;
 
   salvarExtraidos() {
+    const desc = true; if (desc) return; // TODO: DESCONECTADO DO BACKEND ANTIGO
     if (this.despesasExtraidas.length === 0) return;
 
     this.isSalvandoExtraidos = true;
@@ -629,8 +637,49 @@ export class DespesasViagensComponent implements OnInit {
   }
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
-  despesasExtraidas: DespesaExtraida[] = [];
+  despesasExtraidas: any[] = [];
   selectedFileName: string = '';
+
+  // ESTADOS DO MODAL DE CONFERÊNCIA
+  dataCompetencia = signal<string>(new Date().toISOString().split('T')[0]);
+  searchDespesaTerm = signal<string>('');
+  mostrarDivergenciaOnly = signal<boolean>(false);
+  isAddingDespesa = signal<boolean>(false);
+  editingRowIndex = signal<number | null>(null);
+
+  editColaborador = signal<string>('');
+  editCategoria = signal<string>('');
+  editValor = signal<number>(0);
+
+  newDespesaColaborador = signal<string>('');
+  newDespesaCategoria = signal<string>('');
+  newDespesaValor = signal<number>(0);
+
+  get filteredParsedDespesas() {
+    let list = this.despesasExtraidas;
+    if (this.mostrarDivergenciaOnly()) {
+      list = list.filter(d => !d.pessoa_encontrada || !d.categoria_encontrada);
+    }
+    const search = this.searchDespesaTerm().toLowerCase();
+    if (search) {
+      list = list.filter(d => 
+        (d.colaborador && d.colaborador.toLowerCase().includes(search)) || 
+        (d.categoria && d.categoria.toLowerCase().includes(search)) ||
+        (d.codigo_rdv && d.codigo_rdv.toLowerCase().includes(search))
+      );
+    }
+    return list;
+  }
+
+  get totalCategoriasExtraidas(): number {
+    const cats = new Set(this.despesasExtraidas.map(d => d.categoria));
+    return cats.size;
+  }
+
+  get totalPessoasExtraidas(): number {
+    const pessoas = new Set(this.despesasExtraidas.map(d => d.colaborador));
+    return pessoas.size;
+  }
 
   get totalDespesasExtraidas(): number {
     return this.despesasExtraidas.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
@@ -660,6 +709,73 @@ export class DespesasViagensComponent implements OnInit {
   removerLinha(index: number) {
     this.despesasExtraidas.splice(index, 1);
     this.despesasExtraidas = [...this.despesasExtraidas];
+  }
+
+  startEdit(index: number, despesa: any) {
+    this.editingRowIndex.set(index);
+    this.editColaborador.set(despesa.colaborador);
+    this.editCategoria.set(despesa.categoria);
+    this.editValor.set(despesa.valor);
+  }
+
+  cancelEdit() {
+    this.editingRowIndex.set(null);
+  }
+
+  saveEdit(index: number) {
+    this.despesasExtraidas[index].colaborador = this.editColaborador();
+    this.despesasExtraidas[index].categoria = this.editCategoria();
+    this.despesasExtraidas[index].valor = this.editValor();
+    // Assuming edit means they fixed it manually
+    this.despesasExtraidas[index].pessoa_encontrada = true; 
+    this.despesasExtraidas[index].categoria_encontrada = true;
+    this.despesasExtraidas = [...this.despesasExtraidas];
+    this.editingRowIndex.set(null);
+  }
+
+  startAddDespesa() {
+    this.isAddingDespesa.set(true);
+    this.newDespesaColaborador.set('');
+    this.newDespesaCategoria.set('');
+    this.newDespesaValor.set(0);
+  }
+
+  cancelAddDespesa() {
+    this.isAddingDespesa.set(false);
+  }
+
+  confirmAddDespesa() {
+    if (!this.newDespesaColaborador() || !this.newDespesaCategoria()) return;
+    this.despesasExtraidas.push({
+      empresa: this.empresaSelecionada?.nome || '',
+      colaborador: this.newDespesaColaborador(),
+      categoria: this.newDespesaCategoria(),
+      valor: this.newDespesaValor(),
+      pessoa_encontrada: true,
+      categoria_encontrada: true
+    });
+    this.despesasExtraidas = [...this.despesasExtraidas];
+    this.isAddingDespesa.set(false);
+  }
+
+  onNewDespesaValorChange(event: any) {
+    const val = parseFloat(event.target.value.replace(',', '.'));
+    this.newDespesaValor.set(isNaN(val) ? 0 : val);
+  }
+
+  onEditValorChange(event: any) {
+    const val = parseFloat(event.target.value.replace(',', '.'));
+    this.editValor.set(isNaN(val) ? 0 : val);
+  }
+
+  confirmarESalvar() {
+    console.log("[CONFIRMAR E SALVAR] Dados consolidados prontos para envio:", {
+      dataCompetencia: this.dataCompetencia(),
+      despesas: this.despesasExtraidas
+    });
+    // Simulating save for now
+    this.showErrorToast("Validação concluída com sucesso! Verifique o console.");
+    this.closeImportModal();
   }
 
   selectedFile: File | null = null;
@@ -696,35 +812,34 @@ export class DespesasViagensComponent implements OnInit {
       this.currentProcessingStep = 1;
 
       const nomeEmpresa = this.empresaSelecionada?.nome || 'Empresa Desconhecida';
-      this.importacoesService.analisarExtrato(file, nomeEmpresa).subscribe({
-        next: (res) => {
-          if (res.sucesso) {
-            // Arredondando todos os valores retornados para 2 casas decimais e associando a empresa selecionada no card
+      this.despesasViagensService.processarArquivo(file, nomeEmpresa).subscribe({
+        next: (res: any) => {
+          console.log("[PROCESSAMENTO DESPESAS VIAGENS] Sucesso:", res);
+          if (res && Array.isArray(res.dados)) {
             this.despesasExtraidas = res.dados.map((d: any) => ({
               ...d,
-              empresa: this.empresaSelecionada?.nome || 'Empresa Desconhecida',
-              valor: Number(parseFloat(d.valor).toFixed(2))
+              empresa: nomeEmpresa
             }));
-
-            this.currentProcessingStep = 2; // Interpretando...
-            setTimeout(() => {
-              this.currentProcessingStep = 3; // Pronto para conferência...
-              setTimeout(() => {
-                this.uploadState = 'done';
-              }, 600);
-            }, 600);
-          } else {
-            this.showErrorToast('Erro ao processar arquivo pela IA.');
-            this.uploadState = 'idle';
+          } else if (res && Array.isArray(res.despesas)) {
+            this.despesasExtraidas = res.despesas.map((d: any) => ({
+              ...d,
+              empresa: nomeEmpresa
+            }));
+          } else if (res && Array.isArray(res)) {
+            this.despesasExtraidas = res.map((d: any) => ({
+              ...d,
+              empresa: nomeEmpresa
+            }));
           }
+          this.uploadState = 'done'; 
         },
         error: (err) => {
-          console.error(err);
-          this.showErrorToast(err?.error?.detail || 'Erro de conexão ou processamento com a IA. Tente novamente.');
+          console.error("[PROCESSAMENTO DESPESAS VIAGENS] Erro:", err);
+          this.showErrorToast(err?.error?.detail || 'Erro ao processar o arquivo.');
           this.uploadState = 'idle';
         }
       });
-    }, 500);
+    }, 600);
   }
 
   // ==========================================
@@ -843,6 +958,8 @@ export class DespesasViagensComponent implements OnInit {
 
 
   atualizarDadosAnalitico() {
+    this.isAnaliticoLoading = false;
+    const desc = true; if (desc) return; // TODO: DESCONECTADO DO BACKEND ANTIGO
     this.isAnaliticoLoading = true;
 
     const filtros: any = {
@@ -1250,6 +1367,8 @@ export class DespesasViagensComponent implements OnInit {
   }
 
   atualizarDadosRelatorio() {
+    this.isRelatorioLoading = false;
+    const desc = true; if (desc) return; // TODO: DESCONECTADO DO BACKEND ANTIGO
     this.isRelatorioLoading = true;
     const filtros: any = {
       data_inicio: this.relatorioDataInicio ? this.relatorioDataInicio.toISOString().split('T')[0] : null,
@@ -1448,6 +1567,8 @@ export class DespesasViagensComponent implements OnInit {
   }
 
   carregarDetalhesCategoria() {
+    this.categoryDetailsLoading = false;
+    const desc = true; if (desc) return; // TODO: DESCONECTADO DO BACKEND ANTIGO
     if (!this.selectedCategoryId) return;
 
     this.categoryDetailsLoading = true;

@@ -10,24 +10,24 @@ export const MOCK_MODULES: AppModule[] = [
     isActive: true,
     category: 'Saúde'
   },
-  // {
-  //   id: 'mod-viagens',
-  //   name: 'Despesas de Viagens',
-  //   icon: 'fa-solid fa-plane-departure',
-  //   route: '/despesas-viagens',
-  //   description: 'Relatórios e dashboards',
-  //   isActive: true,
-  //   category: 'Financeiro'
-  // },
-  // {
-  //   id: 'mod-extratores',
-  //   name: 'Extratores',
-  //   icon: 'fa-solid fa-file-import',
-  //   route: '/extratores',
-  //   description: 'Importação e processamento.',
-  //   isActive: true,
-  //   category: 'Importação'
-  // },
+  {
+    id: 'mod-viagens',
+    name: 'Despesas de Viagens',
+    icon: 'fa-solid fa-plane-departure',
+    route: '/despesas-viagens',
+    description: 'Relatórios e dashboards',
+    isActive: true,
+    category: 'Financeiro'
+  },
+  {
+    id: 'mod-extratores',
+    name: 'Extratores',
+    icon: 'fa-solid fa-file-import',
+    route: '/extratores',
+    description: 'Importação e processamento.',
+    isActive: true,
+    category: 'Importação'
+  },
   // {
   //   id: 'mod-inadimplencia',
   //   name: 'Inadimplência',
