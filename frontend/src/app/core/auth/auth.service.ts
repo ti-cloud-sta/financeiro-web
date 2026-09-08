@@ -64,6 +64,7 @@ export class AuthService implements IAuthService {
 
         const user: User = {
           id: response.email,
+          iduser: response.iduser,
           email: response.email,
           name: response.name,
           role: response.role || 'user',

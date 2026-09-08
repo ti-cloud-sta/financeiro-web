@@ -21,6 +21,7 @@ export const pagesRoutes: Routes = [
     loadComponent: () => import('./despesas-viagens/despesas-viagens.component').then(m => m.DespesasViagensComponent),
     data: { breadcrumb: 'Despesas de Viagens', icon: 'fa-solid fa-plane-departure' }
   },
+
   {
     path: 'extratores',
     loadComponent: () => import('./extratores/extratores.component').then(m => m.ExtratoresComponent),

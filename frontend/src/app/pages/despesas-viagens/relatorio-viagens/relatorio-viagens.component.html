@@ -1,0 +1,189 @@
+<div class="page-container" style="padding: 0;">
+  <div class="config-layout">
+    <!-- Header -->
+    <div class="dashboard-header border-bottom px-4 pt-4 pb-0 bg-white">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <h1 class="h4 mb-1 fw-bold text-dark">Relatório de Viagens</h1>
+          <p class="text-muted small mb-0">Detalhamento completo das despesas por colaborador e categoria.</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-secondary" (click)="exportRelatorioToExcel()">
+            <i class="fa-solid fa-download me-2"></i>Exportar Excel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <main class="dashboard-content px-4 py-4" style="flex-grow: 1;">
+      <!-- Painel de Filtros Premium -->
+      <div class="filters-panel-card mb-4">
+        <div class="filters-grid">
+          <!-- Período -->
+          <div class="filter-group period-filter-group">
+            <span class="filter-label mb-2 d-block">Período</span>
+            <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
+              <div class="period-inputs">
+                <div class="input-icon-wrapper" style="width: 130px;">
+                  <i class="fa-regular fa-calendar input-icon"></i>
+                  <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
+                    [locale]="locale" [convertModelValue]="true" [maxDate]="relatorioDataFim || ''"
+                    placeholder="Data inicial" [(ngModel)]="relatorioDataInicio"
+                    (ngModelChange)="onRelatorioDataInicioChange()">
+                </div>
+                <span class="period-separator text-muted small px-1">→</span>
+                <div class="input-icon-wrapper" style="width: 130px;">
+                  <i class="fa-regular fa-calendar input-icon"></i>
+                  <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
+                    [locale]="locale" [convertModelValue]="true" [minDate]="relatorioDataInicio || ''"
+                    placeholder="Data final" [(ngModel)]="relatorioDataFim"
+                    (ngModelChange)="onRelatorioDataFimChange()">
+                </div>
+              </div>
+              <select class="form-select form-select-sm shortcut-select" [(ngModel)]="relatorioPeriodShortcut"
+                (ngModelChange)="onRelatorioShortcutSelectChange($event)">
+                <option value="ultimo-bimestre">Últ. Bimestre</option>
+                <option value="ultimo-semestre">Últ. Semestre</option>
+                <option value="este-ano">Este Ano</option>
+                <option value="ano-passado">Ano Passado</option>
+                <option value="personalizado" disabled>Personalizado</option>
+              </select>
+            </div>
+          </div>
+          <!-- Empresa -->
+          <div class="filter-group" style="min-width: 200px;">
+            <label class="filter-label mb-2">Empresa</label>
+            <select class="form-select form-select-sm" [(ngModel)]="relatorioEmpresa"
+              (ngModelChange)="atualizarDadosRelatorio()">
+              <option [value]="null">Todas</option>
+              @for (emp of listaEmpresasGeral; track emp) {
+                <option [value]="emp.idEmpresas">{{ emp.nome }}</option>
+              }
+            </select>
+          </div>
+          <!-- Pessoa -->
+          <div class="filter-group" style="min-width: 200px;">
+            <label class="filter-label mb-2">Pessoa</label>
+            <select class="form-select form-select-sm" [(ngModel)]="relatorioColaborador"
+              (ngModelChange)="atualizarDadosRelatorio()">
+              <option [value]="null">Todas</option>
+              @for (colab of listaColaboradoresGeral; track colab) {
+                <option [value]="colab.idColaborador">{{ colab.nome }}</option>
+              }
+            </select>
+          </div>
+          <!-- Centro de Custo -->
+          <div class="filter-group" style="min-width: 200px;">
+            <label class="filter-label mb-2">Centro de Custo</label>
+            <select class="form-select form-select-sm" [(ngModel)]="relatorioCentroCusto"
+              (ngModelChange)="atualizarDadosRelatorio()">
+              <option [value]="null">Todos</option>
+              @for (cc of listaCentrosCusto; track cc) {
+                <option [value]="cc.nome">{{ cc.codigo }} - {{ cc.nome }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid Loading Skeleton -->
+      @if (isRelatorioLoading) {
+        <div class="placeholder-glow">
+          <div class="placeholder col-12" style="height: 320px; border-radius: 12px;"></div>
+        </div>
+      }
+      <!-- Grid Real Matrix Table -->
+      @if (!isRelatorioLoading) {
+        <div class="dash-chart-card report-table-container">
+          <!-- Header do Card com Título e Busca Integrada -->
+          <div
+            class="dash-chart-header d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-3">
+            <h6 class="dash-chart-title m-0" style="font-size: 0.95rem; font-weight: 600;">Detalhamento por
+            Colaborador e Categoria</h6>
+            <div class="search-box" style="max-width: 320px;">
+              <i class="fa-solid fa-search text-muted"></i>
+              <input type="text" class="form-control form-control-sm" placeholder="Buscar por colaborador..."
+                [(ngModel)]="searchRelatorioTerm" (ngModelChange)="onSearchRelatorioChange($event)">
+            </div>
+          </div>
+          <div class="dash-chart-body p-0">
+            <div class="table-responsive" style="max-height: 600px; overflow-x: auto;">
+              <table class="table table-hover align-middle custom-table m-0" style="font-size: 0.85rem;">
+                <thead>
+                  <tr>
+                    <th class="sticky-col-left py-2 px-3 text-muted fw-bold"
+                    style="letter-spacing: 0.5px; font-size: 0.75rem;">COLABORADOR</th>
+                    <th class="py-2 px-3 text-muted fw-bold text-nowrap"
+                    style="letter-spacing: 0.5px; font-size: 0.75rem;">EMPRESA</th>
+                    <th class="py-2 px-3 text-muted fw-bold text-nowrap"
+                    style="letter-spacing: 0.5px; font-size: 0.75rem;">CENTRO DE CUSTO</th>
+                    @for (cat of relatorioDetalhesCategoriasColunas; track cat) {
+                      <th
+                        class="text-end text-nowrap py-2 px-3 text-muted fw-bold"
+                      style="letter-spacing: 0.5px; font-size: 0.75rem;">{{ cat }}</th>
+                    }
+                    <th class="sticky-col-right text-end py-2 px-4 text-muted fw-bold"
+                    style="letter-spacing: 0.5px; font-size: 0.75rem; width: 140px;">TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of relatorioDetalhesMatrizFiltrada; track row) {
+                    <tr>
+                      <td class="sticky-col-left fw-semibold text-dark text-nowrap py-2 px-3">{{
+                      row.colaboradorNome }}</td>
+                      <td class="py-2 px-3 text-nowrap">{{ row.empresaNome || '-' }}</td>
+                      <td class="py-2 px-3 text-nowrap text-muted tabular-nums">{{ row.centroCustoCodigo || '-' }}
+                      </td>
+                      @for (cat of relatorioDetalhesCategoriasColunas; track cat) {
+                        <td
+                          class="text-end tabular-nums text-nowrap py-2 px-3">
+                          @if (row.valoresPorCategoria[cat]) {
+                            <span>{{ row.valoresPorCategoria[cat] |
+                            currency:'BRL' }}</span>
+                          }
+                          @if (!row.valoresPorCategoria[cat]) {
+                            <span class="text-muted small">-</span>
+                          }
+                        </td>
+                      }
+                      <td
+                        class="sticky-col-right text-end fw-bold text-primary tabular-nums text-nowrap py-2 px-4">
+                      {{ row.total | currency:'BRL' }}</td>
+                    </tr>
+                  }
+                  @if (relatorioDetalhesMatrizFiltrada.length === 0) {
+                    <tr>
+                      <td [attr.colspan]="relatorioDetalhesCategoriasColunas.length + 4"
+                        class="text-center text-muted py-5 small">
+                        Nenhum colaborador encontrado para a busca.
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+                @if (relatorioDetalhesMatrizFiltrada.length > 0) {
+                  <tfoot>
+                    <tr class="fw-bold" style="background-color: var(--color-surface-hover);">
+                      <td class="sticky-col-left text-dark py-2 px-3">TOTAL GERAL</td>
+                      <td class="py-2 px-3"></td>
+                      <td class="py-2 px-3"></td>
+                      @for (cat of relatorioDetalhesCategoriasColunas; track cat) {
+                        <td
+                          class="text-end tabular-nums text-nowrap py-2 px-3">
+                          {{ (relatorioDetalhesTotaisPorCategoria[cat] || 0) | currency:'BRL' }}
+                        </td>
+                      }
+                      <td class="sticky-col-right text-end text-primary tabular-nums text-nowrap py-2 px-4">
+                        {{ relatorioDetalhesTotalGeral | currency:'BRL' }}
+                      </td>
+                    </tr>
+                  </tfoot>
+                }
+              </table>
+            </div>
+          </div>
+        </div>
+      }
+    </main>
+  </div>
+</div>
