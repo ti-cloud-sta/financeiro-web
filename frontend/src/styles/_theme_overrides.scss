@@ -75,7 +75,7 @@ html, body {
 // ----------------------------------------------------
 // FORMS & INPUTS OVERRIDES
 // ----------------------------------------------------
-.form-control, .table-input, select.form-select, select {
+.form-control, .table-input, select.form-select, select, .search-box input {
   background-color: var(--color-surface) !important;
   color: var(--color-text-primary) !important;
   border-color: var(--color-border) !important;

@@ -14,10 +14,10 @@ export class ModalComponent {
   @Input() size: 'sm' | 'md' | 'lg' = 'md';
   @Input() fixedHeight = false;
 
-  @Output() closed = new EventEmitter<void>();
+  @Output() closed = new EventEmitter<string | undefined>();
 
-  close() {
+  close(reason?: string) {
     this.isOpen = false;
-    this.closed.emit();
+    this.closed.emit(reason);
   }
 }

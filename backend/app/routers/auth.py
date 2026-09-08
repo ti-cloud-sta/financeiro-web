@@ -64,6 +64,7 @@ def login_user(user_in: UserLogin, db: Session = Depends(get_db)):
     return {
         "access_token": access_token,
         "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        "iduser": user.iduser,
         "name": user.name,
         "email": user.email,
         "createdAt": user.createdAt,

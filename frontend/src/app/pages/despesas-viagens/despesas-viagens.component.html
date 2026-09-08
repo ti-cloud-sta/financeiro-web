@@ -17,6 +17,12 @@
           </button>
         </li>
         <li>
+          <button class="main-nav-link" [class.active]="sidebarTab() === 'relatorio'" (click)="setSidebarTab('relatorio')"
+            title="Relatório">
+            <i class="fa-solid fa-file-lines"></i> <span class="nav-text">Relatório</span>
+          </button>
+        </li>
+        <li>
           <button class="main-nav-link" [class.active]="sidebarTab() === 'atualizacao'"
             (click)="setSidebarTab('atualizacao')" title="Atualização de Dados">
             <i class="fa-solid fa-database"></i> <span class="nav-text">Atualização de Dados</span>
@@ -51,27 +57,16 @@
                     Comercial/Marketing
                   </button>
                 </li>
-                <li class="config-nav-item">
-                  <button class="config-nav-link" [class.active]="activeDashboardTab() === 'relatorio'"
-                    (click)="setActiveDashboardTab('relatorio')">
-                    Relatório
-                  </button>
-                </li>
               </ul>
 
               <div class="dashboard-actions d-flex gap-2">
-                @if (activeDashboardTab() !== 'comercial-marketing' && activeDashboardTab() !== 'relatorio') {
+                @if (activeDashboardTab() !== 'comercial-marketing') {
                   <button class="btn btn-sm btn-outline-secondary"
                     (click)="exportToPDF()">
                     <i class="fa-regular fa-file-pdf me-1"></i> Exportar PDF
                   </button>
                 }
-                @if (activeDashboardTab() === 'relatorio') {
-                  <button class="btn btn-sm btn-outline-success"
-                    (click)="exportRelatorioToExcel()">
-                    <i class="fa-regular fa-file-excel me-1"></i> Exportar Excel
-                  </button>
-                }
+
                 <button class="btn btn-sm btn-outline-secondary" (click)="toggleFullscreen()">
                   <i class="fa-solid" [ngClass]="isFullscreen ? 'fa-compress' : 'fa-expand'"></i>
                   {{ isFullscreen ? 'Sair da tela cheia' : 'Tela cheia' }}
@@ -82,7 +77,7 @@
             <main class="dashboard-content" style="flex-grow: 1;">
               <div #dashboardContent class="dashboard-pdf-container">
                 <!-- Painel de Filtros Premium -->
-                @if (activeDashboardTab() !== 'comercial-marketing' && activeDashboardTab() !== 'relatorio') {
+                @if (activeDashboardTab() !== 'comercial-marketing') {
                   <div class="filters-panel-card mb-4"
                     >
                     <div class="filters-grid">
@@ -1056,182 +1051,16 @@
                           </div>
                         }
 
-                        <!-- TAB 4: RELATÓRIO -->
-                        @if (activeDashboardTab() === 'relatorio') {
-                          <div>
-                            <!-- Painel de Filtros Premium -->
-                            <div class="filters-panel-card mb-4">
-                              <div class="filters-grid">
-                                <!-- Período -->
-                                <div class="filter-group period-filter-group">
-                                  <span class="filter-label mb-2 d-block">Período</span>
-                                  <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
-                                    <div class="period-inputs">
-                                      <div class="input-icon-wrapper" style="width: 130px;">
-                                        <i class="fa-regular fa-calendar input-icon"></i>
-                                        <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
-                                          [locale]="locale" [convertModelValue]="true" [maxDate]="relatorioDataFim || ''"
-                                          placeholder="Data inicial" [(ngModel)]="relatorioDataInicio"
-                                          (ngModelChange)="onRelatorioDataInicioChange()">
-                                        </div>
-                                        <span class="period-separator text-muted small px-1">→</span>
-                                        <div class="input-icon-wrapper" style="width: 130px;">
-                                          <i class="fa-regular fa-calendar input-icon"></i>
-                                          <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
-                                            [locale]="locale" [convertModelValue]="true" [minDate]="relatorioDataInicio || ''"
-                                            placeholder="Data final" [(ngModel)]="relatorioDataFim"
-                                            (ngModelChange)="onRelatorioDataFimChange()">
-                                          </div>
-                                        </div>
-                                        <select class="form-select form-select-sm shortcut-select" [(ngModel)]="relatorioPeriodShortcut"
-                                          (ngModelChange)="onRelatorioShortcutSelectChange($event)">
-                                          <option value="ultimo-bimestre">Últ. Bimestre</option>
-                                          <option value="ultimo-semestre">Últ. Semestre</option>
-                                          <option value="este-ano">Este Ano</option>
-                                          <option value="ano-passado">Ano Passado</option>
-                                          <option value="personalizado" disabled>Personalizado</option>
-                                        </select>
-                                      </div>
-                                    </div>
-                                    <!-- Empresa -->
-                                    <div class="filter-group" style="min-width: 200px;">
-                                      <label class="filter-label mb-2">Empresa</label>
-                                      <select class="form-select form-select-sm" [(ngModel)]="relatorioEmpresa"
-                                        (ngModelChange)="atualizarDadosRelatorio()">
-                                        <option [value]="null">Todas</option>
-                                        @for (emp of listaEmpresasGeral; track emp) {
-                                          <option [value]="emp.idEmpresas">{{ emp.nome }}</option>
-                                        }
-                                      </select>
-                                    </div>
-                                    <!-- Pessoa -->
-                                    <div class="filter-group" style="min-width: 200px;">
-                                      <label class="filter-label mb-2">Pessoa</label>
-                                      <select class="form-select form-select-sm" [(ngModel)]="relatorioColaborador"
-                                        (ngModelChange)="atualizarDadosRelatorio()">
-                                        <option [value]="null">Todas</option>
-                                        @for (colab of listaColaboradoresGeral; track colab) {
-                                          <option [value]="colab.idColaborador">{{
-                                          colab.nome }}</option>
-                                        }
-                                      </select>
-                                    </div>
-                                    <!-- Centro de Custo -->
-                                    <div class="filter-group" style="min-width: 200px;">
-                                      <label class="filter-label mb-2">Centro de Custo</label>
-                                      <select class="form-select form-select-sm" [(ngModel)]="relatorioCentroCusto"
-                                        (ngModelChange)="atualizarDadosRelatorio()">
-                                        <option [value]="null">Todos</option>
-                                        @for (cc of listaCentrosCustoGeral; track cc) {
-                                          <option [value]="cc.nome">{{ cc.codigo }} - {{ cc.nome
-                                          }}</option>
-                                        }
-                                      </select>
-                                    </div>
-                                  </div>
-                                </div>
-                                <!-- Grid Loading Skeleton -->
-                                @if (isRelatorioLoading) {
-                                  <app-skeleton type="rect" width="100%" height="320px"
-                                  class="mb-4"></app-skeleton>
-                                }
-                                <!-- Grid Real Matrix Table -->
-                                @if (!isRelatorioLoading) {
-                                  <div class="dash-chart-card report-table-container">
-                                    <!-- Header do Card com Título e Busca Integrada -->
-                                    <div
-                                      class="dash-chart-header d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-3">
-                                      <h6 class="dash-chart-title m-0" style="font-size: 0.95rem; font-weight: 600;">Detalhamento por
-                                      Colaborador e Categoria</h6>
-                                      <div class="search-box" style="max-width: 320px;">
-                                        <i class="fa-solid fa-search text-muted"></i>
-                                        <input type="text" class="form-control form-control-sm" placeholder="Buscar por colaborador..."
-                                          [(ngModel)]="searchRelatorioTerm" (ngModelChange)="onSearchRelatorioChange($event)">
-                                        </div>
-                                      </div>
-                                      <div class="dash-chart-body p-0">
-                                        <div class="table-responsive" style="max-height: 600px; overflow-x: auto;">
-                                          <table class="table table-hover align-middle custom-table m-0" style="font-size: 0.85rem;">
-                                            <thead>
-                                              <tr>
-                                                <th class="sticky-col-left py-2 px-3 text-muted fw-bold"
-                                                style="letter-spacing: 0.5px; font-size: 0.75rem;">COLABORADOR</th>
-                                                <th class="py-2 px-3 text-muted fw-bold text-nowrap"
-                                                style="letter-spacing: 0.5px; font-size: 0.75rem;">EMPRESA</th>
-                                                <th class="py-2 px-3 text-muted fw-bold text-nowrap"
-                                                style="letter-spacing: 0.5px; font-size: 0.75rem;">CENTRO DE CUSTO</th>
-                                                @for (cat of relatorioDetalhesCategoriasColunas; track cat) {
-                                                  <th
-                                                    class="text-end text-nowrap py-2 px-3 text-muted fw-bold"
-                                                  style="letter-spacing: 0.5px; font-size: 0.75rem;">{{ cat }}</th>
-                                                }
-                                                <th class="sticky-col-right text-end py-2 px-4 text-muted fw-bold"
-                                                style="letter-spacing: 0.5px; font-size: 0.75rem; width: 140px;">TOTAL</th>
-                                              </tr>
-                                            </thead>
-                                            <tbody>
-                                              @for (row of relatorioDetalhesMatrizFiltrada; track row) {
-                                                <tr>
-                                                  <td class="sticky-col-left fw-semibold text-dark text-nowrap py-2 px-3">{{
-                                                  row.colaboradorNome }}</td>
-                                                  <td class="py-2 px-3 text-nowrap">{{ row.empresaNome || '-' }}</td>
-                                                  <td class="py-2 px-3 text-nowrap text-muted tabular-nums">{{ row.centroCustoCodigo || '-' }}
-                                                  </td>
-                                                  @for (cat of relatorioDetalhesCategoriasColunas; track cat) {
-                                                    <td
-                                                      class="text-end tabular-nums text-nowrap py-2 px-3">
-                                                      @if (row.valoresPorCategoria[cat]) {
-                                                        <span>{{ row.valoresPorCategoria[cat] |
-                                                        currency:'BRL' }}</span>
-                                                      }
-                                                      @if (!row.valoresPorCategoria[cat]) {
-                                                        <span class="text-muted small">-</span>
-                                                      }
-                                                    </td>
-                                                  }
-                                                  <td
-                                                    class="sticky-col-right text-end fw-bold text-primary tabular-nums text-nowrap py-2 px-4">
-                                                  {{ row.total | currency:'BRL' }}</td>
-                                                </tr>
-                                              }
-                                              @if (relatorioDetalhesMatrizFiltrada.length === 0) {
-                                                <tr>
-                                                  <td [attr.colspan]="relatorioDetalhesCategoriasColunas.length + 4"
-                                                    class="text-center text-muted py-5 small">
-                                                    Nenhum colaborador encontrado para a busca.
-                                                  </td>
-                                                </tr>
-                                              }
-                                            </tbody>
-                                            @if (relatorioDetalhesMatrizFiltrada.length > 0) {
-                                              <tfoot>
-                                                <tr class="fw-bold" style="background-color: var(--color-surface-hover);">
-                                                  <td class="sticky-col-left text-dark py-2 px-3">TOTAL GERAL</td>
-                                                  <td class="py-2 px-3"></td>
-                                                  <td class="py-2 px-3"></td>
-                                                  @for (cat of relatorioDetalhesCategoriasColunas; track cat) {
-                                                    <td
-                                                      class="text-end tabular-nums text-nowrap py-2 px-3">
-                                                      {{ (relatorioDetalhesTotaisPorCategoria[cat] || 0) | currency:'BRL' }}
-                                                    </td>
-                                                  }
-                                                  <td class="sticky-col-right text-end text-primary tabular-nums text-nowrap py-2 px-4">
-                                                    {{ relatorioDetalhesTotalGeral | currency:'BRL' }}
-                                                  </td>
-                                                </tr>
-                                              </tfoot>
-                                            }
-                                          </table>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  }
-                                </div>
-                              }
+
 
                             </main>
                           </div>
                         } 
+
+        <!-- Relatório Tab -->
+        @if (sidebarTab() === 'relatorio') {
+          <app-relatorio-viagens></app-relatorio-viagens>
+        }
 
         <!-- Atualização de dados Tab (Importação) -->
         @if (sidebarTab() === 'atualizacao') {
@@ -1258,6 +1087,20 @@
                                   </app-button>
                                 </div>
                               }
+
+                              <!-- Card Fixo: Adicionar Despesa -->
+                              <div class="company-card border border-success border-opacity-25" 
+                                   style="background-color: rgba(25, 135, 84, 0.05); --bs-link-color: var(--bs-success); --bs-link-hover-color: #157347;">
+                                <div class="company-info">
+                                  <div class="company-icon" style="background-color: rgba(25, 135, 84, 0.1); color: var(--bs-success) !important;">
+                                    <i class="fa-solid fa-plus"></i>
+                                  </div>
+                                  <span class="company-name fw-bold" style="color: var(--bs-success) !important;">Adicionar Despesa</span>
+                                </div>
+                                <app-button variant="ghost" size="sm" icon="fa-solid fa-plus" (clicked)="openManualEntryModal()">
+                                  Adicionar
+                                </app-button>
+                              </div>
                             </div>
 
                             <div class="section-header d-flex justify-content-between align-items-center mb-3">
@@ -1273,89 +1116,113 @@
                               </div>
 
                               <div class="table-card">
-                                <div class="table-responsive">
-                                  <table class="saas-table">
-                                    <thead>
-                                      <tr>
-                                        <th>Nome do Arquivo</th>
-                                        <th>Empresa</th>
-                                        <th>Tipo</th>
-                                        <th>Data</th>
-                                        <th>Usuário</th>
-                                        <th class="text-end">Valor Total</th>
-                                        <th class="text-center">Ações</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      @for (hist of listaImportacoes; track hist.idImportacoes) {
-                                        <tr>
-                                          <td>
-                                            <div class="file-cell">
-                                              @if (hist.extensaoArquivo === 'xlsx' || hist.extensaoArquivo === 'xls') {
-                                                <i class="fa-regular fa-file-excel excel-icon"
-                                                ></i>
-                                              }
-                                              @if (hist.extensaoArquivo === 'pdf') {
-                                                <i class="fa-regular fa-file-pdf pdf-icon"></i>
-                                              }
-                                              @if (hist.extensaoArquivo !== 'xlsx' && hist.extensaoArquivo !== 'xls' && hist.extensaoArquivo !== 'pdf') {
-                                                <i class="fa-regular fa-file file-icon"
-                                                ></i>
-                                              }
-                                              <span>{{ hist.nomeArquivo }}</span>
-                                            </div>
-                                          </td>
-                                          <td>
-                                            <span>{{ hist.empresa?.nome || '-' }}</span>
-                                          </td>
-                                          <td>
-                                            <span class="company-badge">{{ hist.tipo }}</span>
-                                          </td>
-                                          <td>{{ hist.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
-                                          <td>
-                                            <span class="text-muted small fw-medium">
-                                              <i class="fa-regular fa-user me-1"></i>{{ hist.autor || '-' }}
-                                            </span>
-                                          </td>
-                                          <td class="text-end amount-cell">{{ hist.valor_total | currency:'BRL' }}</td>
-                                          <td>
-                                            <div class="actions-cell justify-content-center">
-                                              <button class="action-btn delete-btn" title="Excluir"
-                                                (click)="confirmarExclusaoImportacao(hist.idImportacoes)">
-                                                <i class="fa-solid fa-trash"></i>
-                                              </button>
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      }
-                                      @if (listaImportacoes.length === 0) {
-                                        <tr>
-                                          <td colspan="7" class="text-center text-muted py-4">Nenhuma importação encontrada.</td>
-                                        </tr>
-                                      }
-                                    </tbody>
-                                  </table>
-                                </div>
 
-                                <!-- Pagination -->
-                                @if (listaImportacoes.length > 0) {
-                                  <div class="pagination-container p-3">
-                                    <span class="text-muted small">Total de {{ totalImportacoes }} registros</span>
-                                    <div class="pagination-actions">
-                                      <button class="btn-page" [disabled]="currentImportacaoPage === 1"
-                                        (click)="goToImportacaoPage(currentImportacaoPage - 1)">
-                                        <i class="fa-solid fa-chevron-left"></i>
-                                      </button>
-                                      <span class="page-indicator">Página {{ currentImportacaoPage }} de {{ totalImportacaoPages }}</span>
-                                      <button class="btn-page" [disabled]="currentImportacaoPage === totalImportacaoPages"
-                                        (click)="goToImportacaoPage(currentImportacaoPage + 1)">
-                                        <i class="fa-solid fa-chevron-right"></i>
-                                      </button>
-                                    </div>
+                                <!-- SKELETON LOADING -->
+                                @if (isImportacoesLoading) {
+                                  <div class="p-3">
+                                    @for (i of [1,2,3,4,5]; track i) {
+                                      <div class="d-flex align-items-center gap-3 py-2 border-bottom">
+                                        <app-skeleton type="rect" width="28px" height="28px"></app-skeleton>
+                                        <app-skeleton type="text" width="30%" height="14px"></app-skeleton>
+                                        <app-skeleton type="text" width="15%" height="14px"></app-skeleton>
+                                        <app-skeleton type="rect" width="80px" height="22px" style="border-radius: 20px;"></app-skeleton>
+                                        <app-skeleton type="text" width="12%" height="14px"></app-skeleton>
+                                        <app-skeleton type="text" width="15%" height="14px"></app-skeleton>
+                                        <app-skeleton type="text" width="10%" height="14px"></app-skeleton>
+                                        <app-skeleton type="circle" width="28px" height="28px"></app-skeleton>
+                                      </div>
+                                    }
                                   </div>
+                                } @else {
+                                  <div class="table-responsive">
+                                    <table class="saas-table">
+                                      <thead>
+                                        <tr>
+                                          <th>Nome do Arquivo</th>
+                                          <th>Empresa</th>
+                                          <th>Tipo</th>
+                                          <th>Data</th>
+                                          <th>Usuário</th>
+                                          <th class="text-end">Valor Total</th>
+                                          <th class="text-center">Ações</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        @for (hist of listaImportacoes; track hist.idImportacoes) {
+                                          <tr>
+                                            <td>
+                                              <div class="file-cell">
+                                                @if (hist.extensaoArquivo === 'xlsx' || hist.extensaoArquivo === 'xls') {
+                                                  <i class="fa-regular fa-file-excel excel-icon"></i>
+                                                }
+                                                @if (hist.extensaoArquivo === 'pdf') {
+                                                  <i class="fa-regular fa-file-pdf pdf-icon"></i>
+                                                }
+                                                @if (hist.extensaoArquivo !== 'xlsx' && hist.extensaoArquivo !== 'xls' && hist.extensaoArquivo !== 'pdf') {
+                                                  <i class="fa-regular fa-file file-icon"></i>
+                                                }
+                                                <span>{{ hist.nomeArquivo }}</span>
+                                              </div>
+                                            </td>
+                                            <td>
+                                              <span>{{ hist.empresa?.nome || '-' }}</span>
+                                            </td>
+                                            <td>
+                                              <span class="badge rounded-pill"
+                                                style="font-size: 0.7rem; font-weight: 600; padding: 0.3em 0.75em; background: rgba(99,102,241,0.1); color: #6366f1; letter-spacing: 0.3px;">
+                                                <i class="fa-solid fa-robot me-1" style="font-size: 0.6rem;"></i>IA Despesas
+                                              </span>
+                                            </td>
+                                            <td>{{ hist.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                                            <td>
+                                              <span class="text-muted small fw-medium">
+                                                <i class="fa-regular fa-user me-1"></i>{{ hist.autor || '-' }}
+                                              </span>
+                                            </td>
+                                            <td class="text-end amount-cell">{{ hist.valor_total | currency:'BRL' }}</td>
+                                            <td>
+                                              <div class="actions-cell justify-content-center">
+                                                <button class="action-btn delete-btn" title="Excluir"
+                                                  (click)="confirmarExclusaoImportacao(hist.idImportacoes)">
+                                                  <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        }
+                                        @if (listaImportacoes.length === 0) {
+                                          <tr>
+                                            <td colspan="7" class="text-center py-5">
+                                              <i class="fa-regular fa-folder-open fs-3 text-muted mb-2 d-block" style="opacity: 0.4;"></i>
+                                              <span class="text-muted small">Nenhuma importação encontrada.</span>
+                                            </td>
+                                          </tr>
+                                        }
+                                      </tbody>
+                                    </table>
+                                  </div>
+
+                                  <!-- Pagination -->
+                                  @if (listaImportacoes.length > 0) {
+                                    <div class="pagination-container p-3">
+                                      <span class="text-muted small">Total de {{ totalImportacoes }} registros</span>
+                                      <div class="pagination-actions">
+                                        <button class="btn-page" [disabled]="currentImportacaoPage === 1"
+                                          (click)="goToImportacaoPage(currentImportacaoPage - 1)">
+                                          <i class="fa-solid fa-chevron-left"></i>
+                                        </button>
+                                        <span class="page-indicator">Página {{ currentImportacaoPage }} de {{ totalImportacaoPages }}</span>
+                                        <button class="btn-page" [disabled]="currentImportacaoPage === totalImportacaoPages"
+                                          (click)="goToImportacaoPage(currentImportacaoPage + 1)">
+                                          <i class="fa-solid fa-chevron-right"></i>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  }
                                 }
                                 </div>
                               </div>
+
                           </main>
                             }
 
@@ -1366,8 +1233,8 @@
                   </div> <!-- fecha page-container -->
 
                   <!-- Modal de Importação -->
-                  <app-modal [isOpen]="isImportModalOpen" [title]="'Importação - ' + (empresaSelecionada?.nome || '')"
-                    [size]="uploadState === 'done' ? 'lg' : 'sm'" [fixedHeight]="uploadState === 'done'" (closed)="closeImportModal()">
+                  <app-modal [isOpen]="isImportModalOpen" [title]="isManualEntry ? 'Adicionar Despesas' : 'Importação - ' + (empresaSelecionada?.nome || '')"
+                    [size]="uploadState === 'done' ? 'lg' : 'sm'" [fixedHeight]="uploadState === 'done'" (closed)="closeImportModal($event)">
                     
                     @if (uploadState !== 'done') {
                       <div class="text-center py-3">
@@ -1428,6 +1295,20 @@
                               <p class="text-muted small mb-0">Confirme os colaboradores, categorias e valores antes de confirmar.</p>
                             </div>
                           </div>
+
+                          @if (isManualEntry) {
+                            <div class="mb-3">
+                              <label class="text-muted small fw-semibold mb-1" style="letter-spacing: 0.5px;">Empresa / Origem das Despesas:</label>
+                              <ng-select [items]="listaEmpresasGeral"
+                                         bindLabel="nome"
+                                         placeholder="Selecione a empresa..."
+                                         [ngModel]="empresaSelecionada"
+                                         (ngModelChange)="onEmpresaManualChange($event)"
+                                         [clearable]="false"
+                                         class="custom-ng-select w-100">
+                              </ng-select>
+                            </div>
+                          }
 
                           <!-- Search and Date Box -->
                           <div class="mb-3 d-flex flex-column flex-md-row gap-2 align-items-md-center">
@@ -1610,11 +1491,17 @@
                             </div>
                           </div>
                           <div class="d-flex gap-2">
-                            <app-button variant="secondary" (clicked)="closeImportModal()">
+                            <app-button variant="secondary" (clicked)="closeImportModal('cancel-button')" [disabled]="isConfirmandoESalvando">
                               Cancelar
                             </app-button>
-                            <app-button variant="primary" (clicked)="confirmarESalvar()" [disabled]="despesasExtraidas.length === 0">
-                              Confirmar
+                            <app-button variant="primary" (clicked)="confirmarESalvar()"
+                              [disabled]="despesasExtraidas.length === 0 || isConfirmandoESalvando"
+                              [loading]="isConfirmandoESalvando">
+                              @if (isConfirmandoESalvando) {
+                                <i class="fa-solid fa-spinner fa-spin me-1"></i> Salvando...
+                              } @else {
+                                Confirmar
+                              }
                             </app-button>
                           </div>
                         </div>

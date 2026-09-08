@@ -71,9 +71,11 @@ async def analisar_arquivo_despesas(
 @router.post("/confirmar-importacao")
 def confirmar_importacao_despesas(
     payload: SalvarDespesaViagemPayload,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     try:
+        payload.idUserInc = current_user.iduser
         service = DespesasViagensService(db)
         return service.salvar_importacao(payload)
     except HTTPException as he:
@@ -122,5 +124,27 @@ def get_dashboard_comercial(
             "id_categoria": id_categoria
         }
         return service.obter_visao_comercial(filtros)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/relatorio")
+def get_relatorio_viagens(
+    data_inicio: str = Query(None),
+    data_fim: str = Query(None),
+    id_empresa: int = Query(None),
+    id_colaborador: int = Query(None),
+    id_centro_custo: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    try:
+        service = DespesasViagensService(db)
+        filtros = {
+            "data_inicio": data_inicio,
+            "data_fim": data_fim,
+            "id_empresa": id_empresa,
+            "id_colaborador": id_colaborador,
+            "id_centro_custo": id_centro_custo
+        }
+        return service.obter_relatorio(filtros)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

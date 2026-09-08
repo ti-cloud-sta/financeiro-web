@@ -23,10 +23,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
         // Token ausente/expirado/inválido: só aqui faz sentido encerrar a sessão.
+        sessionStorage.removeItem('despesas_viagens_draft');
         authService.logout().subscribe();
       } else if (error.status === 403) {
         // Usuário autenticado, mas sem permissão para essa ação específica —
         // não desloga, só avisa e leva de volta para um lugar seguro.
+        sessionStorage.removeItem('despesas_viagens_draft');
         toastService.show('Sem permissão de acesso.', 'error');
         router.navigate(['/home']);
       }

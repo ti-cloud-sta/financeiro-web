@@ -453,48 +453,52 @@ Fluxo idêntico nas duas rotas:
 
 ---
 
-## PARTE 3 — O PLANO: MIGRAR DESPESAS DE VIAGENS PARA PYTHON
+## PARTE 3 — MÓDULO DESPESAS DE VIAGENS: PARSERS IMPLEMENTADOS
 
-### 3.1 O Problema que Queremos Resolver
+### 3.1 O Problema Resolvido
 
-Atualmente, todo arquivo enviado na aba "Atualização de Dados" vai **direto para o Gemini**.
-Isso causa:
-1. **Lentidão:** Gemini pode levar de 10-60 segundos por arquivo
-2. **Custo:** Tokens consumidos desnecessariamente
-3. **Fragilidade:** Nomes retornados pelo Gemini não batem com o banco → HTTP 400
-4. **Dependência:** Sem API key configurada, o módulo não funciona
+Anteriormente, todo arquivo enviado ia direto para o Fallback Genérico do Gemini, gerando lentidão, custos desnecessários e falhas de mapeamento. O sistema foi refatorado criando o serviço especializado `despesas_viagens_parser_service.py`, que agora atua como uma esteira de identificação e extração de dados.
 
-### 3.2 O Modelo a Seguir (Plano de Saúde)
+### 3.2 O Modelo Implementado (Despesas de Viagens)
 
+O fluxo principal foi alterado para roteamento dinâmico:
 ```
-ANTES (Despesas atual):    Arquivo → Gemini → Tabela de conferência
-DEPOIS (como Plano Saúde): Arquivo → Python (pypdf/pandas) → se falhar → Gemini → Tabela de conferência
+Arquivo → analisar_arquivo() (DespesasViagensParserService)
+   ├── É Kinto? → Parser Python
+   ├── É Localiza? → Parser Python
+   ├── É Onfly? → Parser Python
+   ├── É RDV Santa Maria? → Extrator IA Específico (Gemini + Prompts otimizados)
+   ├── É DANFE Rosemary? → Extrator IA Específico
+   ├── É Fatura Cartão PJ Eduardo? → Extrator IA Específico
+   ├── É Fatura Agência Tastur? → Extrator IA Específico
+   ├── É Fatura Maiorca? → Extrator IA Específico
+   ├── É Pedágio Sem Parar? → Extrator IA Específico (Com mapeamento de placas para colaboradores)
+   └── Se não for nenhum dos acima → Fallback IA Genérico
 ```
 
-### 3.3 O que o Novo Parser de Despesas Precisa Fazer
+### 3.3 Parsers Disponíveis (`despesas_viagens_parser_service.py`)
 
-Diferente do Plano de Saúde (que extrai `titular + dependentes + valor`), o parser de despesas precisa extrair:
-- **Colaborador** (nome da pessoa responsável pela despesa)
-- **Categoria** (tipo de despesa: hospedagem, combustível, alimentação etc.)
-- **Valor**
-- **Data da despesa** (campo que não existe hoje — `createdAt` é data de importação)
+**Parsers Determinísticos (Python):**
+- `_parse_kinto_pdf`
+- `_parse_localiza_pdf`
+- `_parse_localiza_rent_pdf`
+- `_parse_onfly_fatura_pdf`
+- `_parse_onfly_pdf`
 
-Os formatos de arquivo que chegam:
-- **PDF:** faturas de cartões corporativos, relatórios de extrato
-- **Excel/CSV:** exports de sistemas como Kinto, Onfly, DV
+**Parsers Especializados Híbridos (Gemini API com regras engessadas):**
+- `_parse_santamaria_rdv_via_ia`
+- `_parse_danfe_rosemary_via_ia`
+- `_parse_fatura_cartao_eduardo_via_ia`
+- `_parse_tastur_fatura_via_ia`
+- `_parse_maiorca_fatura_via_ia`
+- `_parse_semparar_fatura_via_ia`
 
-### 3.4 Recursos Disponíveis para Reutilizar do Plano de Saúde
+### 3.4 Mecânica de Mapeamento (Banco de Dados)
 
-| Recurso | Onde está | Reutilizável? |
-|---|---|---|
-| `_normaliza_cpf()` | `ia_service.py` L134 | Sim (método estático) |
-| `_parse_brl()` | `ia_service.py` L122 | Sim (método estático) |
-| `ColaboradorRepository.get_by_nome_normalizado()` | `colaborador_repository.py` L38 | Sim |
-| `ColaboradorRepository.get_by_documento()` | `colaborador_repository.py` L58 | Sim |
-| `ColaboradorAliasRepository` | `colaborador_alias_repository.py` | Sim — adaptar para despesas |
-| `_detectar_total_esperado()` | `ia_service.py` L587 | Sim |
-| Padrão de fallback condicional | `ia_service.py` L763-782 | Sim — copiar arquitetura |
-| `extrair_beneficiarios_planilha()` | `ia_service.py` L808 | Parcialmente — estrutura diferente |
+Após a extração pelo parser (seja Python ou IA), o `despesas_viagens_parser_service.py` executa o mesmo loop de normalização que o Módulo de Plano de Saúde:
+- Valida a **Categoria** via nome exato ou tabela `CategoriaAlias`.
+- Valida o **Colaborador** (removendo acentos e capitalização) via nome ou `ColaboradorAliasRepository`.
+- Se o campo não for encontrado, ele adiciona a flag `_encontrada = False` permitindo a correção amigável pelo usuário diretamente na tela de importação no Frontend.
 
 ---
 
@@ -539,10 +543,9 @@ Os formatos de arquivo que chegam:
 
 ## PARTE 5 — REFERÊNCIA RÁPIDA DE ARQUIVOS
 
-### Onde criar o novo parser de despesas:
-- **Novo serviço:** `backend/app/services/despesas_viagens_parser_service.py`
-- **Ou adicionar métodos** no `ia_service.py` seguindo o padrão dos parsers existentes
-- **Router:** adicionar novas rotas em `backend/app/routers/importacoes.py` (nas linhas 42-111)
+### Onde gerenciar os parsers de despesas:
+- **Serviço Principal:** `backend/app/services/despesas_viagens_parser_service.py` (contém a orquestração, fallback genérico, parsers determinísticos e parsers de IA por fornecedor)
+- **Router:** As rotas chamam diretamente o parser no arquivo `backend/app/routers/importacoes.py`
 
 ### Onde está cada coisa:
 ```
