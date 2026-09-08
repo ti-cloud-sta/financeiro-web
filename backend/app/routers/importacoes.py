@@ -9,6 +9,7 @@ from app.models.user import User
 from app.schemas.importacao import ImportacaoPaginatedResponse
 from app.services.importacao_service import ImportacaoService
 from app.services.ia_service import IAService
+from app.services.dashboard_service import DashboardService
 from app.services.inadimplencia_service import InadimplenciaService
 from app.repositories.categoria_repository import CategoriaRepository
 from app.repositories.colaborador_repository import ColaboradorRepository
@@ -203,6 +204,51 @@ def excluir_importacao(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/dashboard")
+def get_dashboard(
+    data_inicio: str = Query(None),
+    data_fim: str = Query(None),
+    id_empresa: int = Query(None),
+    id_colaborador: int = Query(None),
+    id_categoria: int = Query(None),
+    tipo_importacao: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    try:
+        service = DashboardService(db)
+        return service.obter_dados(
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            id_empresa=id_empresa,
+            id_colaborador=id_colaborador,
+            id_categoria=id_categoria,
+            tipo_importacao=tipo_importacao
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/dashboard/analitico")
+def get_dashboard_analitico(
+    data_inicio: str = Query(None),
+    data_fim: str = Query(None),
+    id_empresa: int = Query(None),
+    id_colaborador: int = Query(None),
+    id_categoria: int = Query(None),
+    tipo_importacao: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    try:
+        service = DashboardService(db)
+        return service.obter_dados_analitico(
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            id_empresa=id_empresa,
+            id_colaborador=id_colaborador,
+            id_categoria=id_categoria,
+            tipo_importacao=tipo_importacao
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 import re
 import io
