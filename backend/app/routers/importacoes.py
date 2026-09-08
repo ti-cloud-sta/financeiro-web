@@ -28,7 +28,7 @@ router.include_router(plano_saude_ia_router, prefix="/plano-saude")
 def get_service(db: Session = Depends(get_db)):
     return ImportacaoService(db)
 
-@router.get("/", response_model=ImportacaoPaginatedResponse)
+@router.get("", response_model=ImportacaoPaginatedResponse)
 def get_importacoes(
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1, le=100),

@@ -7,7 +7,7 @@ import math
 
 router = APIRouter()
 
-@router.get("/", response_model=CentroCustoPaginatedResponse)
+@router.get("", response_model=CentroCustoPaginatedResponse)
 def read_centros_custo(page: int = 1, page_size: int = 100, search: str = None, db: Session = Depends(get_db)):
     skip = (page - 1) * page_size
     limit = page_size
@@ -21,7 +21,7 @@ def read_centros_custo(page: int = 1, page_size: int = 100, search: str = None, 
         "total_pages": total_pages
     }
 
-@router.post("/", response_model=CentroCustoResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=CentroCustoResponse, status_code=status.HTTP_201_CREATED)
 def create_centro_custo(centro_custo: CentroCustoCreate, db: Session = Depends(get_db)):
     return centro_custo_service.create_centro_custo(db=db, obj_in=centro_custo)
 
