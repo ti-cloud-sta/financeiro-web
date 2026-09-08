@@ -7,7 +7,7 @@ import math
 
 router = APIRouter()
 
-@router.get("/", response_model=UnidadePaginatedResponse)
+@router.get("", response_model=UnidadePaginatedResponse)
 def read_unidades(page: int = 1, page_size: int = 100, search: str = None, db: Session = Depends(get_db)):
     skip = (page - 1) * page_size
     limit = page_size
@@ -21,7 +21,7 @@ def read_unidades(page: int = 1, page_size: int = 100, search: str = None, db: S
         "total_pages": total_pages
     }
 
-@router.post("/", response_model=UnidadeResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=UnidadeResponse, status_code=status.HTTP_201_CREATED)
 def create_unidade(unidade: UnidadeCreate, db: Session = Depends(get_db)):
     return unidade_service.create_unidade(db=db, obj_in=unidade)
 
