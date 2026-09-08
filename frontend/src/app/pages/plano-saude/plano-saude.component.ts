@@ -966,6 +966,7 @@ export class PlanoSaudeComponent implements OnInit {
             this.divergencesCount.set(res.erros_colaboradores ? res.erros_colaboradores.length : 0);
             this.processingStep.set(4);
             this.carregarImportacoes();
+            this.carregarRelatoriosGerais();
           } else {
             this.processingError.set('Erro ao salvar os dados.');
           }
@@ -985,6 +986,7 @@ export class PlanoSaudeComponent implements OnInit {
             this.divergencesCount.set(res.erros_colaboradores ? res.erros_colaboradores.length : 0);
             this.processingStep.set(4);
             this.carregarImportacoes();
+            this.carregarRelatoriosGerais();
           } else {
             this.processingError.set('Erro ao salvar os dados.');
           }
@@ -1232,6 +1234,8 @@ export class PlanoSaudeComponent implements OnInit {
           next: () => {
             this.closeConfirmModal();
             this.carregarImportacoes();
+            this.carregarRelatoriosGerais();
+            this.carregarDadosDashboard();
           },
           error: (err) => {
             this.closeConfirmModal();
