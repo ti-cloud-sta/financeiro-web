@@ -2,10 +2,11 @@ services:
   db:
     image: mysql:8.0
     restart: unless-stopped
-    command: --lower-case-table-names=1
+    command: --lower-case-table-names=1 --default-time-zone=-03:00
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: stamariabd
+      TZ: America/Sao_Paulo
     ports:
       - "127.0.0.1:3306:3306"
     volumes:
@@ -29,6 +30,7 @@ services:
       DATABASE_NAME: stamariabd
       DATABASE_USER: root
       DATABASE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: America/Sao_Paulo
       JWT_KEY: ${JWT_KEY}
       ENVIRONMENT: production
       GEMINI_API_KEY: ${GEMINI_API_KEY}
