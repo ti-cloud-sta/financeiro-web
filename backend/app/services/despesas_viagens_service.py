@@ -7,6 +7,7 @@ from app.repositories.categoria_repository import CategoriaRepository
 from app.repositories.colaborador_repository import ColaboradorRepository
 from app.repositories.empresa_repository import EmpresaRepository
 from app.repositories.colaborador_alias_repository import ColaboradorAliasRepository
+from app.repositories.categoria_alias_repository import CategoriaAliasRepository
 from app.schemas.despesas_viagens import SalvarDespesaViagemPayload
 
 
@@ -17,6 +18,7 @@ class DespesasViagensService:
         self.colab_repo = ColaboradorRepository(db)
         self.emp_repo = EmpresaRepository(db)
         self.alias_repo = ColaboradorAliasRepository(db)
+        self.categoria_alias_repo = CategoriaAliasRepository(db)
 
     def salvar_importacao(self, payload: SalvarDespesaViagemPayload):
         # Resolve a data de competência do form (criará as movimentações com essa data)
@@ -68,6 +70,12 @@ class DespesasViagensService:
             cat = self.cat_repo.get_by_nome(d.categoria)
             if not cat:
                 raise HTTPException(status_code=400, detail=f"Categoria não encontrada: {d.categoria}")
+
+            # Se o nome da categoria extraído do documento diverge do nome cadastrado,
+            # registra/atualiza o alias para que próximas importações sejam resolvidas automaticamente
+            categoria_original = (d.categoria_original or d.categoria).strip()
+            if categoria_original.lower() != cat.nome.lower():
+                self.categoria_alias_repo.create_or_update(cat.idCategorias, categoria_original)
 
             if payload.isManualEntry:
                 emp = empresa_manual

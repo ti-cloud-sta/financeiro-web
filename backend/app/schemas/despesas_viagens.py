@@ -6,6 +6,7 @@ class DespesaExtraida(BaseModel):
     colaborador: str
     colaborador_original: Optional[str] = None
     categoria: str
+    categoria_original: Optional[str] = None
     valor: float
     data: Optional[str] = None
     nroDocumento: Optional[str] = None
