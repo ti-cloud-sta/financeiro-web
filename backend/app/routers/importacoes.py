@@ -791,11 +791,11 @@ async def extrair_sendas(file: UploadFile = File(...), acr_file: UploadFile = Fi
                 continue
 
             # Apply rules:
-            # 1. Nota Fiscal: starts with 1 or 2 AND ends with 2
-            if val_h.startswith(('1', '2')) and val_h.endswith('2'):
-                # Formatação: Remover espaços e o último caractere '2', e preencher com zeros à esquerda até obter 7 dígitos
+            # 1. Nota Fiscal: starts with 1 or 2 AND ends with 2 or 4
+            if val_h.startswith(('1', '2')) and val_h.endswith(('2', '4')):
+                # Formatação: Remover espaços e o último caractere '2' ou '4', e preencher com zeros à esquerda até obter 7 dígitos
                 cleaned_h = val_h.replace(' ', '')
-                if cleaned_h.endswith('2'):
+                if cleaned_h.endswith(('2', '4')):
                     cleaned_h = cleaned_h[:-1]
                 formatted_nf = cleaned_h.zfill(7)
                 notas_fiscais.append((formatted_nf, val_x))
@@ -1298,11 +1298,11 @@ async def conciliar_sendas(
             if val_h.endswith('.0'):
                 val_h = val_h[:-2]
                 
-            # Filter starts with 1 or 2 and ends with 2
-            if val_h.startswith(('1', '2')) and val_h.endswith('2'):
-                # Format: remove spaces, remove final '2', pad to 7 characters
+            # Filter starts with 1 or 2 and ends with 2 or 4
+            if val_h.startswith(('1', '2')) and val_h.endswith(('2', '4')):
+                # Format: remove spaces, remove final '2' or '4', pad to 7 characters
                 cleaned_h = val_h.replace(' ', '')
-                if cleaned_h.endswith('2'):
+                if cleaned_h.endswith(('2', '4')):
                     cleaned_h = cleaned_h[:-1]
                 formatted_nf = cleaned_h.zfill(7)
                 
@@ -1441,7 +1441,7 @@ async def conciliar_sendas(
             
             try:
                 raw_nf_cleaned = inv['raw_nf'].replace(' ', '')
-                if raw_nf_cleaned.endswith('2'):
+                if raw_nf_cleaned.endswith(('2', '4')):
                     raw_nf_cleaned = raw_nf_cleaned[:-1]
                 nf_int = int(raw_nf_cleaned)
             except ValueError:
@@ -1907,22 +1907,22 @@ async def conciliar_savegnago(
             return str(date_val)
 
         # Parse Savegnago data
-        d_col_idx = 3
-        i_col_idx = 8
+        i_col_idx = 8 # Nota Fiscal / Parcela
+        b_col_idx = 1 # Data Vencimento
         
         invoices_sav = []
         for idx, row in df_sav.iterrows():
-            val_d_raw = row[d_col_idx]
             val_i_raw = row[i_col_idx]
+            val_b_raw = row[b_col_idx]
             
-            if pd.isna(val_d_raw) or pd.isna(val_i_raw):
+            if pd.isna(val_i_raw) or pd.isna(val_b_raw):
                 continue
                 
-            val_d_str = str(val_d_raw).strip()
-            if val_d_str.endswith('.0'):
-                val_d_str = val_d_str[:-2]
+            val_i_str = str(val_i_raw).strip()
+            if val_i_str.endswith('.0'):
+                val_i_str = val_i_str[:-2]
                 
-            segment = val_d_str.split('-')[0]
+            segment = val_i_str.split('-')[0]
             clean_segment = re.sub(r'^[a-zA-Z]+', '', segment)
             
             try:
@@ -1933,11 +1933,11 @@ async def conciliar_savegnago(
             formatted_nf = clean_segment.zfill(7)
             
             parcela = ""
-            qp_match = re.search(r'QP(\d+)', val_d_str)
+            qp_match = re.search(r'QP(\d+)', val_i_str)
             if qp_match:
                 parcela = str(qp_match.group(1)).zfill(2)
             
-            date_raw = str(val_i_raw).strip()
+            date_raw = str(val_b_raw).strip()
             if ' ' in date_raw:
                 date_raw = date_raw.split()[0]
                 
@@ -3436,6 +3436,323 @@ async def conciliar_cema(
         
         from app.services.importacao_service import ImportacaoService
         ImportacaoService(db).registrar_importacao(filename, "xlsx", "Prorrogação - Cema", id_user_inc=current_user.iduser)
+        
+        headers_response = {
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Access-Control-Expose-Headers': 'Content-Disposition'
+        }
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers_response
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/amazon/conciliar")
+async def conciliar_amazon(
+    amazon_file: UploadFile = File(...),
+    acr_file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not amazon_file.filename or not acr_file.filename:
+        raise HTTPException(status_code=400, detail="Arquivos inválidos")
+        
+    try:
+        import io
+        import pandas as pd
+        import openpyxl
+        from openpyxl.styles import Font, Alignment, PatternFill
+        import datetime
+        import csv
+
+        # Load Amazon file
+        amazon_bytes = await amazon_file.read()
+        
+        # Amazon file is actually a CSV but might be saved as .xlsx with all data in column A
+        # Let's try reading with pandas as excel first
+        invoices_amazon = []
+        
+        try:
+            df_amz = pd.read_excel(io.BytesIO(amazon_bytes), header=None)
+            # If shape is (N, 1), it's comma separated in col 0
+            if df_amz.shape[1] == 1:
+                for idx, row in df_amz.iterrows():
+                    val = str(row[0]).strip()
+                    if not val or val.startswith("Marketplace"):
+                        continue
+                    # Parse as CSV row
+                    parsed = next(csv.reader([val]))
+                    if len(parsed) < 7:
+                        continue
+                        
+                    barcode = parsed[1].strip()
+                    date_str = parsed[6].strip()
+                    
+                    if len(barcode) >= 34:
+                        # NF is at indices 25 to 33 in NFe standard (0-based)
+                        nf_part = barcode[25:34]
+                        try:
+                            nf_int = int(nf_part)
+                            formatted_nf = str(nf_int).zfill(7)
+                        except ValueError:
+                            continue
+                            
+                        invoices_amazon.append({
+                            'raw_nf': nf_part,
+                            'nf': formatted_nf,
+                            'vencimento': date_str
+                        })
+            else:
+                # Proper excel columns
+                for idx, row in df_amz.iterrows():
+                    barcode = str(row[1]).strip()
+                    date_str = str(row[6]).strip()
+                    if not barcode or barcode.lower() == 'invoice number':
+                        continue
+                    if len(barcode) >= 34:
+                        nf_part = barcode[25:34]
+                        try:
+                            nf_int = int(nf_part)
+                            formatted_nf = str(nf_int).zfill(7)
+                        except ValueError:
+                            continue
+                        invoices_amazon.append({
+                            'raw_nf': nf_part,
+                            'nf': formatted_nf,
+                            'vencimento': date_str
+                        })
+        except Exception:
+            # Fallback for plain CSV file
+            csv_text = amazon_bytes.decode('utf-8', errors='ignore')
+            reader = csv.reader(io.StringIO(csv_text))
+            for parsed in reader:
+                if len(parsed) < 7:
+                    continue
+                barcode = parsed[1].strip()
+                date_str = parsed[6].strip()
+                if not barcode or barcode.lower() == 'invoice number':
+                    continue
+                if len(barcode) >= 34:
+                    nf_part = barcode[25:34]
+                    try:
+                        nf_int = int(nf_part)
+                        formatted_nf = str(nf_int).zfill(7)
+                    except ValueError:
+                        continue
+                    invoices_amazon.append({
+                        'raw_nf': nf_part,
+                        'nf': formatted_nf,
+                        'vencimento': date_str
+                    })
+
+        if not invoices_amazon:
+            raise HTTPException(
+                status_code=400,
+                detail="Nenhum registro correspondente ao padrão Amazon foi encontrado."
+            )
+
+        # Helper to parse dates
+        def parse_date(date_str):
+            if not date_str:
+                return None
+            if isinstance(date_str, datetime.datetime):
+                return date_str.date()
+            if isinstance(date_str, datetime.date):
+                return date_str
+            date_str = str(date_str).strip()
+            if hasattr(pd, 'Timestamp') and isinstance(date_str, pd.Timestamp):
+                return date_str.date()
+            for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%d/%m/%y', '%Y/%m/%d %H:%M:%S', '%d/%m/%Y %H:%M:%S'):
+                try:
+                    return datetime.datetime.strptime(date_str.split()[0] if ' ' in date_str else date_str, fmt).date()
+                except ValueError:
+                    continue
+            return None
+
+        def format_date_to_br(date_val):
+            if not date_val:
+                return ""
+            if isinstance(date_val, datetime.date):
+                return date_val.strftime('%d/%m/%Y')
+            d = parse_date(date_val)
+            if isinstance(d, datetime.date):
+                return d.strftime('%d/%m/%Y')
+            return str(date_val)
+
+        # Load ACR file
+        acr_bytes = await acr_file.read()
+        try:
+            df_acr = pd.read_excel(io.BytesIO(acr_bytes), header=None)
+        except Exception:
+            csv_text = acr_bytes.decode('utf-8', errors='ignore')
+            sep = ';' if ';' in csv_text else ','
+            df_acr = pd.read_csv(io.StringIO(csv_text), sep=sep, header=None)
+
+        if df_acr.shape[1] < 16:
+            raise HTTPException(
+                status_code=400,
+                detail=f"O arquivo ACR precisa ter pelo menos 16 colunas (até a coluna P). Colunas encontradas: {df_acr.shape[1]}."
+            )
+
+        # Parse ACR data (using standard columns D and P)
+        acr_d_col_idx = 3 # Column D
+        acr_p_col_idx = 15 # Column P
+        
+        acr_data_by_int = {}
+        for idx, row in df_acr.iterrows():
+            val_d_raw = row[acr_d_col_idx]
+            val_p_raw = row[acr_p_col_idx]
+            
+            if pd.isna(val_d_raw) or pd.isna(val_p_raw):
+                continue
+                
+            val_d = str(val_d_raw).strip().split('.')[0]
+            val_p = str(val_p_raw).strip()
+            if ' ' in val_p:
+                val_p = val_p.split()[0]
+                
+            try:
+                acr_data_by_int[int(val_d)] = val_p
+            except ValueError:
+                continue
+
+        # Create Workbook
+        wb = openpyxl.Workbook()
+        
+        # Tab 1
+        ws1 = wb.active
+        ws1.title = "Prorrogações Amazon"
+        ws1.views.sheetView[0].showGridLines = True
+        
+        ws1.cell(row=1, column=1, value="Nota Fiscal")
+        ws1.cell(row=1, column=2, value="Vencimento Amazon")
+        
+        for i, inv in enumerate(invoices_amazon):
+            row_num = i + 2
+            ws1.cell(row=row_num, column=1, value=inv['nf'])
+            ws1.cell(row=row_num, column=2, value=format_date_to_br(inv['vencimento']))
+            
+        # Tab 2
+        ws2 = wb.create_sheet(title="Conciliação")
+        ws2.views.sheetView[0].showGridLines = True
+        
+        ws2.cell(row=1, column=1, value="Nota Fiscal")
+        ws2.cell(row=1, column=2, value="Vencimento Amazon")
+        ws2.cell(row=1, column=3, value="Vencimento ACR")
+        ws2.cell(row=1, column=4, value="Status")
+
+        # Fonts, alignments and colors
+        font_header = Font(name='Calibri', size=11, bold=True)
+        font_body = Font(name='Calibri', size=11, bold=False)
+        align_left = Alignment(horizontal='left', vertical='center')
+        align_center = Alignment(horizontal='center', vertical='center')
+        
+        fill_ok = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
+        fill_div = PatternFill(start_color="FCE4D6", end_color="FCE4D6", fill_type="solid")
+
+        # Format Tab 1 Headers
+        for col_idx in [1, 2]:
+            cell = ws1.cell(row=1, column=col_idx)
+            cell.font = font_header
+            cell.alignment = align_left
+
+        # Format Tab 1 Body
+        for r_idx in range(2, len(invoices_amazon) + 2):
+            c1 = ws1.cell(row=r_idx, column=1)
+            c1.font = font_body
+            c1.number_format = '@'
+            c1.alignment = align_left
+            
+            c2 = ws1.cell(row=r_idx, column=2)
+            c2.font = font_body
+            c2.alignment = align_center
+
+        ws1.column_dimensions['A'].width = 16
+        ws1.column_dimensions['B'].width = 24
+
+        # Conciliate
+        for i, inv in enumerate(invoices_amazon):
+            row_num = i + 2
+            nf_str = inv['nf']
+            date_amazon_str = inv['vencimento']
+            
+            try:
+                nf_int = int(inv['raw_nf'])
+            except ValueError:
+                nf_int = None
+                
+            date_acr_str = ""
+            status = "Não encontrado no ACR"
+            status_fill = None
+            
+            if nf_int is not None and nf_int in acr_data_by_int:
+                date_acr_str = acr_data_by_int[nf_int]
+                d_amazon = parse_date(date_amazon_str)
+                d_acr = parse_date(date_acr_str)
+                
+                if d_amazon and d_acr:
+                    if d_amazon == d_acr:
+                        status = "OK"
+                        status_fill = fill_ok
+                    else:
+                        status = "Divergente"
+                        status_fill = fill_div
+                else:
+                    if str(date_amazon_str).strip() == str(date_acr_str).strip():
+                        status = "OK"
+                        status_fill = fill_ok
+                    else:
+                        status = "Divergente"
+                        status_fill = fill_div
+                        
+            ws2.cell(row=row_num, column=1, value=nf_str)
+            ws2.cell(row=row_num, column=2, value=format_date_to_br(date_amazon_str))
+            ws2.cell(row=row_num, column=3, value=format_date_to_br(date_acr_str))
+            
+            status_cell = ws2.cell(row=row_num, column=4, value=status)
+            if status_fill:
+                status_cell.fill = status_fill
+
+        # Format Tab 2 Headers
+        for col_idx in [1, 2, 3, 4]:
+            cell = ws2.cell(row=1, column=col_idx)
+            cell.font = font_header
+            cell.alignment = align_left
+
+        # Format Tab 2 Body
+        for r_idx in range(2, len(invoices_amazon) + 2):
+            ws2.cell(row=r_idx, column=1).font = font_body
+            ws2.cell(row=r_idx, column=1).number_format = '@'
+            ws2.cell(row=r_idx, column=1).alignment = align_left
+            
+            ws2.cell(row=r_idx, column=2).font = font_body
+            ws2.cell(row=r_idx, column=2).alignment = align_center
+            
+            ws2.cell(row=r_idx, column=3).font = font_body
+            ws2.cell(row=r_idx, column=3).alignment = align_center
+            
+            ws2.cell(row=r_idx, column=4).font = font_body
+            ws2.cell(row=r_idx, column=4).alignment = align_center
+
+        ws2.column_dimensions['A'].width = 16
+        ws2.column_dimensions['B'].width = 24
+        ws2.column_dimensions['C'].width = 24
+        ws2.column_dimensions['D'].width = 24
+
+        # Save workbook
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        filename = amazon_file.filename.rsplit('.', 1)[0] + "_conciliado.xlsx"
+        
+        # Registrar no banco
+        ImportacaoService(db).registrar_importacao(filename, "xlsx", "Prorrogação - Amazon", id_user_inc=current_user.iduser)
         
         headers_response = {
             'Content-Disposition': f'attachment; filename="{filename}"',

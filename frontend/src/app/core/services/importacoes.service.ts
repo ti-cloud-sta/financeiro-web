@@ -633,6 +633,18 @@ export class ImportacoesService {
     });
   }
 
+  conciliarProrrogacaoAmazon(amazonFile: File, acrFile: File, idUserInc?: number): Observable<Blob> {
+    const formData = new FormData();
+    formData.append('amazon_file', amazonFile);
+    formData.append('acr_file', acrFile);
+    if (idUserInc) {
+      formData.append('idUserInc', idUserInc.toString());
+    }
+    return this.http.post(`${this.apiUrl}/amazon/conciliar`, formData, {
+      responseType: 'blob'
+    });
+  }
+
   conciliarProrrogacaoMateus(mateusFile: File, acrFile: File, idUserInc?: number): Observable<Blob> {
     const formData = new FormData();
     formData.append('mateus_file', mateusFile);
