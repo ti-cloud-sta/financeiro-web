@@ -478,8 +478,19 @@ export class ExtratoresComponent implements OnInit {
   }
 
   private _processAmazonProrrogacao(empresa: File, acr: File) {
-    this.prorrogacaoUnifiedError.set('A funcionalidade de conciliação da Amazon ainda está aguardando os critérios de negócio.');
-    this.isProrrogacaoUnifiedProcessing.set(false);
+    this.importacoesService.conciliarProrrogacaoAmazon(empresa, acr, this.authService.currentUser()?.iduser).subscribe({
+      next: (blob) => {
+        this.carregarHistorico();
+        this.isProrrogacaoUnifiedProcessing.set(false);
+        this.isProrrogacaoUnifiedModalOpen = false;
+        const originalName = empresa.name.substring(0, empresa.name.lastIndexOf('.')) || 'Conciliado';
+        this._downloadBlob(blob, `${originalName}_conciliado.xlsx`);
+      },
+      error: (err) => {
+        this.isProrrogacaoUnifiedProcessing.set(false);
+        this.prorrogacaoUnifiedError.set(err.error?.detail || 'Erro ao processar arquivo da Amazon.');
+      }
+    });
   }
 
   private _processGPAProrrogacao(empresa: File, acr: File) {
