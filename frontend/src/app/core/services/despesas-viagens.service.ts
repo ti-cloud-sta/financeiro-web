@@ -8,6 +8,7 @@ export interface DespesaParaSalvar {
   colaborador: string;
   colaborador_original?: string;
   categoria: string;
+  categoria_original?: string;
   valor: number;
   data?: string;
   nroDocumento?: string;

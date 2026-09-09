@@ -817,6 +817,7 @@ export class DespesasViagensComponent implements OnInit {
         colaborador: d.colaborador,
         colaborador_original: d.colaborador_original || d.colaborador,
         categoria: d.categoria,
+        categoria_original: d.categoria_original || d.categoria,
         valor: d.valor,
         data: d.data || null,
         nroDocumento: d.nroDocumento || null
@@ -886,21 +887,24 @@ export class DespesasViagensComponent implements OnInit {
               ...d,
               empresa: nomeEmpresa,
               nroDocumento: d.codigo_rdv || d.nroDocumento || null,
-              colaborador_original: d.colaborador // keep original name for alias
+              colaborador_original: d.colaborador, // keep original name for alias
+              categoria_original: d.categoria // keep original name for alias
             }));
           } else if (res && Array.isArray(res.despesas)) {
             this.despesasExtraidas = res.despesas.map((d: any) => ({
               ...d,
               empresa: nomeEmpresa,
               nroDocumento: d.codigo_rdv || d.nroDocumento || null,
-              colaborador_original: d.colaborador
+              colaborador_original: d.colaborador,
+              categoria_original: d.categoria
             }));
           } else if (res && Array.isArray(res)) {
             this.despesasExtraidas = res.map((d: any) => ({
               ...d,
               empresa: nomeEmpresa,
               nroDocumento: d.codigo_rdv || d.nroDocumento || null,
-              colaborador_original: d.colaborador
+              colaborador_original: d.colaborador,
+              categoria_original: d.categoria
             }));
           }
           this.uploadState = 'done'; 
