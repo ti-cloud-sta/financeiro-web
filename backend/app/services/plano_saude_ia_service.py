@@ -8,13 +8,10 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.colaborador import Colaborador
-from app.models.colaborador_unidade import ColaboradorUnidade
 from app.models.empresa import Empresa
 from app.models.importacao import Importacao
 from app.models.movimentacao import Movimentacao
-from app.models.unidade import Unidade
 from app.repositories.categoria_repository import CategoriaRepository
-from app.repositories.centro_custo_repository import centro_custo_repository
 from app.repositories.colaborador_alias_repository import ColaboradorAliasRepository
 from app.repositories.colaborador_repository import ColaboradorRepository
 from app.repositories.empresa_repository import EmpresaRepository
@@ -242,11 +239,6 @@ class PlanoSaudeIAService:
             else:
                 t["centro_custo"] = "N/D"
 
-            if colab and colab.unidades:
-                t["unidade"] = ", ".join(str(u.codigo) for u in colab.unidades)
-            else:
-                t["unidade"] = "N/D"
-
         validacoes, validacoes_sucesso, total_geral = self._montar_validacoes(titulares_extraidos)
 
         return {
@@ -298,11 +290,6 @@ class PlanoSaudeIAService:
                 t["centro_custo"] = str(colab.centro_custo.codigo)
             else:
                 t["centro_custo"] = "N/D"
-
-            if colab and colab.unidades:
-                t["unidade"] = ", ".join(str(u.codigo) for u in colab.unidades)
-            else:
-                t["unidade"] = "N/D"
 
         validacoes, validacoes_sucesso, total_geral = self._montar_validacoes(titulares_extraidos)
 
@@ -358,35 +345,15 @@ class PlanoSaudeIAService:
                 except Exception as ex:
                     print(f"[WARN] Falha ao salvar Alias de colaborador: {ex}")
 
-            id_cc_override = None
-            if t.centro_custo and t.centro_custo != "N/D":
-                try:
-                    cc_code = int(t.centro_custo.strip())
-                    cc_db = centro_custo_repository.get_by_codigo(self.db, cc_code)
-                    if cc_db:
-                        id_cc_override = cc_db.idCentroCusto
-                except Exception as ex:
-                    print(f"[WARN] Falha ao buscar override de Centro de Custo: {ex}")
-
-            id_unidade_override = None
-            if hasattr(t, 'unidade') and t.unidade and t.unidade != "N/D":
-                try:
-                    unidade_db = self.db.query(Unidade).filter(Unidade.codigo == int(t.unidade.strip())).first()
-                    if unidade_db:
-                        id_unidade_override = unidade_db.idUnidade
-                except Exception as ex:
-                    print(f"[WARN] Falha ao buscar override de Unidade: {ex}")
-
             nova_mov = Movimentacao(
                 idCategoria=cat.idCategorias,
                 idColaborador=colab.idColaborador,
                 idEmpresa=emp.idEmpresas,
                 idImportacoes=nova_importacao.idImportacoes,
-                idCentroCusto=id_cc_override,
-                idUnidade=id_unidade_override,
+                idUnidade=payload.idUnidade,
                 valor=t.valor_total,
             )
-            
+
             if payload.dataCompetencia:
                 try:
                     data_comp = datetime.strptime(payload.dataCompetencia, "%Y-%m-%d")
@@ -481,21 +448,12 @@ class PlanoSaudeIAService:
             if colab_base:
                 colab = self.db.query(Colaborador).options(
                     joinedload(Colaborador.centro_custo),
-                    joinedload(Colaborador.colaborador_unidades).joinedload(ColaboradorUnidade.unidade),
                 ).filter(Colaborador.idColaborador == colab_base.idColaborador).first()
 
-            if colab:
-                if colab.centro_custo:
-                    t["centro_custo"] = str(colab.centro_custo.codigo)
-                else:
-                    t["centro_custo"] = "N/D"
-                if colab.unidades:
-                    t["unidade"] = ", ".join(str(u.codigo) for u in colab.unidades)
-                else:
-                    t["unidade"] = "N/D"
+            if colab and colab.centro_custo:
+                t["centro_custo"] = str(colab.centro_custo.codigo)
             else:
                 t["centro_custo"] = "N/D"
-                t["unidade"] = "N/D"
 
         validacoes, validacoes_sucesso, total_geral = self._montar_validacoes(titulares_extraidos)
 
@@ -543,35 +501,15 @@ class PlanoSaudeIAService:
                 erros_colaboradores.append(t.nome_db)
                 continue
 
-            id_cc_override = None
-            if t.centro_custo and t.centro_custo != "N/D":
-                try:
-                    cc_code = int(t.centro_custo.strip())
-                    cc_db = centro_custo_repository.get_by_codigo(self.db, cc_code)
-                    if cc_db:
-                        id_cc_override = cc_db.idCentroCusto
-                except Exception as ex:
-                    print(f"[WARN] Falha ao buscar override de Centro de Custo: {ex}")
-
-            id_unidade_override = None
-            if hasattr(t, 'unidade') and t.unidade and t.unidade != "N/D":
-                try:
-                    unidade_db = self.db.query(Unidade).filter(Unidade.codigo == int(t.unidade.strip())).first()
-                    if unidade_db:
-                        id_unidade_override = unidade_db.idUnidade
-                except Exception as ex:
-                    print(f"[WARN] Falha ao buscar override de Unidade: {ex}")
-
             nova_mov = Movimentacao(
                 idCategoria=cat.idCategorias,
                 idColaborador=colab.idColaborador,
                 idEmpresa=emp.idEmpresas,
                 idImportacoes=nova_importacao.idImportacoes,
-                idCentroCusto=id_cc_override,
-                idUnidade=id_unidade_override,
+                idUnidade=payload.idUnidade,
                 valor=t.valor_total,
             )
-            
+
             if payload.dataCompetencia:
                 try:
                     data_comp = datetime.strptime(payload.dataCompetencia, "%Y-%m-%d")
@@ -599,7 +537,6 @@ class PlanoSaudeIAService:
         total_geral = 0.0
         for t in payload.titulares:
             rows.append({
-                "Unidade": t.unidade or "N/D",
                 "Beneficiário (Titular)": t.nome_db or t.nome_pdf,
                 "Centro de Custo": t.centro_custo or "N/D",
                 "Valor Total": t.valor_total,
@@ -607,7 +544,6 @@ class PlanoSaudeIAService:
             total_geral += t.valor_total
 
         rows.append({
-            "Unidade": "",
             "Beneficiário (Titular)": "TOTAL GERAL",
             "Centro de Custo": "",
             "Valor Total": total_geral,

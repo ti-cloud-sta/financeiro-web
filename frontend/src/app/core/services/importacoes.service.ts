@@ -743,11 +743,12 @@ export class ImportacoesService {
     return this.http.post<any>(`${this.apiUrl}/plano-saude/sorriso/analisar`, formData);
   }
 
-  confirmarSorriso(nomeArquivo: string, titulares: any[], idEmpresa?: number, idUserInc?: number, dataCompetencia?: string): Observable<any> {
+  confirmarSorriso(nomeArquivo: string, titulares: any[], idEmpresa?: number, idUnidade?: number, idUserInc?: number, dataCompetencia?: string): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/plano-saude/sorriso/confirmar`, {
       nomeArquivo,
       titulares,
       idEmpresa,
+      idUnidade,
       idUserInc,
       dataCompetencia
     });
@@ -765,11 +766,12 @@ export class ImportacoesService {
     return this.http.post<any>(`${this.apiUrl}/plano-saude/unimed-odonto/analisar`, formData);
   }
 
-  confirmarUnimedOdonto(nomeArquivo: string, titulares: any[], idEmpresa?: number, idUserInc?: number, dataCompetencia?: string): Observable<any> {
+  confirmarUnimedOdonto(nomeArquivo: string, titulares: any[], idEmpresa?: number, idUnidade?: number, idUserInc?: number, dataCompetencia?: string): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/plano-saude/unimed-odonto/confirmar`, {
       nomeArquivo,
       titulares,
       idEmpresa,
+      idUnidade,
       idUserInc,
       dataCompetencia
     });

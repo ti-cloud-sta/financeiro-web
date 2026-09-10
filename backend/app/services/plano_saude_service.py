@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
-from sqlalchemy.orm import aliased
 from fastapi import UploadFile
 from datetime import datetime
 import pandas as pd
@@ -8,7 +7,6 @@ import io
 from app.models.movimentacao import Movimentacao
 from app.models.importacao import Importacao
 from app.models.colaborador import Colaborador
-from app.models.colaborador_unidade import ColaboradorUnidade
 from app.models.empresa import Empresa
 from app.models.unidade import Unidade
 from app.models.centro_custo import CentroCusto
@@ -19,65 +17,46 @@ class PlanoSaudeService:
         self.db = db
 
     def obter_relatorio_geral(self, mes: int, ano: int, search: str = None, id_empresa: int = None, page: int = 1, size: int = 10) -> RelatorioGeralResponse:
-        # Soma por colaborador/empresa isolada da junção de Unidade: um colaborador pode
-        # ter mais de uma Unidade (relação N:N via ColaboradorUnidade), e juntar Unidade
-        # direto nesta soma duplicaria/multiplicaria o valor da Movimentacao para quem
-        # tem mais de uma unidade.
-        sub = self.db.query(
-            Movimentacao.idColaborador.label("id_colaborador"),
-            Movimentacao.idEmpresa.label("id_empresa"),
-            Movimentacao.idCentroCusto.label("id_cc_override"),
-            Movimentacao.idUnidade.label("id_unidade_override"),
+        # Unidade é uma propriedade da própria Movimentacao (definida uma vez por lote de
+        # importação), não do colaborador — cada Movimentacao aponta para no máximo uma.
+        query = self.db.query(
+            Unidade.codigo.label("unidade_codigo"),
+            Empresa.nome.label("empresa_nome"),
+            Colaborador.nome.label("colaborador_nome"),
+            CentroCusto.codigo.label("centro_custo_codigo"),
             func.sum(Movimentacao.valor).label("total")
         ).join(
             Importacao, Importacao.idImportacoes == Movimentacao.idImportacoes
+        ).join(
+            Colaborador, Colaborador.idColaborador == Movimentacao.idColaborador
+        ).join(
+            Empresa, Empresa.idEmpresas == Movimentacao.idEmpresa
+        ).outerjoin(
+            Unidade, Unidade.idUnidade == Movimentacao.idUnidade
+        ).join(
+            CentroCusto, CentroCusto.idCentroCusto == Colaborador.idCentroCusto
         ).filter(
             Importacao.tipo.in_(["PLANO_SAUDE", "SEGURO"]),
             extract('year', Movimentacao.createdAt) == ano,
             extract('month', Movimentacao.createdAt) == mes
         )
         if id_empresa:
-            sub = sub.filter(Movimentacao.idEmpresa == id_empresa)
-        sub = sub.group_by(Movimentacao.idColaborador, Movimentacao.idEmpresa, Movimentacao.idCentroCusto, Movimentacao.idUnidade).subquery()
-
-        UnidadeOverride = aliased(Unidade)
-
-        query = self.db.query(
-            func.group_concat(func.distinct(Unidade.codigo)).label("unidade_codigo"),
-            UnidadeOverride.codigo.label("unidade_codigo_override"),
-            Empresa.nome.label("empresa_nome"),
-            Colaborador.nome.label("colaborador_nome"),
-            CentroCusto.codigo.label("centro_custo_codigo"),
-            func.max(sub.c.total).label("total")
-        ).select_from(sub).join(
-            Colaborador, Colaborador.idColaborador == sub.c.id_colaborador
-        ).join(
-            Empresa, Empresa.idEmpresas == sub.c.id_empresa
-        ).outerjoin(
-            ColaboradorUnidade, ColaboradorUnidade.idColaborador == Colaborador.idColaborador
-        ).outerjoin(
-            Unidade, Unidade.idUnidade == ColaboradorUnidade.idUnidade
-        ).outerjoin(
-            UnidadeOverride, UnidadeOverride.idUnidade == sub.c.id_unidade_override
-        ).join(
-            CentroCusto, CentroCusto.idCentroCusto == func.coalesce(sub.c.id_cc_override, Colaborador.idCentroCusto)
-        )
+            query = query.filter(Movimentacao.idEmpresa == id_empresa)
 
         if search:
             search_str = f"%{search}%"
             query = query.filter(
                 (Colaborador.nome.ilike(search_str)) |
                 (Empresa.nome.ilike(search_str)) |
-                (Unidade.descricao.ilike(search_str)) |
-                (UnidadeOverride.descricao.ilike(search_str))
+                (Unidade.descricao.ilike(search_str))
             )
 
         query = query.group_by(
             Colaborador.idColaborador,
+            Colaborador.nome,
             Empresa.nome,
             CentroCusto.codigo,
-            Colaborador.nome,
-            UnidadeOverride.codigo
+            Unidade.codigo
         ).order_by(Empresa.nome, Colaborador.nome)
 
         # Volume tratável em memória (limitado ao nº de colaboradores/empresa filtrados),
@@ -94,7 +73,7 @@ class PlanoSaudeService:
         for r in results:
             items.append(RelatorioGeralRow(
                 competencia=comp_str,
-                unidade=str(r.unidade_codigo_override) if r.unidade_codigo_override else r.unidade_codigo,
+                unidade=str(r.unidade_codigo) if r.unidade_codigo is not None else None,
                 empresa=r.empresa_nome,
                 nome=r.colaborador_nome,
                 centro_custo=str(r.centro_custo_codigo) if r.centro_custo_codigo is not None else None,
@@ -181,14 +160,12 @@ class PlanoSaudeService:
         consumido tanto pela exportação em CSV quanto na de largura fixa (.txt)."""
         import calendar
 
-        UnidadeOverride = aliased(Unidade)
-
         query = self.db.query(
             Empresa.idEmpresas.label("id_empresa"),
             Empresa.nome.label("empresa_nome"),
             Empresa.tipo.label("empresa_tipo"),
             CentroCusto.codigo.label("cc_codigo"),
-            func.coalesce(UnidadeOverride.codigo, Unidade.codigo).label("unidade_codigo"),
+            Unidade.codigo.label("unidade_codigo"),
             func.sum(Movimentacao.valor).label("total")
         ).join(
             Importacao, Importacao.idImportacoes == Movimentacao.idImportacoes
@@ -197,13 +174,9 @@ class PlanoSaudeService:
         ).join(
             Empresa, Empresa.idEmpresas == Movimentacao.idEmpresa
         ).join(
-            CentroCusto, CentroCusto.idCentroCusto == func.coalesce(Movimentacao.idCentroCusto, Colaborador.idCentroCusto)
+            CentroCusto, CentroCusto.idCentroCusto == Colaborador.idCentroCusto
         ).outerjoin(
-            ColaboradorUnidade, ColaboradorUnidade.idColaborador == Colaborador.idColaborador
-        ).outerjoin(
-            Unidade, Unidade.idUnidade == ColaboradorUnidade.idUnidade
-        ).outerjoin(
-            UnidadeOverride, UnidadeOverride.idUnidade == Movimentacao.idUnidade
+            Unidade, Unidade.idUnidade == Movimentacao.idUnidade
         ).filter(
             Importacao.tipo.in_(["PLANO_SAUDE", "SEGURO"]),
             extract('year', Movimentacao.createdAt) == ano,
@@ -215,16 +188,15 @@ class PlanoSaudeService:
             query = query.filter(
                 (Colaborador.nome.ilike(search_str)) |
                 (Empresa.nome.ilike(search_str)) |
-                (Unidade.descricao.ilike(search_str)) |
-                (UnidadeOverride.descricao.ilike(search_str))
+                (Unidade.descricao.ilike(search_str))
             )
         if id_empresa:
             query = query.filter(Movimentacao.idEmpresa == id_empresa)
 
         query = query.group_by(
             Empresa.idEmpresas, Empresa.nome, Empresa.tipo,
-            CentroCusto.codigo, func.coalesce(UnidadeOverride.codigo, Unidade.codigo)
-        ).order_by(Empresa.nome, CentroCusto.codigo, func.coalesce(UnidadeOverride.codigo, Unidade.codigo))
+            CentroCusto.codigo, Unidade.codigo
+        ).order_by(Empresa.nome, CentroCusto.codigo, Unidade.codigo)
 
         resultados = query.all()
 
@@ -397,11 +369,7 @@ class PlanoSaudeService:
         ).join(
             Importacao, Importacao.idImportacoes == Movimentacao.idImportacoes
         ).join(
-            Colaborador, Colaborador.idColaborador == Movimentacao.idColaborador
-        ).join(
-            ColaboradorUnidade, ColaboradorUnidade.idColaborador == Colaborador.idColaborador
-        ).join(
-            Unidade, Unidade.idUnidade == ColaboradorUnidade.idUnidade
+            Unidade, Unidade.idUnidade == Movimentacao.idUnidade
         ).join(
             Empresa, Empresa.idEmpresas == Movimentacao.idEmpresa
         ).filter(

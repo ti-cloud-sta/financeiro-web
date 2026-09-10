@@ -27,14 +27,6 @@
       </select>
     </div>
 
-    <div class="mb-3">
-      <label class="form-label text-muted small fw-medium">UNIDADE</label>
-      <select class="form-select" [(ngModel)]="novoColaborador.idUnidade">
-        <option [value]="null" selected>Sem unidade</option>
-        <option *ngFor="let u of listaUnidades" [value]="u.idUnidade">{{ u.codigo }} - {{ u.descricao }}</option>
-      </select>
-    </div>
-
     <div class="mb-4">
       <label class="form-label text-muted small fw-medium">CARGO</label>
       <div class="d-flex gap-2 align-items-center">

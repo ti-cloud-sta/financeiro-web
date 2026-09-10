@@ -19,8 +19,3 @@ class Colaborador(Base):
     # Relacionamentos
     cargo_colaborador = relationship("CargoColaborador")
     centro_custo = relationship("CentroCusto")
-    colaborador_unidades = relationship("ColaboradorUnidade", back_populates="colaborador", cascade="all, delete-orphan")
-
-    @property
-    def unidades(self):
-        return [cu.unidade for cu in self.colaborador_unidades]

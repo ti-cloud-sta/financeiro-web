@@ -40,7 +40,7 @@
           <ul class="config-nav" style="margin-bottom: 0;">
             <li class="config-nav-item">
               <button class="config-nav-link active">
-                Visão Geral Analítica
+                Visão Geral
               </button>
             </li>
           </ul>
@@ -103,7 +103,7 @@
                 <select class="form-select form-select-sm w-100" [(ngModel)]="dashFiltroPessoa"
                   (ngModelChange)="carregarDadosDashboard()">
                   <option [value]="null">Todos</option>
-                  <option *ngFor="let c of listaColaboradoresGeral" [value]="c.idColaborador">{{ c.nome }}
+                  <option *ngFor="let c of colaboradoresList()" [value]="c.idColaborador">{{ c.nome }}
                   </option>
                 </select>
               </div>
@@ -398,8 +398,8 @@
                   </div>
                   
                   <!-- Card Total Geral -->
-                  <div class="p-3 rounded-3 d-flex flex-row flex-xl-column justify-content-between align-items-center align-items-xl-end border w-100 flex-xl-grow-0 mt-2 mt-xl-0" style="background-color: #f8fafc; border-color: #e2e8f0 !important; min-width: 240px;">
-                    <span class="text-muted text-uppercase mb-xl-1 mb-0" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Total da Competência</span>
+                  <div class="p-3 rounded-3 d-flex flex-row flex-xl-column justify-content-between align-items-center align-items-xl-end border flex-xl-grow-0 mt-2 mt-xl-0" style="background-color: #f8fafc; border-color: #e2e8f0 !important; min-width: 240px;">
+                    <span class="text-muted text-uppercase mb-xl-1 mb-0" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Total</span>
                     <span class="fs-4 fw-bold text-primary tabular-nums" style="line-height: 1;">
                       {{ totalGeralRelatorio() | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
                     </span>
@@ -413,17 +413,17 @@
                   <input type="text" placeholder="Pesquisar por nome, empresa ou unidade..."
                     [ngModel]="searchRelatorioTerm()" (ngModelChange)="onSearchRelatorioTermChange($event)">
                 </div>
-                <div class="d-flex gap-2">
+                <div class="d-flex flex-wrap gap-2 report-actions">
                   <app-button variant="primary" icon="fa-solid fa-code-compare" (click)="isConciliacaoModalOpen = true" class="flex-grow-1">
                     Conciliação
                   </app-button>
                   <app-button variant="outline-success" icon="fa-solid fa-file-excel" (click)="exportarRelatorio()" [disabled]="isRelatorioLoading()" class="flex-grow-1">
                     Exportar
                   </app-button>
-                  <app-button variant="primary" icon="fa-solid fa-file-invoice-dollar" (click)="exportarContabilidade()" [disabled]="isRelatorioLoading()" class="flex-grow-1">
+                  <app-button variant="outline-primary" icon="fa-solid fa-file-invoice-dollar" (click)="exportarContabilidade()" [disabled]="isRelatorioLoading()" class="flex-grow-1">
                     Contabilidade
                   </app-button>
-                  <app-button variant="primary" icon="fa-solid fa-file-lines" (click)="exportarContabilidadeTxt()" [disabled]="isRelatorioLoading()" class="flex-grow-1">
+                  <app-button variant="outline-primary" icon="fa-solid fa-file-lines" (click)="exportarContabilidadeTxt()" [disabled]="isRelatorioLoading()" class="flex-grow-1">
                     Contabilidade TXT
                   </app-button>
                 </div>
@@ -605,7 +605,18 @@
             <input type="date" class="form-control" style="width: 145px; height: 38px; border-radius: 8px;"
                    [ngModel]="dataCompetencia()" (ngModelChange)="dataCompetencia.set($event)">
           </div>
-          
+
+          <div class="d-flex align-items-center gap-2">
+            <label class="text-muted small fw-semibold text-nowrap mb-0" style="letter-spacing: 0.5px;">Unidade:</label>
+            <select class="form-select" style="width: 200px; height: 38px; border-radius: 8px;"
+                    [ngModel]="unidadeConfirmacao()" (ngModelChange)="unidadeConfirmacao.set($event ? +$event : null)">
+              <option [ngValue]="null">Selecione...</option>
+              @for (u of unidadesList(); track u.idUnidade) {
+              <option [ngValue]="u.idUnidade">{{ u.codigo }} - {{ u.descricao }}</option>
+              }
+            </select>
+          </div>
+
           <div class="search-box position-relative flex-grow-1 ms-md-2">
             <i class="fa-solid fa-magnifying-glass text-muted position-absolute" style="left: 0.85rem; top: 50%; transform: translateY(-50%); font-size: 0.85rem;"></i>
             <input type="text" class="form-control" placeholder="Pesquisar por nome do beneficiário..."
@@ -627,7 +638,6 @@
           <table class="table table-hover align-middle mb-0 text-start audit-table">
             <thead class="table-light sticky-top">
               <tr>
-                <th style="width: 90px;">Unidade</th>
                 <th>Beneficiário (Titular)</th>
                 <th class="text-end" style="width: 150px;">Valor Total</th>
                 <th class="text-end" style="width: 100px;">Ações</th>
@@ -637,16 +647,6 @@
               @for (titular of filteredParsedTitulares(); track titular._id) {
               <tr [class.bg-danger-subtle]="titular.centro_custo === 'N/D'"
                   [class.bg-warning-subtle]="isDuplicated(titular.nome_db || titular.nome_pdf) && titular.centro_custo !== 'N/D'">
-                <!-- Unidade -->
-                <td class="text-muted">
-                  @if (editingRowId() === titular._id) {
-                  <input type="text" class="form-control form-control-sm" [value]="editUnidade()"
-                     (input)="onEditUnidadeChange($event)" placeholder="Ex: 101, 104">
-                  } @else {
-                  {{ titular.unidade && titular.unidade !== 'N/D' ? titular.unidade : '-' }}
-                  }
-                </td>
-
                 <!-- Beneficiário -->
                 <td class="fw-semibold text-dark">
                   @if (editingRowId() === titular._id) {
@@ -713,7 +713,6 @@
               <!-- ADICIONAR BENEFICIÁRIO MANUALMENTE -->
               @if (isAddingBeneficiario()) {
               <tr class="table-active">
-                <td class="text-muted">-</td>
                 <td>
                   <ng-select [items]="colaboradoresList()" bindLabel="nome" bindValue="nome"
                      [ngModel]="newBeneficiarioNome()" (ngModelChange)="newBeneficiarioNome.set($event)"
@@ -738,7 +737,7 @@
               </tr>
               } @else {
               <tr>
-                <td colspan="3" class="text-center py-2">
+                <td colspan="2" class="text-center py-2">
                   <button class="btn btn-sm btn-outline-primary" (click)="startAddBeneficiario()"
                     [disabled]="editingRowId() !== null">
                     <i class="fa-solid fa-plus me-1"></i>Adicionar Beneficiário
@@ -817,7 +816,7 @@
           Cancelar
         </app-button>
         <app-button variant="primary" (clicked)="confirmAndSave()" [loading]="isSaving()"
-          [disabled]="isSaving() || editingRowId() !== null || isAddingBeneficiario()">
+          [disabled]="isSaving() || editingRowId() !== null || isAddingBeneficiario() || !unidadeConfirmacao()">
           Confirmar
         </app-button>
       </div>

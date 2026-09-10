@@ -42,7 +42,6 @@ class TitularConfirmar(BaseModel):
     dependentes: List[DependentConfirmar]
     valor_total: float
     centro_custo: Optional[str] = "N/D"
-    unidade: Optional[str] = "N/D"
     documento: Optional[str] = None
     id_db: Optional[int] = None
 
@@ -50,6 +49,7 @@ class ConfirmarImportacaoSorrisoPayload(BaseModel):
     nomeArquivo: str
     titulares: List[TitularConfirmar]
     idEmpresa: Optional[int] = None
+    idUnidade: int
     idUserInc: Optional[int] = None
     dataCompetencia: Optional[str] = None
 
@@ -69,7 +69,6 @@ class TitularConfirmarUnimed(BaseModel):
     dependentes: List[DependentConfirmarUnimed]
     valor_total: float
     centro_custo: Optional[str] = "N/D"
-    unidade: Optional[str] = "N/D"
     documento: Optional[str] = None
     id_db: Optional[int] = None
 
@@ -77,6 +76,7 @@ class ConfirmarImportacaoUnimedPayload(BaseModel):
     nomeArquivo: str
     titulares: List[TitularConfirmarUnimed]
     idEmpresa: Optional[int] = None
+    idUnidade: int
     idUserInc: Optional[int] = None
     dataCompetencia: Optional[str] = None
 

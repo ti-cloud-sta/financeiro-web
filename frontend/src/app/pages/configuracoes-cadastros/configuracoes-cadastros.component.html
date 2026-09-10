@@ -164,7 +164,6 @@
                       <tr>
                         <th>NOME</th>
                         <th>CENTRO DE CUSTO</th>
-                        <th>UNIDADE</th>
                         <th>CARGO</th>
                         <th>PAPEL</th>
                         <th class="text-end">AÇÕES</th>
@@ -177,10 +176,6 @@
                           <span *ngIf="colab.centro_custo">{{ colab.centro_custo.codigo }} - {{ colab.centro_custo.nome
                             }}</span>
                           <span *ngIf="!colab.centro_custo" class="text-muted">N/A</span>
-                        </td>
-                        <td>
-                          <span *ngIf="colab.unidades?.length">{{ getUnidadesCodigos(colab) }}</span>
-                          <span *ngIf="!colab.unidades?.length" class="text-muted">N/A</span>
                         </td>
                         <td>
                           <span *ngIf="colab.cargo_colaborador">{{ colab.cargo_colaborador.nome }}</span>
@@ -200,7 +195,7 @@
                         </td>
                       </tr>
                       <tr *ngIf="listaColaboradores.length === 0">
-                        <td colspan="6" class="text-center text-muted py-4">Nenhum colaborador encontrado.</td>
+                        <td colspan="5" class="text-center text-muted py-4">Nenhum colaborador encontrado.</td>
                       </tr>
                     </tbody>
                   </table>
@@ -548,14 +543,6 @@
       </select>
     </div>
 
-    <div class="mb-3">
-      <label class="form-label text-muted small fw-medium">UNIDADE</label>
-      <select class="form-select" [(ngModel)]="novoColaborador.idUnidade">
-        <option [value]="null" selected>Sem unidade</option>
-        <option *ngFor="let u of listaUnidadesGeral" [value]="u.idUnidade">{{ u.codigo }} - {{ u.descricao }}</option>
-      </select>
-    </div>
-
     <div class="mb-4">
       <label class="form-label text-muted small fw-medium">CARGO</label>
       <div class="d-flex gap-2 align-items-center">
@@ -655,7 +642,7 @@
     <div class="mb-3 d-flex gap-2 align-items-center">
       <div class="position-relative flex-grow-1">
         <i class="fa-solid fa-magnifying-glass position-absolute top-50 translate-middle-y ms-3 text-muted"></i>
-        <input type="text" class="form-control ps-5" placeholder="Buscar por nome, documento, unidade ou centro de custo..."
+        <input type="text" class="form-control ps-5" placeholder="Buscar por nome, documento ou centro de custo..."
           [(ngModel)]="importSearchTerm">
       </div>
       <button type="button" class="btn btn-sm text-nowrap" [class.btn-warning]="importMostrarDivergenciaOnly"
@@ -680,7 +667,6 @@
               <tr>
                 <th>Nome</th>
                 <th>Documento</th>
-                <th>Unidade(s)</th>
                 <th>Centro de Custo</th>
               </tr>
             </thead>
@@ -688,9 +674,6 @@
               <tr *ngFor="let linha of importNovosFiltrados">
                 <td class="fw-medium">{{ linha.nome }}</td>
                 <td>{{ linha.documento }}</td>
-                <td>
-                  <span class="badge bg-light text-dark me-1" *ngFor="let u of linha.unidades">{{ u.codigo }}</span>
-                </td>
                 <td>
                   <span class="badge bg-light text-dark" *ngIf="linha.ccEncontrado">{{ linha.centroCustoCodigo }} - {{
                     linha.centroCustoNome }}</span>
@@ -711,7 +694,7 @@
                 </td>
               </tr>
               <tr *ngIf="importNovosFiltrados.length === 0">
-                <td colspan="4" class="text-muted text-center py-3">Nenhum resultado para a busca.</td>
+                <td colspan="3" class="text-muted text-center py-3">Nenhum resultado para a busca.</td>
               </tr>
             </tbody>
           </table>
@@ -731,7 +714,6 @@
                 <th>Nome</th>
                 <th>Documento</th>
                 <th>Alertas</th>
-                <th>Unidade(s)</th>
                 <th>Centro de Custo</th>
               </tr>
             </thead>
@@ -742,22 +724,8 @@
                 <td>
                   <span class="badge bg-info-subtle text-info d-block mb-1" *ngIf="linha.reativado">Estava
                     desligado — será reativado</span>
-                  <span class="badge bg-warning-subtle text-warning d-block mb-1"
-                    *ngIf="linha.unidadesDivergentes">Unidade divergente</span>
                   <span class="badge bg-warning-subtle text-warning d-block" *ngIf="linha.ccDivergente">Centro de
                     custo divergente</span>
-                </td>
-                <td>
-                  <div class="mb-1">
-                    <span class="text-muted">Atual:</span>
-                    <span class="badge bg-light text-dark me-1" *ngFor="let u of linha.unidadesAtuais">{{ u.codigo
-                      }}</span>
-                    <span *ngIf="!linha.unidadesAtuais.length" class="text-muted">-</span>
-                  </div>
-                  <div>
-                    <span class="text-muted">Planilha:</span>
-                    <span class="badge bg-light text-dark me-1" *ngFor="let u of linha.unidades">{{ u.codigo }}</span>
-                  </div>
                 </td>
                 <td>
                   <div class="mb-1"><span class="text-muted">Atual:</span> {{ linha.centroCustoAtualNome || '-' }}
@@ -781,7 +749,7 @@
                 </td>
               </tr>
               <tr *ngIf="importDivergentesFiltrados.length === 0">
-                <td colspan="5" class="text-muted text-center py-3">Nenhum resultado para a busca.</td>
+                <td colspan="4" class="text-muted text-center py-3">Nenhum resultado para a busca.</td>
               </tr>
             </tbody>
           </table>
@@ -800,7 +768,6 @@
               <tr>
                 <th>Nome</th>
                 <th>Documento</th>
-                <th>Unidade(s) atual(is)</th>
                 <th>Centro de Custo atual</th>
               </tr>
             </thead>
@@ -808,14 +775,10 @@
               <tr *ngFor="let linha of importDesligadosFiltrados">
                 <td class="fw-medium">{{ linha.nome }}</td>
                 <td>{{ linha.documento }}</td>
-                <td>
-                  <span class="badge bg-light text-dark me-1" *ngFor="let u of linha.unidadesAtuais">{{ u.codigo
-                    }}</span>
-                </td>
                 <td>{{ linha.centroCustoAtualNome || '-' }}</td>
               </tr>
               <tr *ngIf="importDesligadosFiltrados.length === 0">
-                <td colspan="4" class="text-muted text-center py-3">Nenhum resultado para a busca.</td>
+                <td colspan="3" class="text-muted text-center py-3">Nenhum resultado para a busca.</td>
               </tr>
             </tbody>
           </table>

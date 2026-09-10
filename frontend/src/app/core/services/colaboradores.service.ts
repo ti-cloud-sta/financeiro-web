@@ -4,7 +4,6 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { CargoColaborador } from './cargos-colaboradores.service';
 import { CentroCusto } from './centros-custo.service';
-import { Unidade } from './unidades.service';
 
 export interface Colaborador {
   idColaborador?: number;
@@ -13,11 +12,9 @@ export interface Colaborador {
   idCargoColaborador: number;
   documento?: string;
   snAtivo?: string;
-  unidadeIds?: number[];
   papel?: string;
   cargo_colaborador?: CargoColaborador;
   centro_custo?: CentroCusto;
-  unidades?: Unidade[];
 }
 
 export interface PaginatedResponse<T> {
@@ -28,16 +25,9 @@ export interface PaginatedResponse<T> {
   total_pages: number;
 }
 
-export interface ImportUnidade {
-  idUnidade: number;
-  codigo: number;
-  descricao: string;
-}
-
 export interface ImportNovo {
   documento: string;
   nome: string;
-  unidades: ImportUnidade[];
   centroCustoCodigo: number;
   idCentroCusto: number | null;
   centroCustoNome: string | null;
@@ -48,8 +38,6 @@ export interface ImportDivergente {
   idColaborador: number;
   documento: string;
   nome: string;
-  unidades: ImportUnidade[];
-  unidadesAtuais: ImportUnidade[];
   centroCustoCodigo: number;
   idCentroCusto: number | null;
   centroCustoNome: string | null;
@@ -57,7 +45,6 @@ export interface ImportDivergente {
   idCentroCustoAtual: number;
   centroCustoAtualNome: string | null;
   ccDivergente: boolean;
-  unidadesDivergentes: boolean;
   reativado: boolean;
 }
 
@@ -65,7 +52,6 @@ export interface ImportDesligado {
   idColaborador: number;
   documento: string;
   nome: string;
-  unidadesAtuais: ImportUnidade[];
   centroCustoAtualNome: string | null;
 }
 
@@ -133,8 +119,8 @@ export class ColaboradoresService {
   }
 
   importarProcessar(payload: {
-    novos: { documento: string; nome: string; idCentroCusto: number; unidadeIds: number[] }[];
-    divergentes: { idColaborador: number; idCentroCusto: number; unidadeIds: number[] }[];
+    novos: { documento: string; nome: string; idCentroCusto: number }[];
+    divergentes: { idColaborador: number; idCentroCusto: number }[];
     desligados: { idColaborador: number }[];
   }): Observable<ImportProcessarResponse> {
     return this.http.post<ImportProcessarResponse>(`${this.apiUrl}/importar/processar`, payload);
