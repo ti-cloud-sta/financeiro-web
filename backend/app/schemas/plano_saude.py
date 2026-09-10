@@ -42,6 +42,7 @@ class TitularConfirmar(BaseModel):
     dependentes: List[DependentConfirmar]
     valor_total: float
     centro_custo: Optional[str] = "N/D"
+    unidade: Optional[str] = "N/D"
     documento: Optional[str] = None
     id_db: Optional[int] = None
 

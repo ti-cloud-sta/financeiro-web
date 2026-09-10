@@ -86,13 +86,13 @@ export const MOCK_MENU: MenuItem[] = [
   //   route: '/inadimplencia',
   //   order: 4
   // },
-  // {
-  //   id: 'menu-conciliacao-pagamentos',
-  //   label: 'Conciliação de Pagamentos',
-  //   icon: 'fa-solid fa-scale-balanced',
-  //   route: '/conciliacao-pagamentos',
-  //   order: 5
-  // },
+  {
+    id: 'menu-conciliacao-pagamentos',
+    label: 'Conciliação de Pagamentos',
+    icon: 'fa-solid fa-scale-balanced',
+    route: '/conciliacao-pagamentos',
+    order: 5
+  },
   {
     id: 'menu-settings',
     label: 'Configurações e Cadastros',

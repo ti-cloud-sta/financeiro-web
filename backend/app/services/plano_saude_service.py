@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
+from sqlalchemy.orm import aliased
 from fastapi import UploadFile
 from datetime import datetime
 import pandas as pd
@@ -25,6 +26,8 @@ class PlanoSaudeService:
         sub = self.db.query(
             Movimentacao.idColaborador.label("id_colaborador"),
             Movimentacao.idEmpresa.label("id_empresa"),
+            Movimentacao.idCentroCusto.label("id_cc_override"),
+            Movimentacao.idUnidade.label("id_unidade_override"),
             func.sum(Movimentacao.valor).label("total")
         ).join(
             Importacao, Importacao.idImportacoes == Movimentacao.idImportacoes
@@ -35,13 +38,13 @@ class PlanoSaudeService:
         )
         if id_empresa:
             sub = sub.filter(Movimentacao.idEmpresa == id_empresa)
-        sub = sub.group_by(Movimentacao.idColaborador, Movimentacao.idEmpresa).subquery()
+        sub = sub.group_by(Movimentacao.idColaborador, Movimentacao.idEmpresa, Movimentacao.idCentroCusto, Movimentacao.idUnidade).subquery()
 
-        # A partir da soma já correta acima, junta Colaborador/Empresa/CentroCusto e, só
-        # para exibição/filtro, as Unidades agregadas com GROUP_CONCAT (func.max no total
-        # porque ele já é um valor único por colaborador — não deve ser somado de novo).
+        UnidadeOverride = aliased(Unidade)
+
         query = self.db.query(
             func.group_concat(func.distinct(Unidade.codigo)).label("unidade_codigo"),
+            UnidadeOverride.codigo.label("unidade_codigo_override"),
             Empresa.nome.label("empresa_nome"),
             Colaborador.nome.label("colaborador_nome"),
             CentroCusto.codigo.label("centro_custo_codigo"),
@@ -54,8 +57,10 @@ class PlanoSaudeService:
             ColaboradorUnidade, ColaboradorUnidade.idColaborador == Colaborador.idColaborador
         ).outerjoin(
             Unidade, Unidade.idUnidade == ColaboradorUnidade.idUnidade
+        ).outerjoin(
+            UnidadeOverride, UnidadeOverride.idUnidade == sub.c.id_unidade_override
         ).join(
-            CentroCusto, CentroCusto.idCentroCusto == Colaborador.idCentroCusto
+            CentroCusto, CentroCusto.idCentroCusto == func.coalesce(sub.c.id_cc_override, Colaborador.idCentroCusto)
         )
 
         if search:
@@ -63,14 +68,16 @@ class PlanoSaudeService:
             query = query.filter(
                 (Colaborador.nome.ilike(search_str)) |
                 (Empresa.nome.ilike(search_str)) |
-                (Unidade.descricao.ilike(search_str))
+                (Unidade.descricao.ilike(search_str)) |
+                (UnidadeOverride.descricao.ilike(search_str))
             )
 
         query = query.group_by(
             Colaborador.idColaborador,
             Empresa.nome,
             CentroCusto.codigo,
-            Colaborador.nome
+            Colaborador.nome,
+            UnidadeOverride.codigo
         ).order_by(Empresa.nome, Colaborador.nome)
 
         # Volume tratável em memória (limitado ao nº de colaboradores/empresa filtrados),
@@ -87,7 +94,7 @@ class PlanoSaudeService:
         for r in results:
             items.append(RelatorioGeralRow(
                 competencia=comp_str,
-                unidade=r.unidade_codigo,
+                unidade=str(r.unidade_codigo_override) if r.unidade_codigo_override else r.unidade_codigo,
                 empresa=r.empresa_nome,
                 nome=r.colaborador_nome,
                 centro_custo=str(r.centro_custo_codigo) if r.centro_custo_codigo is not None else None,
@@ -174,12 +181,14 @@ class PlanoSaudeService:
         consumido tanto pela exportação em CSV quanto na de largura fixa (.txt)."""
         import calendar
 
+        UnidadeOverride = aliased(Unidade)
+
         query = self.db.query(
             Empresa.idEmpresas.label("id_empresa"),
             Empresa.nome.label("empresa_nome"),
             Empresa.tipo.label("empresa_tipo"),
             CentroCusto.codigo.label("cc_codigo"),
-            Unidade.codigo.label("unidade_codigo"),
+            func.coalesce(UnidadeOverride.codigo, Unidade.codigo).label("unidade_codigo"),
             func.sum(Movimentacao.valor).label("total")
         ).join(
             Importacao, Importacao.idImportacoes == Movimentacao.idImportacoes
@@ -188,11 +197,13 @@ class PlanoSaudeService:
         ).join(
             Empresa, Empresa.idEmpresas == Movimentacao.idEmpresa
         ).join(
-            CentroCusto, CentroCusto.idCentroCusto == Colaborador.idCentroCusto
-        ).join(
+            CentroCusto, CentroCusto.idCentroCusto == func.coalesce(Movimentacao.idCentroCusto, Colaborador.idCentroCusto)
+        ).outerjoin(
             ColaboradorUnidade, ColaboradorUnidade.idColaborador == Colaborador.idColaborador
-        ).join(
+        ).outerjoin(
             Unidade, Unidade.idUnidade == ColaboradorUnidade.idUnidade
+        ).outerjoin(
+            UnidadeOverride, UnidadeOverride.idUnidade == Movimentacao.idUnidade
         ).filter(
             Importacao.tipo.in_(["PLANO_SAUDE", "SEGURO"]),
             extract('year', Movimentacao.createdAt) == ano,
@@ -204,15 +215,16 @@ class PlanoSaudeService:
             query = query.filter(
                 (Colaborador.nome.ilike(search_str)) |
                 (Empresa.nome.ilike(search_str)) |
-                (Unidade.descricao.ilike(search_str))
+                (Unidade.descricao.ilike(search_str)) |
+                (UnidadeOverride.descricao.ilike(search_str))
             )
         if id_empresa:
             query = query.filter(Movimentacao.idEmpresa == id_empresa)
 
         query = query.group_by(
             Empresa.idEmpresas, Empresa.nome, Empresa.tipo,
-            CentroCusto.codigo, Unidade.codigo
-        ).order_by(Empresa.nome, CentroCusto.codigo, Unidade.codigo)
+            CentroCusto.codigo, func.coalesce(UnidadeOverride.codigo, Unidade.codigo)
+        ).order_by(Empresa.nome, CentroCusto.codigo, func.coalesce(UnidadeOverride.codigo, Unidade.codigo))
 
         resultados = query.all()
 

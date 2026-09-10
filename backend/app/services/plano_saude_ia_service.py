@@ -358,22 +358,32 @@ class PlanoSaudeIAService:
                 except Exception as ex:
                     print(f"[WARN] Falha ao salvar Alias de colaborador: {ex}")
 
-            # Atualizar Centro de Custo do Colaborador se foi modificado
+            id_cc_override = None
             if t.centro_custo and t.centro_custo != "N/D":
                 try:
                     cc_code = int(t.centro_custo.strip())
                     cc_db = centro_custo_repository.get_by_codigo(self.db, cc_code)
-                    if cc_db and colab.idCentroCusto != cc_db.idCentroCusto:
-                        colab.idCentroCusto = cc_db.idCentroCusto
-                        self.db.add(colab)
+                    if cc_db:
+                        id_cc_override = cc_db.idCentroCusto
                 except Exception as ex:
-                    print(f"[WARN] Falha ao atualizar Centro de Custo do Colaborador: {ex}")
+                    print(f"[WARN] Falha ao buscar override de Centro de Custo: {ex}")
+
+            id_unidade_override = None
+            if hasattr(t, 'unidade') and t.unidade and t.unidade != "N/D":
+                try:
+                    unidade_db = self.db.query(Unidade).filter(Unidade.codigo == int(t.unidade.strip())).first()
+                    if unidade_db:
+                        id_unidade_override = unidade_db.idUnidade
+                except Exception as ex:
+                    print(f"[WARN] Falha ao buscar override de Unidade: {ex}")
 
             nova_mov = Movimentacao(
                 idCategoria=cat.idCategorias,
                 idColaborador=colab.idColaborador,
                 idEmpresa=emp.idEmpresas,
                 idImportacoes=nova_importacao.idImportacoes,
+                idCentroCusto=id_cc_override,
+                idUnidade=id_unidade_override,
                 valor=t.valor_total,
             )
             
@@ -533,30 +543,32 @@ class PlanoSaudeIAService:
                 erros_colaboradores.append(t.nome_db)
                 continue
 
+            id_cc_override = None
             if t.centro_custo and t.centro_custo != "N/D":
                 try:
                     cc_code = int(t.centro_custo.strip())
                     cc_db = centro_custo_repository.get_by_codigo(self.db, cc_code)
-                    if cc_db and colab.idCentroCusto != cc_db.idCentroCusto:
-                        colab.idCentroCusto = cc_db.idCentroCusto
-                        self.db.add(colab)
+                    if cc_db:
+                        id_cc_override = cc_db.idCentroCusto
                 except Exception as ex:
-                    print(f"[WARN] Falha ao atualizar Centro de Custo do Colaborador: {ex}")
+                    print(f"[WARN] Falha ao buscar override de Centro de Custo: {ex}")
 
-            if t.unidade and t.unidade != "N/D":
+            id_unidade_override = None
+            if hasattr(t, 'unidade') and t.unidade and t.unidade != "N/D":
                 try:
                     unidade_db = self.db.query(Unidade).filter(Unidade.codigo == int(t.unidade.strip())).first()
-                    if unidade_db and colab.idUnidade != unidade_db.idUnidade:
-                        colab.idUnidade = unidade_db.idUnidade
-                        self.db.add(colab)
+                    if unidade_db:
+                        id_unidade_override = unidade_db.idUnidade
                 except Exception as ex:
-                    print(f"[WARN] Falha ao atualizar Unidade do Colaborador: {ex}")
+                    print(f"[WARN] Falha ao buscar override de Unidade: {ex}")
 
             nova_mov = Movimentacao(
                 idCategoria=cat.idCategorias,
                 idColaborador=colab.idColaborador,
                 idEmpresa=emp.idEmpresas,
                 idImportacoes=nova_importacao.idImportacoes,
+                idCentroCusto=id_cc_override,
+                idUnidade=id_unidade_override,
                 valor=t.valor_total,
             )
             
