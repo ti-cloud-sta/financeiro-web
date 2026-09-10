@@ -2695,18 +2695,18 @@ async def ler_apb_planilha(file: UploadFile = File(...)):
                 detail="Não foi encontrada nenhuma aba iniciada com 'Relatorio Geral' na planilha."
             )
 
-        # Linha 1 = cabeçalho, dados a partir da linha 2. Nome na coluna P (índice 15),
-        # valor na coluna S (índice 18).
+        # Linha 1 = cabeçalho, dados a partir da linha 2. Nome na coluna P (índice 15 = 'Nome Abrev'),
+        # valor na coluna R (índice 17 = 'Valor').
         df = xls.parse(sheet_name, header=0)
 
-        if df.shape[1] < 19:
+        if df.shape[1] < 18:
             raise HTTPException(
                 status_code=400,
-                detail=f"A aba '{sheet_name}' não possui as colunas P e S esperadas."
+                detail=f"A aba '{sheet_name}' não possui as colunas P e R esperadas."
             )
 
         nomes = df.iloc[:, 15]
-        valores = pd.to_numeric(df.iloc[:, 18], errors='coerce').fillna(0.0)
+        valores = pd.to_numeric(df.iloc[:, 17], errors='coerce').fillna(0.0)
 
         # Consolida por nome, sem repetições, mantendo a ordem de primeira aparição na planilha.
         result = []
@@ -2750,6 +2750,21 @@ def _normalizar_nome(nome) -> str:
     return re.sub(r'\s+', ' ', texto)
 
 
+def _nomes_batem(nome_pdf_norm: str, nome_planilha_norm: str) -> bool:
+    """
+    Retorna True se o nome extraído do PDF corresponder ao nome completo da planilha
+    (coluna S). O PDF trunca o nome do favorecido (ex: 'LEADPAK SOLUCOES DE FORNE')
+    enquanto a planilha guarda o nome completo ('LEADPAK SOLUCOES DE FORNECIMENTO LTDA').
+    A regra: um deve ser prefixo do outro, exigindo no mínimo 6 caracteres para evitar
+    falsos positivos em nomes muito curtos.
+    """
+    min_len = min(len(nome_pdf_norm), len(nome_planilha_norm))
+    if min_len < 6:
+        return nome_pdf_norm == nome_planilha_norm
+    prefixo = nome_pdf_norm[:min_len]
+    return nome_planilha_norm.startswith(prefixo) or nome_pdf_norm.startswith(nome_planilha_norm[:min_len])
+
+
 def _parse_valor_br(valor_str: str) -> float:
     """Converte um valor no formato brasileiro ('34.924,31') para float."""
     return float(valor_str.strip().replace('.', '').replace(',', '.'))
@@ -2758,12 +2773,15 @@ def _parse_valor_br(valor_str: str) -> float:
 def _parse_banco_do_brasil(texto: str) -> list:
     """
     Extrai (nome, situacao, valor) das linhas de favorecidos de um PDF de
-    'Pagamentos a Terceiros' do Banco do Brasil. O layout intermediário entre o
-    nome e o valor varia (documento do título, ou banco/agência/conta), então
-    a extração ignora esse trecho e captura apenas nome + situação + valor final.
+    'Pagamentos a Terceiros' do Banco do Brasil.
+
+    IMPORTANTE: o texto deve ser extraído com extraction_mode='layout' (pypdf),
+    que preserva os espaços entre as colunas. No modo padrão o pypdf colapsa o
+    espaço entre o número de conta e o valor (ex: '13.001.77527.878,25'), o que
+    impede a extração correta do valor.
     """
     linha_regex = re.compile(
-        r'^(?P<nome>.+)\s*(?P<situacao>PENDENTE|REJEITADO)\s+.*?(?P<valor>\d{1,3}(?:\.\d{3})*,\d{2})\s*$'
+        r'^(?P<nome>.+?)\s+(?P<situacao>PENDENTE|REJEITADO)\s+.*?(?P<valor>\d{1,3}(?:\.\d{3})*,\d{2})\s*$'
     )
     entradas = []
     for linha in texto.splitlines():
@@ -2999,13 +3017,17 @@ async def conciliar_bancos(
                 detail="Não foi possível localizar o XML interno da aba 'Relatorio Geral' na planilha."
             )
 
-        # Linhas de dados a partir da linha 2. Nome na coluna P (16), Valor na coluna S (19).
+        # Linhas de dados a partir da linha 2.
+        # Nome Abrev na coluna P (16) — usado para exibição;
+        # Nome Completo na coluna S (19) — usado para o cruzamento com o PDF (o banco trunca o nome);
+        # Valor na coluna R (18).
         linhas_planilha = []
         for row_idx in range(2, ws.max_row + 1):
-            nome_cel = ws.cell(row=row_idx, column=16).value
+            nome_cel = ws.cell(row=row_idx, column=16).value  # P = Nome Abrev
             if nome_cel is None or str(nome_cel).strip() == "":
                 continue
-            valor_cel = ws.cell(row=row_idx, column=19).value
+            nome_completo_cel = ws.cell(row=row_idx, column=19).value  # S = Nome Completo
+            valor_cel = ws.cell(row=row_idx, column=18).value  # R = Valor
             try:
                 valor = float(valor_cel) if valor_cel is not None else 0.0
             except (TypeError, ValueError):
@@ -3013,7 +3035,7 @@ async def conciliar_bancos(
             linhas_planilha.append({
                 'row': row_idx,
                 'nome': str(nome_cel).strip(),
-                'nome_norm': _normalizar_nome(nome_cel),
+                'nome_norm': _normalizar_nome(nome_completo_cel or nome_cel),  # usa nome completo para cruzamento
                 'valor': valor,
                 'matched': False
             })
@@ -3051,7 +3073,7 @@ async def conciliar_bancos(
             hashes_vistos[hash_conteudo] = arquivo.filename
 
             leitor = pypdf.PdfReader(io.BytesIO(conteudo))
-            texto = "\n".join(pagina.extract_text() or "" for pagina in leitor.pages)
+            texto = "\n".join(pagina.extract_text(extraction_mode="layout") or "" for pagina in leitor.pages)
 
             if parser_lote:
                 for entrada in parser_lote['parse'](texto):
@@ -3093,7 +3115,7 @@ async def conciliar_bancos(
         # 3a. Regra 1 para 1 em todos os lançamentos primeiro.
         pendentes_soma = []
         for lanc in lancamentos:
-            candidatos = [l for l in linhas_planilha if not l['matched'] and l['nome_norm'] == lanc['nome_norm']]
+            candidatos = [l for l in linhas_planilha if not l['matched'] and _nomes_batem(lanc['nome_norm'], l['nome_norm'])]
             if not candidatos:
                 pendentes_soma.append(lanc)
                 continue
@@ -3110,7 +3132,7 @@ async def conciliar_bancos(
         # 3b. Regra 1 para N (soma) só no que sobrou, com o pool de linhas já livre das
         # que bateram exatamente na passagem acima.
         for lanc in pendentes_soma:
-            candidatos = [l for l in linhas_planilha if not l['matched'] and l['nome_norm'] == lanc['nome_norm']]
+            candidatos = [l for l in linhas_planilha if not l['matched'] and _nomes_batem(lanc['nome_norm'], l['nome_norm'])]
             if not candidatos:
                 sem_match.append(lanc)
                 continue

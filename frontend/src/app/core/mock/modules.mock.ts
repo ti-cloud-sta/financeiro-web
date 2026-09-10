@@ -37,15 +37,15 @@ export const MOCK_MODULES: AppModule[] = [
   //   isActive: true,
   //   category: 'Cobrança'
   // },
-  // {
-  //   id: 'mod-conciliacao',
-  //   name: 'Conciliação de Pagamentos',
-  //   icon: 'fa-solid fa-scale-balanced',
-  //   route: '/conciliacao-pagamentos',
-  //   description: 'Conciliação de pagamentos.',
-  //   isActive: true,
-  //   category: 'Pagamentos'
-  // },
+  {
+    id: 'mod-conciliacao',
+    name: 'Conciliação de Pagamentos',
+    icon: 'fa-solid fa-scale-balanced',
+    route: '/conciliacao-pagamentos',
+    description: 'Conciliação de pagamentos.',
+    isActive: true,
+    category: 'Pagamentos'
+  },
   {
     id: 'mod-configuracoes',
     name: 'Configurações e Cadastros',
