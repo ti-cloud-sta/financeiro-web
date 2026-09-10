@@ -776,8 +776,11 @@
       }
 
       .ng-input {
+        z-index: 2;
+
         input {
           text-align: center;
+          color: $gray-800;
         }
       }
     }
@@ -787,6 +790,10 @@
     .ng-select-container {
       background-color: #f1f5f9;
     }
+  }
+
+  &.ng-select-filtered .ng-value {
+    visibility: hidden !important;
   }
 
   .ng-arrow-wrapper {

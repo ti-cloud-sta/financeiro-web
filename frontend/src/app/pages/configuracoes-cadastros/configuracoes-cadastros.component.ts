@@ -222,7 +222,6 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
     this.carregarCategoriasGeral();
     this.carregarEmpresasGeral();
     this.carregarCentrosCustoGeral();
-    this.carregarUnidadesGeral();
     if (this.isAdmin()) {
       this.carregarUsuarios();
     }
@@ -255,7 +254,6 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
   totalUnidades = 0;
   totalUnidadePages = 1;
   listaUnidades: Unidade[] = [];
-  listaUnidadesGeral: Unidade[] = [];
 
   unidadeModalMode: 'create' | 'edit' = 'create';
   isUnidadeModalOpen = false;
@@ -277,14 +275,6 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
     this.searchUnidade = term;
     this.currentUnidadePage = 1;
     this.carregarUnidades();
-  }
-
-  carregarUnidadesGeral() {
-    this.unidadesService.listar(1, 1000).subscribe({
-      next: (res) => {
-        this.listaUnidadesGeral = (res.items || []).sort((a, b) => (a.descricao || '').localeCompare(b.descricao || ''));
-      }
-    });
   }
 
   listaColaboradoresGeral: Colaborador[] = [];
@@ -338,7 +328,6 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
           this.isSalvandoUnidade = false;
           this.closeUnidadeModal();
           this.carregarUnidades();
-          this.carregarUnidadesGeral();
         },
         error: (err) => { console.error(err); this.isSalvandoUnidade = false; }
       });
@@ -348,7 +337,6 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
           this.isSalvandoUnidade = false;
           this.closeUnidadeModal();
           this.carregarUnidades();
-          this.carregarUnidadesGeral();
         },
         error: (err) => { console.error(err); this.isSalvandoUnidade = false; }
       });
@@ -361,7 +349,6 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
         next: () => {
           this.closeConfirmModal();
           this.carregarUnidades();
-          this.carregarUnidadesGeral();
         },
         error: (err) => {
           console.error(err);
@@ -461,12 +448,8 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
 
   isColaboradorModalOpen = false;
   colaboradorModalMode: 'create' | 'edit' = 'create';
-  novoColaborador: any = { nome: '', idCentroCusto: null, idCargoColaborador: null, idUnidade: null, papel: '', documento: '' };
+  novoColaborador: any = { nome: '', idCentroCusto: null, idCargoColaborador: null, papel: '', documento: '' };
   isSalvandoColaborador = false;
-
-  getUnidadesCodigos(colab: Colaborador): string {
-    return (colab.unidades || []).map(u => u.codigo).join(', ');
-  }
 
   carregarColaboradores() {
     this.colaboradoresService.listar(this.currentPage, this.itemsPerPage, this.searchTerm).subscribe({
@@ -498,7 +481,7 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
       this.novoColaborador = { ...colaborador };
     } else {
       this.colaboradorModalMode = 'create';
-      this.novoColaborador = { nome: '', idCentroCusto: null, idCargoColaborador: null, idUnidade: null, papel: '', documento: '' };
+      this.novoColaborador = { nome: '', idCentroCusto: null, idCargoColaborador: null, papel: '', documento: '' };
     }
     this.isColaboradorModalOpen = true;
   }
@@ -952,23 +935,21 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
 
   get importNovosFiltrados(): ImportNovo[] {
     return this.importNovosBase.filter(n => this.matchesImportSearch(
-      n.nome, n.documento, n.centroCustoCodigo, n.centroCustoNome,
-      ...n.unidades.map(u => u.codigo), ...n.unidades.map(u => u.descricao)
+      n.nome, n.documento, n.centroCustoCodigo, n.centroCustoNome
     ));
   }
 
   get importDivergentesFiltrados(): ImportDivergente[] {
     if (!this.importPreview) return [];
     return this.importPreview.divergentes.filter(d => this.matchesImportSearch(
-      d.nome, d.documento, d.centroCustoCodigo, d.centroCustoNome, d.centroCustoAtualNome,
-      ...d.unidades.map(u => u.codigo), ...d.unidadesAtuais.map(u => u.codigo)
+      d.nome, d.documento, d.centroCustoCodigo, d.centroCustoNome, d.centroCustoAtualNome
     ));
   }
 
   get importDesligadosFiltrados(): ImportDesligado[] {
     if (!this.importPreview) return [];
     return this.importPreview.desligados.filter(d => this.matchesImportSearch(
-      d.nome, d.documento, d.centroCustoAtualNome, ...d.unidadesAtuais.map(u => u.codigo)
+      d.nome, d.documento, d.centroCustoAtualNome
     ));
   }
 
@@ -1001,13 +982,11 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
       novos: this.importPreview.novos.map(n => ({
         documento: n.documento,
         nome: n.nome,
-        idCentroCusto: n.idCentroCusto as number,
-        unidadeIds: n.unidades.map(u => u.idUnidade)
+        idCentroCusto: n.idCentroCusto as number
       })),
       divergentes: this.importPreview.divergentes.map(d => ({
         idColaborador: d.idColaborador,
-        idCentroCusto: d.idCentroCusto as number,
-        unidadeIds: d.unidades.map(u => u.idUnidade)
+        idCentroCusto: d.idCentroCusto as number
       })),
       desligados: this.importPreview.desligados.map(d => ({ idColaborador: d.idColaborador }))
     };

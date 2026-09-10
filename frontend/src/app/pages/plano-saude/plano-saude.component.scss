@@ -818,8 +818,11 @@
       }
 
       .ng-input {
+        z-index: 2;
+
         input {
           text-align: center;
+          color: $gray-800;
         }
       }
     }
@@ -831,9 +834,30 @@
     }
   }
 
+  &.ng-select-filtered .ng-value {
+    visibility: hidden !important;
+  }
+
   .ng-arrow-wrapper {
     display: none;
     /* Remove a setinha pra ficar bem minimalista */
+  }
+}
+
+/* Ações do Relatório (Conciliação/Exportar/Contabilidade) — full width e
+   empilhadas no mobile para não espremer o texto dos botões. */
+.report-actions {
+  app-button {
+    display: block;
+
+    ::ng-deep .btn {
+      width: 100%;
+      white-space: nowrap;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    flex-direction: column;
   }
 }
 

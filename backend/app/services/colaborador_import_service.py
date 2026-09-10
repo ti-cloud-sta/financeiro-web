@@ -5,14 +5,12 @@ from sqlalchemy.orm import Session
 import openpyxl
 from fastapi import HTTPException
 
-from app.models.unidade import Unidade
 from app.models.colaborador import Colaborador
 from app.repositories.colaborador_repository import ColaboradorRepository
 from app.repositories.centro_custo_repository import centro_custo_repository
-from app.repositories.unidade_repository import unidade_repository
 from app.repositories.cargo_colaborador_repository import CargoColaboradorRepository
 from app.schemas.colaborador_import import (
-    ImportUnidade, ImportNovo, ImportDivergente, ImportDesligado, ImportErro,
+    ImportNovo, ImportDivergente, ImportDesligado, ImportErro,
     ImportPreviewResponse, ImportProcessarRequest, ImportProcessarResponse
 )
 
@@ -49,10 +47,6 @@ def _normalizar_codigo(valor) -> Optional[int]:
         return None
 
 
-def _to_import_unidade(unidade: Unidade) -> ImportUnidade:
-    return ImportUnidade(idUnidade=unidade.idUnidade, codigo=unidade.codigo, descricao=unidade.descricao)
-
-
 class ColaboradorImportService:
     def __init__(self, db: Session):
         self.db = db
@@ -71,7 +65,7 @@ class ColaboradorImportService:
         for aba in wb.sheetnames:
             ws = wb[aba]
             for idx, row in enumerate(ws.iter_rows(min_row=DATA_START_ROW, max_col=4, values_only=True), start=DATA_START_ROW):
-                estab_raw, nome_raw, doc_raw, cc_raw = (row + (None, None, None, None))[:4]
+                _, nome_raw, doc_raw, cc_raw = (row + (None, None, None, None))[:4]
 
                 nome = _normalizar_nome(nome_raw)
                 if not nome:
@@ -83,22 +77,14 @@ class ColaboradorImportService:
                                              motivo="Documento não informado ou inválido"))
                     continue
 
-                estab_codigo = _normalizar_codigo(estab_raw)
                 cc_codigo = _normalizar_codigo(cc_raw)
                 if cc_codigo is None:
                     erros.append(ImportErro(aba=aba, linha=idx, nome=nome, documento=documento,
                                              motivo="Centro de Custo não informado ou inválido"))
                     continue
 
-                unidade = unidade_repository.get_by_codigo(self.db, estab_codigo) if estab_codigo is not None else None
-                if not unidade:
-                    erros.append(ImportErro(aba=aba, linha=idx, nome=nome, documento=documento,
-                                             motivo=f"Unidade/Estab '{estab_raw}' não cadastrada no sistema"))
-                    continue
-
-                entrada = agregados.setdefault(documento, {"nome": nome, "unidades": {}, "cc_codigos": set()})
+                entrada = agregados.setdefault(documento, {"nome": nome, "cc_codigos": set()})
                 entrada["nome"] = nome
-                entrada["unidades"][unidade.idUnidade] = unidade
                 entrada["cc_codigos"].add(cc_codigo)
 
         return agregados, erros
@@ -119,14 +105,12 @@ class ColaboradorImportService:
 
             cc_codigo = next(iter(dados["cc_codigos"]))
             cc = centro_custo_repository.get_by_codigo(self.db, cc_codigo)
-            unidades_planilha = list(dados["unidades"].values())
-            unidades_import = [_to_import_unidade(u) for u in unidades_planilha]
 
             existente = self.colab_repo.get_by_documento(documento)
 
             if not existente:
                 novos.append(ImportNovo(
-                    documento=documento, nome=dados["nome"], unidades=unidades_import,
+                    documento=documento, nome=dados["nome"],
                     centroCustoCodigo=cc_codigo,
                     idCentroCusto=cc.idCentroCusto if cc else None,
                     centroCustoNome=cc.nome if cc else None,
@@ -134,20 +118,15 @@ class ColaboradorImportService:
                 ))
                 continue
 
-            ids_unidades_planilha = {u.idUnidade for u in unidades_planilha}
-            ids_unidades_atuais = {u.idUnidade for u in existente.unidades}
-            unidades_divergentes = ids_unidades_planilha != ids_unidades_atuais
             cc_divergente = bool(cc) and existente.idCentroCusto != cc.idCentroCusto
             reativado = existente.snAtivo == 'N'
 
-            precisa_atencao = (not cc) or cc_divergente or unidades_divergentes or reativado
+            precisa_atencao = (not cc) or cc_divergente or reativado
             if not precisa_atencao:
                 continue
 
             divergentes.append(ImportDivergente(
                 idColaborador=existente.idColaborador, documento=documento, nome=dados["nome"],
-                unidades=unidades_import,
-                unidadesAtuais=[_to_import_unidade(u) for u in existente.unidades],
                 centroCustoCodigo=cc_codigo,
                 idCentroCusto=cc.idCentroCusto if cc else None,
                 centroCustoNome=cc.nome if cc else None,
@@ -155,7 +134,6 @@ class ColaboradorImportService:
                 idCentroCustoAtual=existente.idCentroCusto,
                 centroCustoAtualNome=existente.centro_custo.nome if existente.centro_custo else None,
                 ccDivergente=cc_divergente,
-                unidadesDivergentes=unidades_divergentes,
                 reativado=reativado
             ))
 
@@ -169,7 +147,6 @@ class ColaboradorImportService:
                 continue
             desligados.append(ImportDesligado(
                 idColaborador=colab.idColaborador, documento=documento, nome=colab.nome,
-                unidadesAtuais=[_to_import_unidade(u) for u in colab.unidades],
                 centroCustoAtualNome=colab.centro_custo.nome if colab.centro_custo else None
             ))
 
@@ -200,8 +177,6 @@ class ColaboradorImportService:
                     snAtivo='S'
                 )
                 self.db.add(db_obj)
-                self.db.flush()
-                self.colab_repo.sync_unidades(db_obj, novo.unidadeIds)
                 cadastrados += 1
 
             for div in payload.divergentes:
@@ -210,7 +185,6 @@ class ColaboradorImportService:
                     raise HTTPException(status_code=404, detail=f"Colaborador {div.idColaborador} não encontrado.")
                 db_obj.idCentroCusto = div.idCentroCusto
                 db_obj.snAtivo = 'S'
-                self.colab_repo.sync_unidades(db_obj, div.unidadeIds)
                 atualizados += 1
 
             for desl in payload.desligados:

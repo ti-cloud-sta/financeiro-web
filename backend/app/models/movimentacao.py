@@ -11,7 +11,6 @@ class Movimentacao(Base):
     idColaborador = Column(Integer, ForeignKey("colaboradores.idColaborador"), nullable=False)
     idEmpresa = Column(Integer, ForeignKey("empresas.idEmpresas"), nullable=False)
     idImportacoes = Column(Integer, ForeignKey("importacoes.idImportacoes"), nullable=True)
-    idCentroCusto = Column(Integer, ForeignKey("centroCusto.idCentroCusto"), nullable=True)
     idUnidade = Column(Integer, ForeignKey("Unidade.idUnidade"), nullable=True)
     nroDocumento = Column(String(100), nullable=True)
     valor = Column(Float(precision=18, decimal_return_scale=2), nullable=False)

@@ -559,7 +559,6 @@ export class PlanoSaudeComponent implements OnInit {
   editingRowId = signal<number | null>(null);
   editNome = signal<string>('');
   editCentroCusto = signal<string>('');
-  editUnidade = signal<string>('');
   editValor = signal<number>(0);
   editColabId = signal<number | null>(null);
 
@@ -588,17 +587,7 @@ export class PlanoSaudeComponent implements OnInit {
   chartOptionsCategorias: any;
   
   topDespesas: any[] = [];
-  
-  listaColaboradoresGeral: any[] = [];
-  
-  carregarColaboradoresParaFiltro() {
-    this.importacoesService.obterDadosDashboard({}).subscribe({
-      next: (res) => {
-        this.listaColaboradoresGeral = res.pessoas || [];
-      }
-    });
-  }
-  
+
   isPeriodoValido(): boolean {
     if (this.dashDataInicio && this.dashDataFim) {
       if (this.dashDataInicio > this.dashDataFim) return false;
@@ -763,7 +752,6 @@ export class PlanoSaudeComponent implements OnInit {
       this.carregarRelatoriosGerais();
     });
 
-    this.carregarColaboradoresParaFiltro();
     this.onShortcutSelectChange('este-ano');
 
     this.carregarEmpresasAtualizacao();
@@ -891,6 +879,13 @@ export class PlanoSaudeComponent implements OnInit {
   importedCount = signal<number>(0);
   divergencesCount = signal<number>(0);
   dataCompetencia = signal<string>('');
+  unidadeConfirmacao = signal<number | null>(null);
+
+  private hojeYMD(): string {
+    const hoje = new Date();
+    const localDate = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60 * 1000);
+    return localDate.toISOString().split('T')[0];
+  }
 
   triggerImport(card: HealthPlanCard) {
     this.activeCard.set(card);
@@ -898,8 +893,9 @@ export class PlanoSaudeComponent implements OnInit {
     this.processingError.set('');
     this.processingStep.set(0);
     this.isProcessing.set(false);
-    this.dataCompetencia.set('');
-    
+    this.dataCompetencia.set(this.hojeYMD());
+    this.unidadeConfirmacao.set(null);
+
     if (this.fileInput) {
       this.fileInput.nativeElement.value = '';
       this.fileInput.nativeElement.click();
@@ -958,7 +954,7 @@ export class PlanoSaudeComponent implements OnInit {
     const useUnimedOdontoSchema = !isSeguroTab && (activeId === 'unimed-odonto' || cardNameLower.includes('unimed') || cardNameLower.includes('odonto'));
 
     if (useUnimedOdontoSchema) {
-      this.importacoesService.confirmarUnimedOdonto(this.selectedFile()!.name, this.parsedTitulares(), idEmpresa, undefined, this.dataCompetencia() || undefined).subscribe({
+      this.importacoesService.confirmarUnimedOdonto(this.selectedFile()!.name, this.parsedTitulares(), idEmpresa, this.unidadeConfirmacao() ?? undefined, undefined, this.dataCompetencia() || undefined).subscribe({
         next: (res) => {
           this.isSaving.set(false);
           if (res.sucesso) {
@@ -978,7 +974,7 @@ export class PlanoSaudeComponent implements OnInit {
       });
     } else {
       // Use Sorriso schema/endpoint (standard for Gemini dynamic extractions, including Seguros)
-      this.importacoesService.confirmarSorriso(this.selectedFile()!.name, this.parsedTitulares(), idEmpresa, undefined, this.dataCompetencia() || undefined).subscribe({
+      this.importacoesService.confirmarSorriso(this.selectedFile()!.name, this.parsedTitulares(), idEmpresa, this.unidadeConfirmacao() ?? undefined, undefined, this.dataCompetencia() || undefined).subscribe({
         next: (res) => {
           this.isSaving.set(false);
           if (res.sucesso) {
@@ -1009,6 +1005,7 @@ export class PlanoSaudeComponent implements OnInit {
     this.searchBeneficiaryTerm.set('');
     this.mostrarDivergenciaOnly.set(false);
     this.dataCompetencia.set('');
+    this.unidadeConfirmacao.set(null);
     if (this.isPeriodoValido()) {
       this.carregarDadosDashboard();
     }
@@ -1020,9 +1017,6 @@ export class PlanoSaudeComponent implements OnInit {
       this.editColabId.set(colab.idColaborador);
       if (colab.centro_custo) {
         this.editCentroCusto.set(colab.centro_custo.codigo.toString());
-      }
-      if (colab.unidades && colab.unidades.length) {
-        this.editUnidade.set(colab.unidades.map((u: any) => u.codigo).join(', '));
       }
     }
   }
@@ -1038,11 +1032,6 @@ export class PlanoSaudeComponent implements OnInit {
     this.editCentroCusto.set(val);
   }
 
-  onEditUnidadeChange(event: Event) {
-    const val = (event.target as HTMLInputElement).value;
-    this.editUnidade.set(val);
-  }
-
   onEditValorChange(event: Event) {
     const val = parseFloat((event.target as HTMLInputElement).value) || 0;
     this.editValor.set(val);
@@ -1052,7 +1041,6 @@ export class PlanoSaudeComponent implements OnInit {
     this.editingRowId.set(id);
     this.editNome.set(titular.nome_db || titular.nome_pdf);
     this.editCentroCusto.set(titular.centro_custo || 'N/D');
-    this.editUnidade.set(titular.unidade || 'N/D');
     this.editValor.set(titular.valor_total);
     this.editColabId.set(titular.id_db ?? null);
   }
@@ -1064,7 +1052,6 @@ export class PlanoSaudeComponent implements OnInit {
       const item = { ...updatedList[index] };
       item.nome_db = this.editNome();
       item.centro_custo = this.editCentroCusto()?.toString() || 'N/D';
-      item.unidade = this.editUnidade() || 'N/D';
       item.valor_total = this.editValor();
       if (this.editColabId() != null) {
         item.id_db = this.editColabId();
@@ -1132,7 +1119,6 @@ export class PlanoSaudeComponent implements OnInit {
 
     const colab = this.colaboradoresList().find(c => c.nome === nome);
     const centroCusto = colab?.centro_custo ? colab.centro_custo.codigo.toString() : 'N/D';
-    const unidade = colab?.unidade ? colab.unidade.codigo.toString() : 'N/D';
     const valor = this.newBeneficiarioValor();
 
     const currentList = this.parsedTitulares();
@@ -1146,7 +1132,6 @@ export class PlanoSaudeComponent implements OnInit {
       dependentes: [],
       valor_total: valor,
       centro_custo: centroCusto,
-      unidade: unidade,
       id_db: colab?.idColaborador ?? null
     };
 

@@ -1,15 +1,9 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-class ImportUnidade(BaseModel):
-    idUnidade: int
-    codigo: int
-    descricao: str
-
 class ImportNovo(BaseModel):
     documento: str
     nome: str
-    unidades: List[ImportUnidade]
     centroCustoCodigo: int
     idCentroCusto: Optional[int] = None
     centroCustoNome: Optional[str] = None
@@ -19,8 +13,6 @@ class ImportDivergente(BaseModel):
     idColaborador: int
     documento: str
     nome: str
-    unidades: List[ImportUnidade]
-    unidadesAtuais: List[ImportUnidade]
     centroCustoCodigo: int
     idCentroCusto: Optional[int] = None
     centroCustoNome: Optional[str] = None
@@ -28,14 +20,12 @@ class ImportDivergente(BaseModel):
     idCentroCustoAtual: int
     centroCustoAtualNome: Optional[str] = None
     ccDivergente: bool
-    unidadesDivergentes: bool
     reativado: bool
 
 class ImportDesligado(BaseModel):
     idColaborador: int
     documento: str
     nome: str
-    unidadesAtuais: List[ImportUnidade]
     centroCustoAtualNome: Optional[str] = None
 
 class ImportErro(BaseModel):
@@ -55,12 +45,10 @@ class ImportProcessarNovo(BaseModel):
     documento: str
     nome: str
     idCentroCusto: int
-    unidadeIds: List[int] = Field(default_factory=list)
 
 class ImportProcessarDivergente(BaseModel):
     idColaborador: int
     idCentroCusto: int
-    unidadeIds: List[int] = Field(default_factory=list)
 
 class ImportProcessarDesligado(BaseModel):
     idColaborador: int

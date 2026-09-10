@@ -6,7 +6,6 @@ import { ButtonComponent } from '../button/button.component';
 import { CargoModalComponent } from '../cargo-modal/cargo-modal.component';
 import { ColaboradoresService } from '../../../core/services/colaboradores.service';
 import { CentrosCustoService } from '../../../core/services/centros-custo.service';
-import { UnidadesService } from '../../../core/services/unidades.service';
 import { CargosColaboradoresService, CargoColaborador } from '../../../core/services/cargos-colaboradores.service';
 
 @Component({
@@ -26,14 +25,12 @@ export class ColaboradorModalComponent implements OnInit, OnChanges {
 
   colaboradoresService = inject(ColaboradoresService);
   centrosCustoService = inject(CentrosCustoService);
-  unidadesService = inject(UnidadesService);
   cargosService = inject(CargosColaboradoresService);
 
   listaCentrosCusto: any[] = [];
-  listaUnidades: any[] = [];
   listaCargos: CargoColaborador[] = [];
 
-  novoColaborador: any = { nome: '', idCentroCusto: null, idCargoColaborador: null, idUnidade: null, papel: '', documento: '' };
+  novoColaborador: any = { nome: '', idCentroCusto: null, idCargoColaborador: null, papel: '', documento: '' };
   isSalvando = false;
   isCargoModalOpen = false;
 
@@ -45,12 +42,9 @@ export class ColaboradorModalComponent implements OnInit, OnChanges {
     if (changes['isOpen'] && changes['isOpen'].currentValue === true) {
       this.carregarListas(); // Refresh lists when opened
       if (this.modalMode === 'edit' && this.colaboradorData) {
-        this.novoColaborador = {
-          ...this.colaboradorData,
-          idUnidade: this.colaboradorData.unidades?.[0]?.idUnidade ?? null
-        };
+        this.novoColaborador = { ...this.colaboradorData };
       } else {
-        this.novoColaborador = { nome: this.initialName || '', idCentroCusto: null, idCargoColaborador: null, idUnidade: null, papel: '', documento: '' };
+        this.novoColaborador = { nome: this.initialName || '', idCentroCusto: null, idCargoColaborador: null, papel: '', documento: '' };
       }
     }
   }
@@ -58,9 +52,6 @@ export class ColaboradorModalComponent implements OnInit, OnChanges {
   carregarListas() {
     this.centrosCustoService.listar(1, 1000).subscribe({
       next: (res) => this.listaCentrosCusto = (res.items || []).sort((a, b) => a.codigo - b.codigo)
-    });
-    this.unidadesService.listar(1, 1000).subscribe({
-      next: (res) => this.listaUnidades = (res.items || []).sort((a, b) => a.descricao.localeCompare(b.descricao))
     });
     this.carregarCargos();
   }
@@ -73,10 +64,7 @@ export class ColaboradorModalComponent implements OnInit, OnChanges {
 
   salvar() {
     this.isSalvando = true;
-    const payload = {
-      ...this.novoColaborador,
-      unidadeIds: this.novoColaborador.idUnidade ? [this.novoColaborador.idUnidade] : []
-    };
+    const payload = { ...this.novoColaborador };
     if (this.modalMode === 'create') {
       this.colaboradoresService.criar(payload).subscribe({
         next: (salvo) => {

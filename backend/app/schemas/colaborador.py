@@ -3,7 +3,6 @@ from typing import Optional, List
 from datetime import datetime
 from app.schemas.cargo_colaborador import CargoColaboradorResponse
 from app.schemas.centro_custo import CentroCustoResponse
-from app.schemas.unidade import UnidadeResponse
 
 class ColaboradorBase(BaseModel):
     nome: Optional[str] = Field(None, max_length=80)
@@ -17,10 +16,9 @@ class ColaboradorCreate(ColaboradorBase):
     nome: str = Field(..., max_length=80)
     idCentroCusto: int
     idCargoColaborador: int
-    unidadeIds: List[int] = Field(default_factory=list)
 
 class ColaboradorUpdate(ColaboradorBase):
-    unidadeIds: Optional[List[int]] = None
+    pass
 
 class ColaboradorResponse(ColaboradorBase):
     idColaborador: int
@@ -35,7 +33,6 @@ class ColaboradorResponse(ColaboradorBase):
     # Opcional: incluir os dados dos relacionamentos
     cargo_colaborador: Optional[CargoColaboradorResponse] = None
     centro_custo: Optional[CentroCustoResponse] = None
-    unidades: List[UnidadeResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
