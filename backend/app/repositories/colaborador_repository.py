@@ -67,7 +67,9 @@ class ColaboradorRepository:
         return [r[0] for r in rows]
 
     def get_all(self, skip: int = 0, limit: int = 20, search: Optional[str] = None) -> Tuple[List[Colaborador], int]:
-        query = self.db.query(Colaborador).outerjoin(CentroCusto).outerjoin(CargoColaborador)
+        query = self.db.query(Colaborador).outerjoin(CentroCusto).outerjoin(CargoColaborador).filter(
+            or_(Colaborador.snAtivo != 'N', Colaborador.snAtivo.is_(None))
+        )
 
         if search:
             search_term = f"%{search}%"
@@ -97,7 +99,7 @@ class ColaboradorRepository:
         return items, total
 
     def create(self, colab_in: ColaboradorCreate) -> Colaborador:
-        data = colab_in.model_dump(exclude_unset=True)
+        data = colab_in.model_dump(exclude_unset=True, exclude={"origem"})
         db_obj = Colaborador(**data)
         self.db.add(db_obj)
         self.db.commit()

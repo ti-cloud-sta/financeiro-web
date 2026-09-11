@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from app.repositories.colaborador_repository import ColaboradorRepository
 from app.repositories.cargo_colaborador_repository import CargoColaboradorRepository
 from app.schemas.colaborador import ColaboradorCreate, ColaboradorUpdate, ColaboradorPaginatedResponse
+from app.models.colaboradores_movimento import ColaboradoresMovimento
 
 class ColaboradorService:
     def __init__(self, db: Session):
@@ -38,9 +39,20 @@ class ColaboradorService:
         if not self.cargo_repo.get_by_id(id_cargo_colaborador):
             raise HTTPException(status_code=400, detail="Cargo de colaborador informado não encontrado.")
 
-    def create_colaborador(self, colab_in: ColaboradorCreate):
+    def create_colaborador(self, colab_in: ColaboradorCreate, user_id: int):
         self._validate_fk(colab_in.idCargoColaborador)
-        return self.repository.create(colab_in)
+        novo_colab = self.repository.create(colab_in)
+        
+        movimento = ColaboradoresMovimento(
+            idColaboradores=novo_colab.idColaborador,
+            origem=colab_in.origem,
+            userCreatedId=user_id,
+            tipoMovimento='ATIVACAO'
+        )
+        self.repository.db.add(movimento)
+        self.repository.db.commit()
+        
+        return novo_colab
 
     def update_colaborador(self, colab_id: int, colab_in: ColaboradorUpdate):
         db_obj = self.get_colaborador(colab_id)
@@ -49,6 +61,16 @@ class ColaboradorService:
             
         return self.repository.update(db_obj, colab_in)
 
-    def delete_colaborador(self, colab_id: int):
+    def delete_colaborador(self, colab_id: int, user_id: int):
         db_obj = self.get_colaborador(colab_id)
-        self.repository.delete(db_obj)
+        
+        db_obj.snAtivo = 'N'
+        
+        movimento = ColaboradoresMovimento(
+            idColaboradores=db_obj.idColaborador,
+            origem='MANUAL',
+            userCreatedId=user_id,
+            tipoMovimento='DESATIVACAO'
+        )
+        self.repository.db.add(movimento)
+        self.repository.db.commit()

@@ -16,6 +16,7 @@ class ColaboradorCreate(ColaboradorBase):
     nome: str = Field(..., max_length=80)
     idCentroCusto: int
     idCargoColaborador: int
+    origem: Optional[str] = "MANUAL"
 
 class ColaboradorUpdate(ColaboradorBase):
     pass

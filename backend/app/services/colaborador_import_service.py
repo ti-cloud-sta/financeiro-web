@@ -13,6 +13,7 @@ from app.schemas.colaborador_import import (
     ImportNovo, ImportDivergente, ImportDesligado, ImportErro,
     ImportPreviewResponse, ImportProcessarRequest, ImportProcessarResponse
 )
+from app.models.colaboradores_movimento import ColaboradoresMovimento
 
 HEADER_ROW = 2
 DATA_START_ROW = 3
@@ -139,14 +140,15 @@ class ColaboradorImportService:
 
         documentos_planilha = set(agregados.keys())
         desligados: List[ImportDesligado] = []
-        for documento in self.colab_repo.get_documentos_ativos():
-            if documento in documentos_planilha:
+        for raw_documento in self.colab_repo.get_documentos_ativos():
+            doc_norm = _normalizar_documento(raw_documento)
+            if doc_norm in documentos_planilha:
                 continue
-            colab = self.colab_repo.get_by_documento(documento)
+            colab = self.colab_repo.get_by_documento(raw_documento)
             if not colab:
                 continue
             desligados.append(ImportDesligado(
-                idColaborador=colab.idColaborador, documento=documento, nome=colab.nome,
+                idColaborador=colab.idColaborador, documento=colab.documento or raw_documento, nome=colab.nome,
                 centroCustoAtualNome=colab.centro_custo.nome if colab.centro_custo else None
             ))
 
@@ -161,7 +163,7 @@ class ColaboradorImportService:
             raise HTTPException(status_code=400, detail="Nenhum tipo de colaborador cadastrado para usar como padrão.")
         return cargo.idCargoColaborador
 
-    def processar(self, payload: ImportProcessarRequest) -> ImportProcessarResponse:
+    def processar(self, payload: ImportProcessarRequest, user_id: int) -> ImportProcessarResponse:
         id_cargo_padrao = self._get_cargo_padrao_id()
         cadastrados = 0
         atualizados = 0
@@ -177,6 +179,14 @@ class ColaboradorImportService:
                     snAtivo='S'
                 )
                 self.db.add(db_obj)
+                self.db.flush() # Para gerar o idColaborador
+                movimento = ColaboradoresMovimento(
+                    idColaboradores=db_obj.idColaborador,
+                    origem='ATUALIZACAO_BASE',
+                    userCreatedId=user_id,
+                    tipoMovimento='ATIVACAO'
+                )
+                self.db.add(movimento)
                 cadastrados += 1
 
             for div in payload.divergentes:
@@ -192,6 +202,13 @@ class ColaboradorImportService:
                 if not db_obj:
                     raise HTTPException(status_code=404, detail=f"Colaborador {desl.idColaborador} não encontrado.")
                 db_obj.snAtivo = 'N'
+                movimento = ColaboradoresMovimento(
+                    idColaboradores=db_obj.idColaborador,
+                    origem='ATUALIZACAO_BASE',
+                    userCreatedId=user_id,
+                    tipoMovimento='DESATIVACAO'
+                )
+                self.db.add(movimento)
                 desligados += 1
 
             self.db.commit()

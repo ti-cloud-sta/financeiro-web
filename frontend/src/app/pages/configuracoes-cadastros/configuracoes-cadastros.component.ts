@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
+import * as XLSX from 'xlsx';
 
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { InputComponent } from '../../shared/components/input/input.component';
@@ -14,6 +15,9 @@ import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
 import { DropdownComponent } from '../../shared/components/dropdown/dropdown.component';
 import { BadgeComponent } from '../../shared/components/badge/badge.component';
+import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
+import { FlatpickrModule } from 'angularx-flatpickr';
+import { Portuguese } from 'flatpickr/dist/l10n/pt.js';
 
 import {
   ColaboradoresService, Colaborador,
@@ -34,7 +38,7 @@ import { UsersService } from '../../core/services/users.service';
     CommonModule, ReactiveFormsModule, FormsModule,
     EmptyStateComponent, ButtonComponent, InputComponent,
     ModalComponent, ConfirmModalComponent, DropdownComponent,
-    BadgeComponent
+    BadgeComponent, FlatpickrModule, SkeletonComponent
   ],
   templateUrl: './configuracoes-cadastros.component.html',
   styleUrl: './configuracoes-cadastros.component.scss'
@@ -1006,4 +1010,156 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
     });
   }
 
+  // -------------------------
+  // TURNOVER MODAL LOGIC
+  // -------------------------
+  isTurnoverModalOpen = false;
+  isTurnoverLoading = false;
+  turnoverData: any[] = [];
+  turnoverDataInicio: Date | null = null;
+  turnoverDataFim: Date | null = null;
+  turnoverShortcut = 'este-ano';
+  turnoverFiltroTipo = '';
+  turnoverFiltroOrigem = '';
+  locale = Portuguese;
+
+  openTurnoverModal() {
+    this.isTurnoverModalOpen = true;
+    this.onTurnoverShortcutChange('este-ano'); // Carrega por default "Este Ano"
+  }
+
+  closeTurnoverModal() {
+    this.isTurnoverModalOpen = false;
+  }
+
+  isTurnoverPeriodoValido(): boolean {
+    if (this.turnoverDataInicio && this.turnoverDataFim) {
+      if (this.turnoverDataInicio > this.turnoverDataFim) return false;
+    }
+    return true;
+  }
+
+  onTurnoverDataInicioChange() {
+    this.turnoverShortcut = 'personalizado';
+    if (this.isTurnoverPeriodoValido()) this.carregarTurnover();
+  }
+
+  onTurnoverDataFimChange() {
+    this.turnoverShortcut = 'personalizado';
+    if (this.isTurnoverPeriodoValido()) this.carregarTurnover();
+  }
+
+  onTurnoverShortcutChange(shortcut: string) {
+    if (shortcut === 'personalizado') return;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    if (shortcut === 'ultimo-bimestre') {
+      this.turnoverDataInicio = new Date(hoje.getFullYear(), hoje.getMonth() - 2, 1);
+      this.turnoverDataFim = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+    } else if (shortcut === 'ultimo-semestre') {
+      this.turnoverDataInicio = new Date(hoje.getFullYear(), hoje.getMonth() - 6, 1);
+      this.turnoverDataFim = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+    } else if (shortcut === 'este-ano') {
+      this.turnoverDataInicio = new Date(hoje.getFullYear(), 0, 1);
+      this.turnoverDataFim = hoje;
+    } else if (shortcut === 'ano-passado') {
+      this.turnoverDataInicio = new Date(hoje.getFullYear() - 1, 0, 1);
+      this.turnoverDataFim = new Date(hoje.getFullYear() - 1, 11, 31);
+    }
+
+    this.turnoverShortcut = shortcut;
+    this.carregarTurnover();
+  }
+
+  carregarTurnover() {
+    this.isTurnoverLoading = true;
+    const params: any = { size: 1000 };
+
+    if (this.turnoverDataInicio) {
+      const offset = this.turnoverDataInicio.getTimezoneOffset();
+      const localDate = new Date(this.turnoverDataInicio.getTime() - (offset * 60 * 1000));
+      params.data_inicio = localDate.toISOString().split('T')[0];
+    }
+    if (this.turnoverDataFim) {
+      const offset = this.turnoverDataFim.getTimezoneOffset();
+      const localDate = new Date(this.turnoverDataFim.getTime() - (offset * 60 * 1000));
+      params.data_fim = localDate.toISOString().split('T')[0];
+    }
+    if (this.turnoverFiltroTipo) params.tipo = this.turnoverFiltroTipo;
+    if (this.turnoverFiltroOrigem) params.origem = this.turnoverFiltroOrigem;
+
+    this.colaboradoresService.listarMovimentos(params).subscribe({
+      next: (res) => {
+        this.turnoverData = res.items || [];
+        this.isTurnoverLoading = false;
+      },
+      error: (err) => {
+        console.error(err);
+        this.isTurnoverLoading = false;
+      }
+    });
+  }
+
+  exportarTurnover() {
+    if (!this.turnoverData || this.turnoverData.length === 0) return;
+
+    const headers = [
+      'DATA',
+      'COLABORADOR',
+      'CPF/CNPJ',
+      'MOVIMENTO',
+      'ORIGEM',
+      'USUÁRIO RESPONSÁVEL'
+    ];
+
+    const dataRows = this.turnoverData.map((row: any) => {
+      let dataFormatada = '—';
+      if (row.createdAt) {
+        const d = new Date(row.createdAt);
+        if (!isNaN(d.getTime())) {
+          const dia = String(d.getDate()).padStart(2, '0');
+          const mes = String(d.getMonth() + 1).padStart(2, '0');
+          const ano = d.getFullYear();
+          const hora = String(d.getHours()).padStart(2, '0');
+          const min = String(d.getMinutes()).padStart(2, '0');
+          dataFormatada = `${dia}/${mes}/${ano} ${hora}:${min}`;
+        }
+      }
+
+      let tipoFormatado = row.tipoMovimento || '—';
+      if (tipoFormatado === 'ATIVACAO') tipoFormatado = 'Ativação';
+      else if (tipoFormatado === 'DESATIVACAO') tipoFormatado = 'Desativação';
+
+      let origemFormatada = row.origem || '—';
+      if (origemFormatada === 'MANUAL') origemFormatada = 'Criação Manual';
+      else if (origemFormatada === 'ATUALIZACAO_BASE') origemFormatada = 'Importação (RH)';
+      else if (origemFormatada === 'IMPORTACOES') origemFormatada = 'Importação (Planos)';
+
+      return [
+        dataFormatada,
+        row.colaboradorNome || '—',
+        row.colaboradorDocumento || '—',
+        tipoFormatado,
+        origemFormatada,
+        row.userNome || '—'
+      ];
+    });
+
+    const worksheet: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+    worksheet['!cols'] = [
+      { wch: 18 },
+      { wch: 35 },
+      { wch: 18 },
+      { wch: 16 },
+      { wch: 24 },
+      { wch: 25 }
+    ];
+
+    const workbook: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Turnover');
+
+    const dataAtual = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `relatorio_turnover_${dataAtual}.xlsx`);
+  }
 }

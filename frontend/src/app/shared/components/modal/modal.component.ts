@@ -11,8 +11,9 @@ import { CommonModule } from '@angular/common';
 export class ModalComponent {
   @Input() isOpen = false;
   @Input() title = '';
-  @Input() size: 'sm' | 'md' | 'lg' = 'md';
+  @Input() size: 'sm' | 'md' | 'lg' | 'xl' = 'md';
   @Input() fixedHeight = false;
+  @Input() customBodyStyle: any = null;
 
   @Output() closed = new EventEmitter<string | undefined>();
 
