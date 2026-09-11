@@ -20,6 +20,7 @@ export class ColaboradorModalComponent implements OnInit, OnChanges {
   @Input() modalMode: 'create' | 'edit' = 'create';
   @Input() initialName = '';
   @Input() colaboradorData: any = null;
+  @Input() origem: string = 'MANUAL';
   @Output() closed = new EventEmitter<void>();
   @Output() saved = new EventEmitter<any>();
 
@@ -64,7 +65,7 @@ export class ColaboradorModalComponent implements OnInit, OnChanges {
 
   salvar() {
     this.isSalvando = true;
-    const payload = { ...this.novoColaborador };
+    const payload = { ...this.novoColaborador, origem: this.origem };
     if (this.modalMode === 'create') {
       this.colaboradoresService.criar(payload).subscribe({
         next: (salvo) => {

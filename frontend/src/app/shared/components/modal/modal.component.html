@@ -6,7 +6,7 @@
         <h3 class="title">{{ title }}</h3>
         <button class="close-btn" (click)="close('x-button')">&times;</button>
       </div>
-      <div class="erp-modal-body">
+      <div class="erp-modal-body" [ngStyle]="customBodyStyle">
         <ng-content></ng-content>
       </div>
       <ng-content select="[modal-footer]"></ng-content>

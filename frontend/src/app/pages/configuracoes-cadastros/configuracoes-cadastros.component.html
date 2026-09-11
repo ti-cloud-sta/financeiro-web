@@ -152,6 +152,9 @@
                     <button class="btn btn-outline-secondary me-2" (click)="openImportColabModal()">
                       <i class="fa-solid fa-file-import me-2"></i> Importar Colaboradores
                     </button>
+                    <button class="btn btn-info text-white me-2" (click)="openTurnoverModal()">
+                      <i class="fa-solid fa-clock-rotate-left me-2"></i> Turnover
+                    </button>
                     <button class="btn btn-primary" (click)="openColaboradorModal()">
                       <i class="fa-solid fa-plus me-2"></i> Cadastrar Colaborador
                     </button>
@@ -1080,4 +1083,109 @@
       <app-button variant="primary" type="submit" [disabled]="passwordForm.invalid">Salvar Nova Senha</app-button>
     </div>
   </form>
+</app-modal>
+
+<app-modal [isOpen]="isTurnoverModalOpen" title="Relatório de Turnover" (closed)="closeTurnoverModal()"
+  size="lg" [customBodyStyle]="{'height': '90vh', 'overflow-y': 'auto', 'display': 'flex', 'flex-direction': 'column'}">
+  <div body class="d-flex flex-column h-100">
+    <!-- Filtros do Turnover -->
+    <div class="filters-panel-card mb-4" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem;">
+      <div class="filters-grid d-flex flex-wrap gap-4 align-items-end">
+        <!-- Coluna de Período -->
+        <div class="filter-group">
+          <label class="filter-label mb-2 d-block text-uppercase text-muted" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Período</label>
+          <div class="d-flex align-items-center gap-2">
+            <div class="input-icon-wrapper" style="position: relative; width: 140px;">
+              <i class="fa-regular fa-calendar input-icon" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
+              <input type="text" class="form-control form-control-sm w-100" style="padding-left: 2.25rem; height: 38px; border-radius: 8px;" mwlFlatpickr dateFormat="d/m/Y"
+                [locale]="locale" [convertModelValue]="true" [maxDate]="turnoverDataFim || ''"
+                placeholder="Data inicial" [(ngModel)]="turnoverDataInicio"
+                (ngModelChange)="onTurnoverDataInicioChange()">
+            </div>
+            <span class="text-muted small">à</span>
+            <div class="input-icon-wrapper" style="position: relative; width: 140px;">
+              <i class="fa-regular fa-calendar input-icon" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
+              <input type="text" class="form-control form-control-sm w-100" style="padding-left: 2.25rem; height: 38px; border-radius: 8px;" mwlFlatpickr dateFormat="d/m/Y"
+                [locale]="locale" [convertModelValue]="true" [minDate]="turnoverDataInicio || ''"
+                placeholder="Data final" [(ngModel)]="turnoverDataFim" (ngModelChange)="onTurnoverDataFimChange()">
+            </div>
+            <select class="form-select form-select-sm shortcut-select" style="width: 150px; height: 38px; border-radius: 8px;" [(ngModel)]="turnoverShortcut"
+              (ngModelChange)="onTurnoverShortcutChange($event)">
+              <option value="ultimo-bimestre">Últ. Bimestre</option>
+              <option value="ultimo-semestre">Últ. Semestre</option>
+              <option value="este-ano">Este Ano</option>
+              <option value="ano-passado">Ano Passado</option>
+              <option value="personalizado" disabled>Personalizado</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Coluna Tipo -->
+        <div class="filter-group">
+          <label class="filter-label mb-2 d-block text-uppercase text-muted" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Tipo de Movimento</label>
+          <select class="form-select form-select-sm" style="width: 200px; height: 38px; border-radius: 8px;" [(ngModel)]="turnoverFiltroTipo" (ngModelChange)="carregarTurnover()">
+            <option value="">Todos</option>
+            <option value="ATIVACAO">Ativação (Entrada)</option>
+            <option value="DESATIVACAO">Desativação (Saída)</option>
+          </select>
+        </div>
+
+        <!-- Coluna Origem -->
+        <div class="filter-group">
+          <label class="filter-label mb-2 d-block text-uppercase text-muted" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Origem</label>
+          <select class="form-select form-select-sm" style="width: 200px; height: 38px; border-radius: 8px;" [(ngModel)]="turnoverFiltroOrigem" (ngModelChange)="carregarTurnover()">
+            <option value="">Todas</option>
+            <option value="MANUAL">Criação Manual</option>
+            <option value="ATUALIZACAO_BASE">Importação (RH)</option>
+            <option value="IMPORTACOES">Importação (Planos)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- SKELETON LOADING -->
+    <div *ngIf="isTurnoverLoading" class="flex-grow-1">
+      <app-skeleton type="rect" width="100%" height="400px"></app-skeleton>
+    </div>
+
+    <!-- Tabela Turnover -->
+    <div *ngIf="!isTurnoverLoading" class="table-responsive flex-grow-1" style="border: 1px solid #e2e8f0; border-radius: 12px; background: #fff;">
+      <table class="saas-table w-100 m-0">
+        <thead style="position: sticky; top: 0; background: #fff; z-index: 10;">
+          <tr>
+            <th>DATA</th>
+            <th>COLABORADOR</th>
+            <th>CPF/CNPJ</th>
+            <th>MOVIMENTO</th>
+            <th>ORIGEM</th>
+            <th>USUÁRIO</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let m of turnoverData">
+            <td class="text-nowrap">{{ m.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td class="fw-medium text-dark">{{ m.colaboradorNome }}</td>
+            <td class="text-muted">{{ m.colaboradorDocumento || '—' }}</td>
+            <td>
+              <span class="badge" [ngClass]="m.tipoMovimento === 'ATIVACAO' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'">
+                {{ m.tipoMovimento }}
+              </span>
+            </td>
+            <td><span class="text-muted small">{{ m.origem }}</span></td>
+            <td><span class="text-muted small">{{ m.userNome }}</span></td>
+          </tr>
+          <tr *ngIf="turnoverData.length === 0">
+            <td colspan="6" class="text-center text-muted py-5">Nenhuma movimentação encontrada para o período selecionado.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div modal-footer class="erp-modal-footer">
+    <button type="button" class="btn btn-outline-secondary" (click)="closeTurnoverModal()">Fechar</button>
+    <button type="button" class="btn btn-primary" (click)="exportarTurnover()" [disabled]="!turnoverData || turnoverData.length === 0">
+      <i class="fa-solid fa-file-excel me-2"></i> Exportar
+    </button>
+  </div>
 </app-modal>

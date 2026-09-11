@@ -125,4 +125,18 @@ export class ColaboradoresService {
   }): Observable<ImportProcessarResponse> {
     return this.http.post<ImportProcessarResponse>(`${this.apiUrl}/importar/processar`, payload);
   }
+
+  listarMovimentos(params: {
+    data_inicio?: string;
+    data_fim?: string;
+    tipo?: string;
+    origem?: string;
+    page?: number;
+    size?: number;
+  }): Observable<any> {
+    let query = Object.entries(params)
+      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => `${k}=${encodeURIComponent(v as string)}`).join('&');
+    return this.http.get<any>(`${this.apiUrl}/movimentos${query ? '?' + query : ''}`);
+  }
 }

@@ -849,7 +849,7 @@
 
   <!-- Colaborador Modal (Renderizado por último para ficar sobreposto) -->
   <app-colaborador-modal [isOpen]="isColaboradorModalOpen" [modalMode]="'create'"
-    [initialName]="colaboradorToCreateName" (closed)="isColaboradorModalOpen = false"
+    [initialName]="colaboradorToCreateName" [origem]="'IMPORTACOES'" (closed)="isColaboradorModalOpen = false"
     (saved)="onColaboradorSaved($event)">
   </app-colaborador-modal>
 
