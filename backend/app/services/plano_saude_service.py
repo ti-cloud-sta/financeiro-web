@@ -350,7 +350,16 @@ class PlanoSaudeService:
         if 'Estab' not in df.columns or 'Débito' not in df.columns:
             raise ValueError("Colunas 'Estab' ou 'Débito' não encontradas na planilha.")
             
-        df['Estab_str'] = df['Estab'].astype(str).str.strip().str.lstrip('0') # Normalize
+        # Normaliza a coluna 'Estab': o pandas lê colunas numéricas do Excel como float64,
+        # então 101 vira 101.0. Converter direto para str geraria "101.0", quebrando o match.
+        # A solução é converter para numérico → inteiro nullable (suporta NaN) → str limpa.
+        df['Estab_str'] = (
+            pd.to_numeric(df['Estab'], errors='coerce')
+            .astype('Int64')  # Int64 (nullable) converte 101.0 → 101 e preserva NaN
+            .astype(str)
+            .str.strip()
+            .str.lstrip('0')
+        )
         
         # Agrupa e calcula por Estab e Nome Abrev
         agg_dict = {'Débito': 'sum'}
