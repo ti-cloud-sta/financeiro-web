@@ -1426,3 +1426,27 @@
     }
   }
 }
+
+// -------------------------------------------------------
+// Cabeçalhos de tabela clicáveis para ordenação
+// -------------------------------------------------------
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: $primary;
+  }
+
+  i.fa-sort {
+    opacity: 0.3;
+  }
+
+  i.fa-sort-up,
+  i.fa-sort-down {
+    opacity: 1;
+    color: $primary;
+  }
+}

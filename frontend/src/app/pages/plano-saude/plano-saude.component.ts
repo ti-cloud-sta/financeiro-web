@@ -312,6 +312,27 @@ export class PlanoSaudeComponent implements OnInit {
   relatoriosData = signal<RelatorioGeralRow[]>([]);
   totalGeralRelatorio = signal<number>(0);
 
+  // Ordenação da grid de relatórios
+  sortColumn = signal<string>('');
+  sortDir = signal<'asc' | 'desc'>('asc');
+
+  sortBy(col: string) {
+    if (this.sortColumn() === col) {
+      this.sortDir.set(this.sortDir() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(col);
+      this.sortDir.set('asc');
+    }
+    const dir = this.sortDir() === 'asc' ? 1 : -1;
+    const sorted = [...this.relatoriosData()].sort((a, b) => {
+      const va = (a as any)[col] ?? '';
+      const vb = (b as any)[col] ?? '';
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+      return String(va).localeCompare(String(vb), 'pt-BR') * dir;
+    });
+    this.relatoriosData.set(sorted);
+  }
+
   private searchSubject = new Subject<string>();
 
   meses = [
