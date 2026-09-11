@@ -204,6 +204,9 @@ class PlanoSaudeIAService:
         titulares_extraidos = res.get("titulares", [])
         metrics = res.get("metrics", {})
 
+        # Remove beneficiários com valor zero — não geram movimentação
+        titulares_extraidos = [t for t in titulares_extraidos if (t.get("valor_total") or 0) != 0]
+
         if not titulares_extraidos:
             sem_texto = metrics.get('total_chars', 0) < 20
             tentou_ia = metrics.get('tentou_fallback_ia', False)
@@ -271,6 +274,9 @@ class PlanoSaudeIAService:
         )
 
         titulares_extraidos = res_ia.get("titulares", [])
+
+        # Remove beneficiários com valor zero — não geram movimentação
+        titulares_extraidos = [t for t in titulares_extraidos if (t.get("valor_total") or 0) != 0]
 
         alias_repo = ColaboradorAliasRepository(self.db)
 
@@ -430,6 +436,9 @@ class PlanoSaudeIAService:
         )
 
         titulares_extraidos = res_ia.get("titulares", [])
+
+        # Remove beneficiários com valor zero — não geram movimentação
+        titulares_extraidos = [t for t in titulares_extraidos if (t.get("valor_total") or 0) != 0]
 
         colab_repo = ColaboradorRepository(self.db)
         alias_repo = ColaboradorAliasRepository(self.db)

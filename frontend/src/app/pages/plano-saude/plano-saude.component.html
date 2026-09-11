@@ -434,12 +434,36 @@
                   <table class="saas-table">
                     <thead>
                       <tr>
-                        <th>Competência</th>
-                        <th>Unidade</th>
-                        <th>Empresa</th>
-                        <th>Nome</th>
-                        <th>Centro de Custo</th>
-                        <th class="text-end">Total (R$)</th>
+                        <th class="sortable-th" (click)="sortBy('competencia')">
+                          Competência
+                          <i class="fa-solid ms-1"
+                            [ngClass]="sortColumn() === 'competencia' ? (sortDir() === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                        </th>
+                        <th class="sortable-th" (click)="sortBy('unidade')">
+                          Unidade
+                          <i class="fa-solid ms-1"
+                            [ngClass]="sortColumn() === 'unidade' ? (sortDir() === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                        </th>
+                        <th class="sortable-th" (click)="sortBy('empresa')">
+                          Empresa
+                          <i class="fa-solid ms-1"
+                            [ngClass]="sortColumn() === 'empresa' ? (sortDir() === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                        </th>
+                        <th class="sortable-th" (click)="sortBy('nome')">
+                          Nome
+                          <i class="fa-solid ms-1"
+                            [ngClass]="sortColumn() === 'nome' ? (sortDir() === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                        </th>
+                        <th class="sortable-th" (click)="sortBy('centro_custo')">
+                          Centro de Custo
+                          <i class="fa-solid ms-1"
+                            [ngClass]="sortColumn() === 'centro_custo' ? (sortDir() === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                        </th>
+                        <th class="text-end sortable-th" (click)="sortBy('total')">
+                          Total (R$)
+                          <i class="fa-solid ms-1"
+                            [ngClass]="sortColumn() === 'total' ? (sortDir() === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'"></i>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>

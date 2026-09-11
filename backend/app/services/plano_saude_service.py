@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, extract
+from sqlalchemy import func, extract, case
 from fastapi import UploadFile
 from datetime import datetime
 import pandas as pd
@@ -48,7 +48,8 @@ class PlanoSaudeService:
             query = query.filter(
                 (Colaborador.nome.ilike(search_str)) |
                 (Empresa.nome.ilike(search_str)) |
-                (Unidade.descricao.ilike(search_str))
+                (Unidade.descricao.ilike(search_str)) |
+                (CentroCusto.codigo.ilike(search_str))
             )
 
         query = query.group_by(
@@ -160,13 +161,22 @@ class PlanoSaudeService:
         consumido tanto pela exportação em CSV quanto na de largura fixa (.txt)."""
         import calendar
 
+        # Discriminador de sinal: agrupa CR e DB separadamente para que valores positivos
+        # e negativos do mesmo (empresa + CC + unidade) gerem linhas distintas no relatório,
+        # em vez de se anularem numa única soma.
+        sinal_col = case(
+            (Movimentacao.valor >= 0, "CR"),
+            else_="DB"
+        ).label("sinal")
+
         query = self.db.query(
             Empresa.idEmpresas.label("id_empresa"),
             Empresa.nome.label("empresa_nome"),
             Empresa.tipo.label("empresa_tipo"),
             CentroCusto.codigo.label("cc_codigo"),
             Unidade.codigo.label("unidade_codigo"),
-            func.sum(Movimentacao.valor).label("total")
+            func.sum(Movimentacao.valor).label("total"),
+            sinal_col,
         ).join(
             Importacao, Importacao.idImportacoes == Movimentacao.idImportacoes
         ).join(
@@ -188,14 +198,17 @@ class PlanoSaudeService:
             query = query.filter(
                 (Colaborador.nome.ilike(search_str)) |
                 (Empresa.nome.ilike(search_str)) |
-                (Unidade.descricao.ilike(search_str))
+                (Unidade.descricao.ilike(search_str)) |
+                (CentroCusto.codigo.ilike(search_str))
             )
         if id_empresa:
             query = query.filter(Movimentacao.idEmpresa == id_empresa)
 
         query = query.group_by(
             Empresa.idEmpresas, Empresa.nome, Empresa.tipo,
-            CentroCusto.codigo, Unidade.codigo
+            CentroCusto.codigo, Unidade.codigo,
+            # Sinal incluído no agrupamento para separar CR de DB
+            case((Movimentacao.valor >= 0, "CR"), else_="DB")
         ).order_by(Empresa.nome, CentroCusto.codigo, Unidade.codigo)
 
         resultados = query.all()
@@ -208,7 +221,9 @@ class PlanoSaudeService:
         for i, r in enumerate(resultados, start=1):
             valor_original = float(r.total or 0.0)
             valor_abs = abs(valor_original)
-            tipo_cr_db = "CR" if valor_original >= 0 else "DB"
+            # Usa o sinal vindo direto do GROUP BY — garante consistência com a soma:
+            # grupo CR → valor_original >= 0, grupo DB → valor_original < 0.
+            tipo_cr_db = r.sinal
 
             nome_empresa = r.empresa_nome or ""
             tipo_empresa = r.empresa_tipo or ""
