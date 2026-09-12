@@ -28,15 +28,28 @@ export class AuthService implements IAuthService {
     this.restoreSession();
   }
 
+  private isTokenExpired(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.exp < (Date.now() / 1000);
+    } catch (e) {
+      return true; // if we can't parse it, treat as expired/invalid
+    }
+  }
+
   private restoreSession(): void {
     const savedUser = localStorage.getItem(this.USER_STORAGE_KEY);
-    if (savedUser) {
+    const token = this.getToken();
+
+    if (savedUser && token && !this.isTokenExpired(token)) {
       try {
         this._currentUser.set(JSON.parse(savedUser));
       } catch (e) {
         console.error('Failed to parse saved user session', e);
         this.clearSession();
       }
+    } else {
+      this.clearSession();
     }
   }
 

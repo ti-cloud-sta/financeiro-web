@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
 --
--- Host: 127.0.0.1    Database: stamariabd
+-- Host: localhost    Database: stamariabd
 -- ------------------------------------------------------
 -- Server version	8.0.46
 
@@ -16,29 +16,30 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `modulos`
+-- Table structure for table `userrole`
 --
 
-DROP TABLE IF EXISTS `modulos`;
+DROP TABLE IF EXISTS `userrole`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `modulos` (
-  `idmodulos` int NOT NULL AUTO_INCREMENT,
-  `Descricao` varchar(45) DEFAULT NULL,
-  `createdAt` datetime DEFAULT CURRENT_TIMESTAMP,
-  `updatedAte` datetime DEFAULT NULL,
-  PRIMARY KEY (`idmodulos`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb3;
+CREATE TABLE `userrole` (
+  `idUser` int NOT NULL,
+  `idRole` int NOT NULL,
+  KEY `userfk_idx` (`idUser`),
+  KEY `rolefk_idx` (`idRole`),
+  CONSTRAINT `rolefk` FOREIGN KEY (`idRole`) REFERENCES `roles` (`idRole`),
+  CONSTRAINT `userfk` FOREIGN KEY (`idUser`) REFERENCES `users` (`iduser`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `modulos`
+-- Dumping data for table `userrole`
 --
 
-LOCK TABLES `modulos` WRITE;
-/*!40000 ALTER TABLE `modulos` DISABLE KEYS */;
-INSERT INTO `modulos` VALUES (1,'Despesas de Viagens','2026-08-22 14:33:04',NULL),(2,'Plano de Saúde','2026-08-22 14:33:18',NULL);
-/*!40000 ALTER TABLE `modulos` ENABLE KEYS */;
+LOCK TABLES `userrole` WRITE;
+/*!40000 ALTER TABLE `userrole` DISABLE KEYS */;
+INSERT INTO `userrole` VALUES (3,2);
+/*!40000 ALTER TABLE `userrole` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -50,4 +51,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-24 18:57:43
+-- Dump completed on 2026-09-11 19:43:06

@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
 --
--- Host: 127.0.0.1    Database: stamariabd
+-- Host: localhost    Database: stamariabd
 -- ------------------------------------------------------
 -- Server version	8.0.46
 
@@ -16,33 +16,31 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `colaborador_aliases`
+-- Table structure for table `colaboradorunidade`
 --
 
-DROP TABLE IF EXISTS `colaborador_aliases`;
+DROP TABLE IF EXISTS `colaboradorunidade`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `colaborador_aliases` (
-  `idAlias` int NOT NULL AUTO_INCREMENT,
+CREATE TABLE `colaboradorunidade` (
+  `idcolaboradorunidade` int NOT NULL AUTO_INCREMENT,
   `idColaborador` int NOT NULL,
-  `nome_divergente` varchar(120) NOT NULL,
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime DEFAULT NULL,
-  PRIMARY KEY (`idAlias`),
-  UNIQUE KEY `ix_colaborador_aliases_nome_divergente` (`nome_divergente`),
-  KEY `idColaborador` (`idColaborador`),
-  KEY `ix_colaborador_aliases_idAlias` (`idAlias`),
-  CONSTRAINT `colaborador_aliases_ibfk_1` FOREIGN KEY (`idColaborador`) REFERENCES `colaboradores` (`idColaborador`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+  `idUnidade` int NOT NULL,
+  PRIMARY KEY (`idcolaboradorunidade`),
+  KEY `colabUniColab_idx` (`idColaborador`),
+  KEY `colabColabUni_idx` (`idUnidade`),
+  CONSTRAINT `colabColabUni` FOREIGN KEY (`idUnidade`) REFERENCES `unidade` (`idUnidade`),
+  CONSTRAINT `colabUniColab` FOREIGN KEY (`idColaborador`) REFERENCES `colaboradores` (`idColaborador`)
+) ENGINE=InnoDB AUTO_INCREMENT=1542 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `colaborador_aliases`
+-- Dumping data for table `colaboradorunidade`
 --
 
-LOCK TABLES `colaborador_aliases` WRITE;
-/*!40000 ALTER TABLE `colaborador_aliases` DISABLE KEYS */;
-/*!40000 ALTER TABLE `colaborador_aliases` ENABLE KEYS */;
+LOCK TABLES `colaboradorunidade` WRITE;
+/*!40000 ALTER TABLE `colaboradorunidade` DISABLE KEYS */;
+/*!40000 ALTER TABLE `colaboradorunidade` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -54,4 +52,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-24 18:57:45
+-- Dump completed on 2026-09-11 19:43:58

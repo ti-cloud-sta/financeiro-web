@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
 --
--- Host: 127.0.0.1    Database: stamariabd
+-- Host: localhost    Database: stamariabd
 -- ------------------------------------------------------
 -- Server version	8.0.46
 
@@ -16,28 +16,28 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `unidade`
+-- Table structure for table `tratativapendencia`
 --
 
-DROP TABLE IF EXISTS `unidade`;
+DROP TABLE IF EXISTS `tratativapendencia`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `unidade` (
-  `idUnidade` int NOT NULL AUTO_INCREMENT,
-  `codigo` int NOT NULL,
-  `descricao` varchar(50) NOT NULL,
-  PRIMARY KEY (`idUnidade`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb3;
+CREATE TABLE `tratativapendencia` (
+  `idtratativapendencia` int NOT NULL AUTO_INCREMENT,
+  `conteudo` varchar(500) DEFAULT NULL,
+  `createdAt` datetime DEFAULT CURRENT_TIMESTAMP,
+  `idUserCreated` int DEFAULT NULL,
+  PRIMARY KEY (`idtratativapendencia`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `unidade`
+-- Dumping data for table `tratativapendencia`
 --
 
-LOCK TABLES `unidade` WRITE;
-/*!40000 ALTER TABLE `unidade` DISABLE KEYS */;
-INSERT INTO `unidade` VALUES (1,101,'Matriz'),(2,104,'Filial Linhares'),(3,106,'Filial Linhares');
-/*!40000 ALTER TABLE `unidade` ENABLE KEYS */;
+LOCK TABLES `tratativapendencia` WRITE;
+/*!40000 ALTER TABLE `tratativapendencia` DISABLE KEYS */;
+/*!40000 ALTER TABLE `tratativapendencia` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -49,4 +49,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-24 18:57:44
+-- Dump completed on 2026-09-11 19:43:15
