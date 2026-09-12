@@ -71,18 +71,18 @@ class PlanoSaudeIAService:
             doc_normalizado = self._normaliza_cpf(documento)
             if len(doc_normalizado) == 11:
                 colab = colab_repo.get_by_documento(doc_normalizado)
-                if colab:
+                if colab and colab.snAtivo == 'S':
                     return colab, colab.nome
             # CPF fornecido mas não encontrado no banco → não inventa vínculo por nome
             return None, nome_pdf
 
         alias_record = alias_repo.get_by_nome_divergente(nome_pdf)
-        if alias_record and alias_record.colaborador:
+        if alias_record and alias_record.colaborador and alias_record.colaborador.snAtivo == 'S':
             return alias_record.colaborador, alias_record.colaborador.nome
 
         if permite_fallback_nome:
             colab = colab_repo.get_by_nome_normalizado(nome_pdf)
-            if colab:
+            if colab and colab.snAtivo == 'S':
                 return colab, colab.nome
 
         return None, nome_pdf
@@ -185,7 +185,7 @@ class PlanoSaudeIAService:
         content = await file.read()
 
         colab_repo = ColaboradorRepository(self.db)
-        colabs_db, _ = colab_repo.get_all(limit=5000)
+        colabs_db = self.db.query(Colaborador).filter(Colaborador.snAtivo == 'S').all()
         nomes_colaboradores = [c.nome for c in colabs_db]
 
         ia = IAService()
@@ -263,7 +263,7 @@ class PlanoSaudeIAService:
         content = await file.read()
 
         colab_repo = ColaboradorRepository(self.db)
-        colabs_db, _ = colab_repo.get_all(limit=5000)
+        colabs_db = self.db.query(Colaborador).filter(Colaborador.snAtivo == 'S').all()
         nomes_colaboradores = [c.nome for c in colabs_db]
 
         ia = IAService()
@@ -425,7 +425,8 @@ class PlanoSaudeIAService:
     async def analisar_unimed_odonto(self, file: UploadFile) -> dict:
         content = await file.read()
 
-        colabs_db = self.db.query(Colaborador).all()
+        colab_repo = ColaboradorRepository(self.db)
+        colabs_db = self.db.query(Colaborador).filter(Colaborador.snAtivo == 'S').all()
         nomes_colaboradores = [c.nome for c in colabs_db]
 
         ia = IAService()
@@ -509,6 +510,14 @@ class PlanoSaudeIAService:
             if not colab:
                 erros_colaboradores.append(t.nome_db)
                 continue
+
+            # --- SALVAR O ALIAS / APRENDIZADO ---
+            if t.nome_pdf and t.nome_pdf.strip().upper() != colab.nome.strip().upper():
+                try:
+                    alias_repo = ColaboradorAliasRepository(self.db)
+                    alias_repo.create_or_update(colab.idColaborador, t.nome_pdf.strip())
+                except Exception as ex:
+                    print(f"[WARN] Falha ao salvar Alias de colaborador: {ex}")
 
             nova_mov = Movimentacao(
                 idCategoria=cat.idCategorias,
