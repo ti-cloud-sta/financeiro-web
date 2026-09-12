@@ -41,7 +41,21 @@ class ColaboradorService:
 
     def create_colaborador(self, colab_in: ColaboradorCreate, user_id: int):
         self._validate_fk(colab_in.idCargoColaborador)
-        novo_colab = self.repository.create(colab_in)
+        
+        existente = None
+        if getattr(colab_in, "documento", None):
+            existente = self.repository.get_by_documento(colab_in.documento)
+            
+        if existente:
+            update_data = colab_in.model_dump(exclude_unset=True, exclude={"origem"})
+            for field, value in update_data.items():
+                setattr(existente, field, value)
+            existente.snAtivo = 'S'
+            self.repository.db.commit()
+            self.repository.db.refresh(existente)
+            novo_colab = existente
+        else:
+            novo_colab = self.repository.create(colab_in)
         
         movimento = ColaboradoresMovimento(
             idColaboradores=novo_colab.idColaborador,
