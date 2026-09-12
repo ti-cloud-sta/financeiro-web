@@ -23,8 +23,9 @@ def get_current_user(
         token_data = TokenPayload(**payload)
     except jwt.PyJWTError:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Não foi possível validar as credenciais",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     user = db.query(User).filter(User.iduser == int(token_data.sub)).first()
     if not user:

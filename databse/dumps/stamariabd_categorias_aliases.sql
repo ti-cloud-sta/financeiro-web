@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
 --
--- Host: 127.0.0.1    Database: stamariabd
+-- Host: localhost    Database: stamariabd
 -- ------------------------------------------------------
 -- Server version	8.0.46
 
@@ -16,32 +16,29 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `empresamodulo`
+-- Table structure for table `categorias_aliases`
 --
 
-DROP TABLE IF EXISTS `empresamodulo`;
+DROP TABLE IF EXISTS `categorias_aliases`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `empresamodulo` (
-  `idempresamodulo` int NOT NULL AUTO_INCREMENT,
-  `idEmpresas` int NOT NULL,
-  `idModulos` int NOT NULL,
-  PRIMARY KEY (`idempresamodulo`),
-  KEY `empresaFk_idx` (`idEmpresas`),
-  KEY `modulo_idx` (`idModulos`),
-  CONSTRAINT `empresaFk` FOREIGN KEY (`idEmpresas`) REFERENCES `empresas` (`idEmpresas`),
-  CONSTRAINT `modulo` FOREIGN KEY (`idModulos`) REFERENCES `modulos` (`idmodulos`)
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb3;
+CREATE TABLE `categorias_aliases` (
+  `idcategorias_aliases` int NOT NULL AUTO_INCREMENT,
+  `idCategoria` int NOT NULL,
+  `alias` varchar(45) NOT NULL,
+  PRIMARY KEY (`idcategorias_aliases`),
+  KEY `cateAlias_idx` (`idCategoria`),
+  CONSTRAINT `cateAlias` FOREIGN KEY (`idCategoria`) REFERENCES `categorias` (`idCategorias`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `empresamodulo`
+-- Dumping data for table `categorias_aliases`
 --
 
-LOCK TABLES `empresamodulo` WRITE;
-/*!40000 ALTER TABLE `empresamodulo` DISABLE KEYS */;
-INSERT INTO `empresamodulo` VALUES (1,1,1),(4,2,1),(5,3,1),(6,4,1),(7,5,1),(8,6,1),(9,7,1),(10,8,1),(19,21,2),(20,22,2),(21,23,2);
-/*!40000 ALTER TABLE `empresamodulo` ENABLE KEYS */;
+LOCK TABLES `categorias_aliases` WRITE;
+/*!40000 ALTER TABLE `categorias_aliases` DISABLE KEYS */;
+/*!40000 ALTER TABLE `categorias_aliases` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -53,4 +50,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-24 18:57:43
+-- Dump completed on 2026-09-11 19:43:03

@@ -289,12 +289,12 @@ class IAService:
     def _fmt_seguro_vida(self, lines):
         """FORMATO B: Seguro de Vida - marcadores de movimento ALT/INC/EXC colados a digitos
         (ex: 'N ALT156248298'), seguidos de valor, nome e tipo T/D na mesma linha."""
-        mov_pattern = re.compile(r'\b(?:ALT|INC|EXC)\s{0,2}\d')
+        mov_pattern = re.compile(r'\b(?:ALT|INC|EXC|SMV)\s{0,2}\d')
         candidate_lines = [l for l in lines if len(l) < 400 and mov_pattern.search(l)]
-        if len(candidate_lines) < 5:
-            return None
-
-        seg_pattern = re.compile(r'(\d+,\d{2})(\d+)([A-Z][^\d]{2,80}?)\s+(T|D)(?=\s|$)\s*(\d{0,15})')
+        # Padrão: Valor(ex: 8,04) + matricula(ex: 114) + Nome + T/D + CPF(opcional, até 15 dígitos)
+        # O nome é capturado de forma gulosa (greedy) para evitar que a letra T/D do final do nome seja confundida
+        # com o Tipo de Segurado (T/D).
+        seg_pattern = re.compile(r'(\d+,\d{2})(\d+)([A-Z][^\d]{2,80})\s+(T|D)(?=\s|$)\s*(\d{0,15})(?:\s|$)')
 
         titulares_dict = {}
         dependentes_list = []
@@ -576,9 +576,18 @@ class IAService:
                 continue
             name_key = name.upper()
 
+            documento = None
+            cpf_match = re.search(r'\b(\d{3}\.\d{3}\.\d{3}-\d{2})\b', line)
+            if cpf_match:
+                documento = self._normaliza_cpf(cpf_match.group(1))
+            else:
+                cpf_raw_match = re.search(r'(?<!\d)(\d{11})(?!\d)', line)
+                if cpf_raw_match:
+                    documento = self._normaliza_cpf(cpf_raw_match.group(1))
+
             if tp == 'T':
                 current_titular_key = name_key
-                self._add_titular(titulares_dict, name_key, name, valor)
+                self._add_titular(titulares_dict, name_key, name, valor, documento=documento)
             elif tp == 'D' and current_titular_key:
                 dependentes_list.append({"nome": name, "valor": valor, "_parent": current_titular_key})
 
