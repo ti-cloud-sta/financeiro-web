@@ -122,6 +122,7 @@ class DespesasViagensService:
                 idCategoria=cat.idCategorias,
                 idColaborador=colab.idColaborador,
                 idEmpresa=emp.idEmpresas,
+                idUnidade=payload.idUnidade,
                 idImportacoes=nova_importacao.idImportacoes if nova_importacao else None,
                 nroDocumento=d.nroDocumento or None,
                 valor=d.valor,
@@ -145,6 +146,7 @@ class DespesasViagensService:
         from app.models.colaborador import Colaborador
         from app.models.empresa import Empresa
         from app.models.categoria import Categoria
+        from app.models.unidade import Unidade
 
         db = self.db
 
@@ -154,6 +156,7 @@ class DespesasViagensService:
         id_empresa = filtros.get("id_empresa")
         id_colaborador = filtros.get("id_colaborador")
         id_categoria = filtros.get("id_categoria")
+        id_unidade = filtros.get("id_unidade")
 
         def parse_date(d):
             if not d:
@@ -182,6 +185,8 @@ class DespesasViagensService:
                 q = q.filter(Movimentacao.idColaborador == id_colaborador)
             if id_categoria:
                 q = q.filter(Movimentacao.idCategoria == id_categoria)
+            if id_unidade:
+                q = q.filter(Movimentacao.idUnidade == id_unidade)
             # Apenas importações do tipo IA_DESPESAS ou lançamentos manuais (sem importacao)
             q = q.outerjoin(Importacao, Movimentacao.idImportacoes == Importacao.idImportacoes)
             q = q.filter(
@@ -222,6 +227,8 @@ class DespesasViagensService:
                 q = q.filter(Movimentacao.idColaborador == id_colaborador)
             if id_categoria:
                 q = q.filter(Movimentacao.idCategoria == id_categoria)
+            if id_unidade:
+                q = q.filter(Movimentacao.idUnidade == id_unidade)
             return float(q.scalar() or 0)
 
         total_mes = soma_mes(inicio_mes, agora)
@@ -237,7 +244,8 @@ class DespesasViagensService:
         maior = base_q().with_entities(
             Movimentacao.valor,
             Movimentacao.idColaborador,
-            Movimentacao.idCategoria
+            Movimentacao.idCategoria,
+            Movimentacao.idUnidade
         ).order_by(Movimentacao.valor.desc()).first()
 
         maior_valor = 0.0
@@ -246,9 +254,11 @@ class DespesasViagensService:
             maior_valor = float(maior.valor)
             colab = db.query(Colaborador).filter(Colaborador.idColaborador == maior.idColaborador).first()
             cat = db.query(Categoria).filter(Categoria.idCategorias == maior.idCategoria).first()
+            uni = db.query(Unidade).filter(Unidade.idUnidade == maior.idUnidade).first() if maior.idUnidade else None
             nome_colab = colab.nome if colab else "?"
             nome_cat = cat.nome if cat else "?"
-            maior_contexto = f"{nome_colab} · {nome_cat}"
+            nome_uni = uni.descricao if uni else "N/D"
+            maior_contexto = f"{nome_colab} · {nome_uni} · {nome_cat}"
 
         # ---- Tabela Maiores Despesas (top 10) ----
         top_rows = (
@@ -456,6 +466,7 @@ class DespesasViagensService:
         id_empresa = filtros.get("id_empresa")
         id_colaborador = filtros.get("id_colaborador")
         id_categoria = filtros.get("id_categoria")
+        id_unidade = filtros.get("id_unidade")
 
         # Base query for all Despesas de Viagens
         def base_q():
@@ -477,6 +488,8 @@ class DespesasViagensService:
                 q = q.filter(Movimentacao.idColaborador == id_colaborador)
             if id_categoria:
                 q = q.filter(Movimentacao.idCategoria == id_categoria)
+            if id_unidade:
+                q = q.filter(Movimentacao.idUnidade == id_unidade)
             
             # Filtro Comercial/Marketing
             q = q.join(Colaborador, Movimentacao.idColaborador == Colaborador.idColaborador)
@@ -656,6 +669,7 @@ class DespesasViagensService:
         from app.models.empresa import Empresa
         from app.models.user import User
         from app.models.importacao import Importacao
+        from app.models.unidade import Unidade
         
         q = self.db.query(
             Movimentacao.valor,
@@ -663,12 +677,14 @@ class DespesasViagensService:
             Colaborador.nome.label("colab_nome"),
             Empresa.nome.label("empresa_nome"),
             CentroCusto.nome.label("cc_nome"),
-            CentroCusto.codigo.label("cc_codigo")
+            CentroCusto.codigo.label("cc_codigo"),
+            Unidade.codigo.label("unidade_codigo")
         ).outerjoin(Importacao, Movimentacao.idImportacoes == Importacao.idImportacoes) \
          .outerjoin(Categoria, Movimentacao.idCategoria == Categoria.idCategorias) \
          .outerjoin(Colaborador, Movimentacao.idColaborador == Colaborador.idColaborador) \
          .outerjoin(CentroCusto, Colaborador.idCentroCusto == CentroCusto.idCentroCusto) \
          .outerjoin(Empresa, Movimentacao.idEmpresa == Empresa.idEmpresas) \
+         .outerjoin(Unidade, Movimentacao.idUnidade == Unidade.idUnidade) \
          .filter((Movimentacao.idImportacoes == None) | (Importacao.tipo == 'IA_DESPESAS'))
 
         if filtros.get("data_inicio"):
@@ -681,6 +697,8 @@ class DespesasViagensService:
             q = q.filter(Movimentacao.idColaborador == filtros["id_colaborador"])
         if filtros.get("id_centro_custo"):
             q = q.filter(CentroCusto.nome == filtros["id_centro_custo"])
+        if filtros.get("id_unidade"):
+            q = q.filter(Movimentacao.idUnidade == filtros["id_unidade"])
 
         movs = q.all()
 
@@ -697,6 +715,7 @@ class DespesasViagensService:
             empresa = r.empresa_nome or ""
             cc_nome = r.cc_nome or ""
             cc_codigo = r.cc_codigo or ""
+            unidade_nome = str(r.unidade_codigo) if r.unidade_codigo else "N/D"
             
             categorias_set.add(cat)
             totais_cat[cat] = totais_cat.get(cat, 0) + val
@@ -707,6 +726,7 @@ class DespesasViagensService:
                     "empresaNome": empresa,
                     "centroCustoNome": cc_nome,
                     "centroCustoCodigo": cc_codigo,
+                    "unidadeNome": unidade_nome,
                     "valoresPorCategoria": {},
                     "total": 0
                 }

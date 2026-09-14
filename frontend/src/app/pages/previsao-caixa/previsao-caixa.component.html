@@ -1,0 +1,48 @@
+<div class="page-container">
+  <div class="main-layout">
+    
+    <!-- Sidebar -->
+    <aside class="main-sidebar" [class.collapsed]="isSidebarCollapsed">
+      <div class="sidebar-header d-flex justify-content-end mb-3 pb-2 border-bottom">
+        <button class="btn btn-sm text-muted sidebar-toggle" (click)="toggleSidebar()"
+          style="background: transparent; border: none; padding: 0.25rem 0.5rem; border-radius: 6px;">
+          <i class="fa-solid" [ngClass]="isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+        </button>
+      </div>
+      
+      <ul class="main-nav">
+        <li>
+          <button class="main-nav-link active" title="Visão Geral">
+            <i class="fa-solid fa-chart-line"></i> <span class="nav-text">Visão Geral</span>
+          </button>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="config-layout">
+        <div class="dashboard-header border-bottom">
+          <h3 class="mb-0 p-3" style="font-size: 1.5rem; font-weight: 600;">Previsão de Caixa</h3>
+        </div>
+        
+        <div class="p-4 d-flex justify-content-center align-items-center" style="flex: 1; flex-direction: column;">
+          <div class="text-center" style="max-width: 600px;">
+            <div class="mb-4">
+              <i class="fa-solid fa-money-bill-trend-up text-primary" style="font-size: 4rem; opacity: 0.8;"></i>
+            </div>
+            <h4 class="mb-3" style="font-size: 1.25rem; font-weight: 600;">Módulo de Previsão de Caixa</h4>
+            <p class="text-muted mb-4" style="font-size: 0.95rem; line-height: 1.5;">
+              Este módulo foca no monitoramento do dinheiro que vai entrar para cobrir o que vai sair. 
+              Realizaremos a conciliação dos recebimentos de clientes com os pagamentos previstos da empresa para projetar a necessidade de recursos futuros.
+            </p>
+            <app-button variant="primary" icon="fa-solid fa-folder-open" (clicked)="abrirModulo()">
+              Abrir módulo
+            </app-button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+</div>

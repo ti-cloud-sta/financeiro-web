@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
 from app.schemas.cargo_colaborador import CargoColaboradorResponse
@@ -11,6 +11,13 @@ class ColaboradorBase(BaseModel):
     idCargoColaborador: Optional[int] = None
     documento: Optional[str] = Field(None, max_length=30)
     snAtivo: Optional[str] = Field(None, max_length=1)
+
+    @field_validator('nome')
+    @classmethod
+    def nome_upper(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return v.upper()
+        return v
 
 class ColaboradorCreate(ColaboradorBase):
     nome: str = Field(..., max_length=80)

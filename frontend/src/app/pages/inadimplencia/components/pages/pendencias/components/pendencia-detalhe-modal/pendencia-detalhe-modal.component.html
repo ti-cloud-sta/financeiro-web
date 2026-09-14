@@ -57,19 +57,13 @@
         <label>Saldo</label>
         <span class="value-money" [class.text-danger]="d.saldo > 0">{{ d.saldo | currency:'BRL' }}</span>
       </div>
-      <div class="detail-field detail-field--select">
-        <label>Fase {{ salvandoFase ? '(salvando...)' : '' }}</label>
-        <select class="form-select form-select-sm" [ngModel]="d.fase" (ngModelChange)="onFaseChange($event)"
-          [disabled]="salvandoFase">
-          <option *ngFor="let opt of faseOptions" [value]="opt">{{ opt }}</option>
-        </select>
+      <div class="detail-field">
+        <label>Fase</label>
+        <span class="badge bg-{{faseColor}} bg-opacity-10 text-{{faseColor}} px-2 py-1" style="font-size: 0.75rem; font-weight: 700;">{{ d.fase }}</span>
       </div>
-      <div class="detail-field detail-field--select">
-        <label>Status {{ salvandoStatus ? '(salvando...)' : '' }}</label>
-        <select class="form-select form-select-sm" [ngModel]="statusSelecionado" (ngModelChange)="onStatusChange($event)"
-          [disabled]="salvandoStatus">
-          <option *ngFor="let opt of statusOptions" [value]="opt">{{ opt }}</option>
-        </select>
+      <div class="detail-field">
+        <label>Status</label>
+        <span class="badge bg-{{card?.statusColor}} bg-opacity-10 text-{{card?.statusColor}} px-2 py-1" style="font-size: 0.75rem; font-weight: 700;">{{ statusSelecionado }}</span>
       </div>
     </div>
 

@@ -34,11 +34,12 @@ import { LoadingComponent } from '../../shared/components/loading/loading.compon
 import { ThemeService } from '../../core/services/theme.service';
 import { ToastService } from '../../core/services/toast.service';
 import { RelatorioViagensComponent } from './relatorio-viagens/relatorio-viagens.component';
+import { ColaboradorModalComponent } from '../../shared/components/colaborador-modal/colaborador-modal.component';
 
 @Component({
   selector: 'app-despesas-viagens',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, NgSelectModule, CardComponent, ButtonComponent, BadgeComponent, ModalComponent, ConfirmModalComponent, NgxEchartsDirective, FlatpickrModule, SkeletonComponent, LoadingComponent, RelatorioViagensComponent],
+  imports: [CommonModule, RouterModule, FormsModule, NgSelectModule, CardComponent, ButtonComponent, BadgeComponent, ModalComponent, ConfirmModalComponent, NgxEchartsDirective, FlatpickrModule, SkeletonComponent, LoadingComponent, RelatorioViagensComponent, ColaboradorModalComponent],
   templateUrl: './despesas-viagens.component.html',
   styleUrl: './despesas-viagens.component.scss'
 })
@@ -74,7 +75,7 @@ export class DespesasViagensComponent implements OnInit {
 
   dashDataInicio: Date | null = null;
   dashDataFim: Date | null = null;
-  activePeriodShortcut: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-ano' | 'ano-passado' | 'personalizado' | null = null;
+  activePeriodShortcut: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-mes' | 'este-ano' | 'ano-passado' | 'personalizado' | null = null;
 
   dashFiltroEmpresa: string = null as any;
   dashFiltroPessoa: string = null as any;
@@ -573,6 +574,7 @@ export class DespesasViagensComponent implements OnInit {
     if (reason === 'cancel-button' || reason === 'x-button') {
       this._clearDraft();
     }
+    this.unidadeSelecionadaId.set(null);
     this.isImportModalOpen = false;
   }
 
@@ -671,6 +673,7 @@ export class DespesasViagensComponent implements OnInit {
 
   // ESTADOS DO MODAL DE CONFERÊNCIA
   dataCompetencia = signal<string>(new Date().toISOString().split('T')[0]);
+  unidadeSelecionadaId = signal<number | null>(null);
   searchDespesaTerm = signal<string>('');
   mostrarDivergenciaOnly = signal<boolean>(false);
   isAddingDespesa = signal<boolean>(false);
@@ -683,6 +686,35 @@ export class DespesasViagensComponent implements OnInit {
   newDespesaColaborador = signal<string>('');
   newDespesaCategoria = signal<string>('');
   newDespesaValor = signal<number>(0);
+
+  isColaboradorModalOpen = false;
+  colaboradorToCreateName = '';
+  editingDespesaRef: any = null;
+
+  openCreateColaboradorModal(despesa: any) {
+    this.editingDespesaRef = despesa;
+    this.colaboradorToCreateName = despesa.pessoa || '';
+    this.isColaboradorModalOpen = true;
+  }
+
+  onColaboradorSaved(novoColaborador: any) {
+    if (this.editingDespesaRef) {
+      this.despesasExtraidas = this.despesasExtraidas.map(d => {
+        if (d === this.editingDespesaRef) {
+          return {
+            ...d,
+            idColaborador: novoColaborador.idColaborador,
+            pessoa_encontrada: true,
+            pessoa: novoColaborador.nome
+          };
+        }
+        return d;
+      });
+      this._saveDraft();
+      this.editingDespesaRef = null;
+    }
+    this.isColaboradorModalOpen = false;
+  }
 
   get filteredParsedDespesas() {
     let list = this.despesasExtraidas;
@@ -824,6 +856,7 @@ export class DespesasViagensComponent implements OnInit {
       })),
       idUserInc: idUserLogado,
       dataCompetencia: this.dataCompetencia(),
+      idUnidade: this.unidadeSelecionadaId() || undefined,
       isManualEntry: this.isManualEntry,
       idEmpresaManual: this.isManualEntry ? (this.empresaSelecionada?.idEmpresas || null) : null
     };
@@ -926,7 +959,7 @@ export class DespesasViagensComponent implements OnInit {
   // Filtros Comercial/Marketing
   analiticoDataInicio: Date | null = null;
   analiticoDataFim: Date | null = null;
-  analiticoPeriodShortcut: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-ano' | 'ano-passado' | 'personalizado' | null = null;
+  analiticoPeriodShortcut: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-mes' | 'este-ano' | 'ano-passado' | 'personalizado' | null = null;
   analiticoCategoria: string | null = null;
   analiticoColaborador: string | null = null;
   analiticoCentroCusto: string | null = null;
@@ -994,13 +1027,13 @@ export class DespesasViagensComponent implements OnInit {
     this.atualizarDadosAnalitico();
   }
 
-  onAnaliticoShortcutSelectChange(val: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-ano' | 'ano-passado' | 'personalizado') {
+  onAnaliticoShortcutSelectChange(val: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-mes' | 'este-ano' | 'ano-passado' | 'personalizado') {
     if (val && val !== 'personalizado') {
       this.selecionarAtalhoPeriodoAnalitico(val);
     }
   }
 
-  selecionarAtalhoPeriodoAnalitico(shortcut: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-ano' | 'ano-passado') {
+  selecionarAtalhoPeriodoAnalitico(shortcut: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-mes' | 'este-ano' | 'ano-passado') {
     const today = new Date();
     const getPastDate = (monthsAgo: number) => {
       const d = new Date();
@@ -1014,6 +1047,9 @@ export class DespesasViagensComponent implements OnInit {
     } else if (shortcut === 'ultimo-semestre') {
       this.analiticoDataInicio = getPastDate(6);
       this.analiticoDataFim = today;
+    } else if (shortcut === 'este-mes') {
+      this.analiticoDataInicio = new Date(today.getFullYear(), today.getMonth(), 1);
+      this.analiticoDataFim = new Date(today.getFullYear(), today.getMonth() + 1, 0);
     } else if (shortcut === 'este-ano') {
       this.analiticoDataInicio = new Date(today.getFullYear(), 0, 1);
       this.analiticoDataFim = new Date(today.getFullYear(), 11, 31);
@@ -1391,7 +1427,7 @@ export class DespesasViagensComponent implements OnInit {
     }
   }
 
-  onShortcutSelectChange(val: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-ano' | 'ano-passado' | 'personalizado') {
+  onShortcutSelectChange(val: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-mes' | 'este-ano' | 'ano-passado' | 'personalizado') {
     if (val && val !== 'personalizado') {
       this.selecionarAtalhoPeriodo(val);
     }
@@ -1404,7 +1440,7 @@ export class DespesasViagensComponent implements OnInit {
     return !!this.dashDataInicio && !!this.dashDataFim && this.dashDataInicio <= this.dashDataFim;
   }
 
-  selecionarAtalhoPeriodo(shortcut: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-ano' | 'ano-passado') {
+  selecionarAtalhoPeriodo(shortcut: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-mes' | 'este-ano' | 'ano-passado') {
     const today = new Date();
 
     const getPastDate = (monthsAgo: number) => {
@@ -1419,6 +1455,9 @@ export class DespesasViagensComponent implements OnInit {
     } else if (shortcut === 'ultimo-semestre') {
       this.dashDataInicio = getPastDate(6);
       this.dashDataFim = today;
+    } else if (shortcut === 'este-mes') {
+      this.dashDataInicio = new Date(today.getFullYear(), today.getMonth(), 1);
+      this.dashDataFim = new Date(today.getFullYear(), today.getMonth() + 1, 0);
     } else if (shortcut === 'este-ano') {
       this.dashDataInicio = new Date(today.getFullYear(), 0, 1);
       this.dashDataFim = new Date(today.getFullYear(), 11, 31);

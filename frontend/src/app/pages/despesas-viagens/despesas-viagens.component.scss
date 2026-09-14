@@ -1614,3 +1614,42 @@
     text-align: right;
   }
 }
+
+/* ==========================================================================
+   LOADING STEPS (Extração IA)
+   ========================================================================== */
+.progress-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: $gray-400;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+    
+    i {
+      font-size: 0.95rem;
+      width: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    &.active {
+      color: $primary;
+      font-weight: $font-weight-medium;
+      
+      i {
+        animation: spin 1s linear infinite;
+      }
+    }
+    
+    &.done {
+      color: $success;
+    }
+  }
+}

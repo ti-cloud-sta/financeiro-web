@@ -22,6 +22,7 @@ class DashboardService:
         id_empresa: int = None,
         id_colaborador: int = None,
         id_categoria: int = None,
+        id_unidade: int = None,
         tipo_importacao: str = None
     ) -> Dict[str, Any]:
         # Formata datas base
@@ -53,6 +54,8 @@ class DashboardService:
                 q = q.filter(Movimentacao.idColaborador == id_colaborador)
             if id_categoria:
                 q = q.filter(Movimentacao.idCategoria == id_categoria)
+            if id_unidade:
+                q = q.filter(Movimentacao.idUnidade == id_unidade)
             return q
 
         # --- CARD 1: Total e quantidade de despesas ---
@@ -95,6 +98,8 @@ class DashboardService:
                 q = q.filter(Movimentacao.idColaborador == id_colaborador)
             if id_categoria:
                 q = q.filter(Movimentacao.idCategoria == id_categoria)
+            if id_unidade:
+                q = q.filter(Movimentacao.idUnidade == id_unidade)
             return float(q.scalar() or 0)
 
         total_mes_ref = query_month_sum(start_month_ref, next_month_ref)
@@ -140,10 +145,9 @@ class DashboardService:
         q_max = self.db.query(
             Movimentacao.valor,
             Categoria.nome.label("categoria_nome"),
-            CentroEstado.estado.label("estado")
+            Unidade.descricao.label("estado")
         ).join(Categoria, Movimentacao.idCategoria == Categoria.idCategorias)\
-         .join(Colaborador, Movimentacao.idColaborador == Colaborador.idColaborador)\
-         .outerjoin(CentroEstado, Colaborador.idCentroCusto == CentroEstado.idCentroCusto)
+         .outerjoin(Unidade, Movimentacao.idUnidade == Unidade.idUnidade)
         q_max = apply_filters(q_max).order_by(Movimentacao.valor.desc())
         res_max = q_max.first()
 
@@ -229,12 +233,11 @@ class DashboardService:
 
         # --- GRÁFICO 4: Distribuição por Estado (Mapa) ---
         q_map_dist = self.db.query(
-            CentroEstado.estado,
+            Unidade.descricao.label("estado"),
             func.sum(Movimentacao.valor),
             func.count(Movimentacao.idMovimentacoes)
-        ).join(Colaborador, Movimentacao.idColaborador == Colaborador.idColaborador)\
-         .join(CentroEstado, Colaborador.idCentroCusto == CentroEstado.idCentroCusto)
-        q_map_dist = apply_filters(q_map_dist).group_by(CentroEstado.estado).all()
+        ).outerjoin(Unidade, Movimentacao.idUnidade == Unidade.idUnidade)
+        q_map_dist = apply_filters(q_map_dist).group_by(Unidade.descricao).all()
 
         map_states_dict = {}
         for r in q_map_dist:

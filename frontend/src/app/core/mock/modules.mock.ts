@@ -28,15 +28,15 @@ export const MOCK_MODULES: AppModule[] = [
     isActive: true,
     category: 'Importação'
   },
-  // {
-  //   id: 'mod-inadimplencia',
-  //   name: 'Inadimplência',
-  //   icon: 'fa-solid fa-file-invoice-dollar',
-  //   route: '/inadimplencia',
-  //   description: 'Gestão de inadimplência.',
-  //   isActive: true,
-  //   category: 'Cobrança'
-  // },
+  {
+    id: 'mod-inadimplencia',
+    name: 'Pendências',
+    icon: 'fa-solid fa-file-invoice-dollar',
+    route: '/inadimplencia',
+    description: 'Gestão de pendências.',
+    isActive: true,
+    category: 'Cobrança'
+  },
   {
     id: 'mod-conciliacao',
     name: 'Conciliação de Pagamentos',
@@ -45,6 +45,15 @@ export const MOCK_MODULES: AppModule[] = [
     description: 'Conciliação de pagamentos.',
     isActive: true,
     category: 'Pagamentos'
+  },
+  {
+    id: 'mod-previsao-caixa',
+    name: 'Previsão de Caixa',
+    icon: 'fa-solid fa-money-bill-trend-up',
+    route: '/previsao-caixa',
+    description: 'Conciliação de caixa.',
+    isActive: true,
+    category: 'Financeiro'
   },
   {
     id: 'mod-configuracoes',

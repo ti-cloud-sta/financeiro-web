@@ -8,9 +8,6 @@
           <p class="text-muted small mb-0">Detalhamento completo das despesas por colaborador e categoria.</p>
         </div>
         <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-secondary" (click)="exportRelatorioToExcel()">
-            <i class="fa-solid fa-download me-2"></i>Exportar Excel
-          </button>
         </div>
       </div>
     </div>
@@ -18,8 +15,9 @@
     <!-- Content -->
     <main class="dashboard-content px-4 py-4" style="flex-grow: 1;">
       <!-- Painel de Filtros Premium -->
-      <div class="filters-panel-card mb-4">
-        <div class="filters-grid">
+      <div class="filters-panel-card mb-4 p-3 p-md-4">
+        <div class="d-flex flex-column flex-xl-row justify-content-between align-items-stretch align-items-xl-center gap-4">
+          <div class="filters-grid flex-grow-1" style="margin: 0;">
           <!-- Período -->
           <div class="filter-group period-filter-group">
             <span class="filter-label mb-2 d-block">Período</span>
@@ -45,6 +43,7 @@
                 (ngModelChange)="onRelatorioShortcutSelectChange($event)">
                 <option value="ultimo-bimestre">Últ. Bimestre</option>
                 <option value="ultimo-semestre">Últ. Semestre</option>
+                <option value="este-mes">Este mês</option>
                 <option value="este-ano">Este Ano</option>
                 <option value="ano-passado">Ano Passado</option>
                 <option value="personalizado" disabled>Personalizado</option>
@@ -73,17 +72,15 @@
               }
             </select>
           </div>
-          <!-- Centro de Custo -->
-          <div class="filter-group" style="min-width: 200px;">
-            <label class="filter-label mb-2">Centro de Custo</label>
-            <select class="form-select form-select-sm" [(ngModel)]="relatorioCentroCusto"
-              (ngModelChange)="atualizarDadosRelatorio()">
-              <option [value]="null">Todos</option>
-              @for (cc of listaCentrosCusto; track cc) {
-                <option [value]="cc.nome">{{ cc.codigo }} - {{ cc.nome }}</option>
-              }
-            </select>
-          </div>
+        </div>
+
+        <!-- Card Total Geral -->
+        <div class="p-3 rounded-3 d-flex flex-row flex-xl-column justify-content-between align-items-center align-items-xl-end border flex-xl-grow-0 mt-2 mt-xl-0" style="background-color: #f8fafc; border-color: #e2e8f0 !important; min-width: 240px;">
+          <span class="text-muted text-uppercase mb-xl-1 mb-0" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Total</span>
+          <span class="fs-4 fw-bold text-primary tabular-nums" style="line-height: 1;">
+            {{ relatorioDetalhesTotalGeral | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+          </span>
+        </div>
         </div>
       </div>
 
@@ -96,15 +93,29 @@
       <!-- Grid Real Matrix Table -->
       @if (!isRelatorioLoading) {
         <div class="dash-chart-card report-table-container">
-          <!-- Header do Card com Título e Busca Integrada -->
+          <!-- Header do Card com Busca e Ações Integradas -->
           <div
             class="dash-chart-header d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-3">
-            <h6 class="dash-chart-title m-0" style="font-size: 0.95rem; font-weight: 600;">Detalhamento por
-            Colaborador e Categoria</h6>
-            <div class="search-box" style="max-width: 320px;">
+            
+            <div class="search-box flex-grow-1" style="max-width: 400px;">
               <i class="fa-solid fa-search text-muted"></i>
               <input type="text" class="form-control form-control-sm" placeholder="Buscar por colaborador..."
                 [(ngModel)]="searchRelatorioTerm" (ngModelChange)="onSearchRelatorioChange($event)">
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 report-actions">
+              <app-button variant="primary" icon="fa-solid fa-code-compare" class="flex-grow-1">
+                Conciliação
+              </app-button>
+              <app-button variant="outline-success" icon="fa-solid fa-file-excel" (click)="exportRelatorioToExcel()" [disabled]="isRelatorioLoading" class="flex-grow-1">
+                Exportar
+              </app-button>
+              <app-button variant="outline-primary" icon="fa-solid fa-file-invoice-dollar" [disabled]="isRelatorioLoading" class="flex-grow-1">
+                Contabilidade
+              </app-button>
+              <app-button variant="outline-primary" icon="fa-solid fa-file-lines" [disabled]="isRelatorioLoading" class="flex-grow-1">
+                Contabilidade TXT
+              </app-button>
             </div>
           </div>
           <div class="dash-chart-body p-0">
@@ -112,6 +123,8 @@
               <table class="table table-hover align-middle custom-table m-0" style="font-size: 0.85rem;">
                 <thead>
                   <tr>
+                    <th class="py-2 px-3 text-muted fw-bold text-nowrap"
+                    style="letter-spacing: 0.5px; font-size: 0.75rem;">UNIDADE</th>
                     <th class="sticky-col-left py-2 px-3 text-muted fw-bold"
                     style="letter-spacing: 0.5px; font-size: 0.75rem;">COLABORADOR</th>
                     <th class="py-2 px-3 text-muted fw-bold text-nowrap"
@@ -130,6 +143,7 @@
                 <tbody>
                   @for (row of relatorioDetalhesMatrizFiltrada; track row) {
                     <tr>
+                      <td class="py-2 px-3 text-nowrap text-muted tabular-nums">{{ row.unidadeNome?.split('-')[0]?.trim() || '-' }}</td>
                       <td class="sticky-col-left fw-semibold text-dark text-nowrap py-2 px-3">{{
                       row.colaboradorNome }}</td>
                       <td class="py-2 px-3 text-nowrap">{{ row.empresaNome || '-' }}</td>
@@ -154,7 +168,7 @@
                   }
                   @if (relatorioDetalhesMatrizFiltrada.length === 0) {
                     <tr>
-                      <td [attr.colspan]="relatorioDetalhesCategoriasColunas.length + 4"
+                      <td [attr.colspan]="relatorioDetalhesCategoriasColunas.length + 5"
                         class="text-center text-muted py-5 small">
                         Nenhum colaborador encontrado para a busca.
                       </td>
@@ -165,6 +179,7 @@
                   <tfoot>
                     <tr class="fw-bold" style="background-color: var(--color-surface-hover);">
                       <td class="sticky-col-left text-dark py-2 px-3">TOTAL GERAL</td>
+                      <td class="py-2 px-3"></td>
                       <td class="py-2 px-3"></td>
                       <td class="py-2 px-3"></td>
                       @for (cat of relatorioDetalhesCategoriasColunas; track cat) {

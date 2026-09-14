@@ -642,6 +642,9 @@ export class PlanoSaudeComponent implements OnInit {
       const fim = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
       this.dashDataInicio = inicio;
       this.dashDataFim = fim;
+    } else if (shortcut === 'este-mes') {
+      this.dashDataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      this.dashDataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
     } else if (shortcut === 'este-ano') {
       const inicio = new Date(hoje.getFullYear(), 0, 1);
       this.dashDataInicio = inicio;

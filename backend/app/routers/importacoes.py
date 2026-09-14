@@ -179,12 +179,8 @@ async def importar_pendencias_inadimplencia(
 
     try:
         conteudo = await file.read()
-        resultado = InadimplenciaService(db).importar_pendencias(conteudo, file.filename, current_user.iduser)
-        return resultado
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
-    except HTTPException:
-        raise
+        resultado_generator = InadimplenciaService(db).importar_pendencias(conteudo, file.filename, current_user.iduser)
+        return StreamingResponse(resultado_generator, media_type="application/x-ndjson")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -2820,26 +2816,43 @@ def _parse_bb_pendencias_pix(texto: str) -> list:
     a extração varre o texto inteiro (DOTALL) para juntar cada bloco antes do valor.
     """
     padrao = re.compile(
-        r'Pagamento\s+(?P<desc>.+?)\s*\n\s*(?P<valor>\d{1,3}(?:\.\d{3})*,\d{2})\s+\d{2}/\d{2}/\d{4}\s+\d+\s+\d+',
-        re.DOTALL
+        r'Instant.neo-PIX.*?(?P<valor>\d{1,3}(?:\.\d{3})*,\d{2})\s+\d{2}/\d{2}/\d{4}',
+        re.DOTALL | re.IGNORECASE
     )
     valores = []
     for m in padrao.finditer(texto):
-        desc_norm = _normalizar_nome(m.group('desc'))
-        if desc_norm.startswith('CONFIRMACAO DE PAGAMENTO INSTANTANEO-PIX'):
-            valores.append(_parse_valor_br(m.group('valor')))
+        valores.append(_parse_valor_br(m.group('valor')))
+    return valores
+
+
+def _parse_bb_pendencias_vitru(texto: str) -> list:
+    """
+    Extrai os valores dos pagamentos de título da VITRU EDUCACAO no relatório
+    do Banco do Brasil. Como o PyPDF bagunça a ordem das colunas e coloca o
+    valor antes do nome em algumas linhas, buscamos pela string da operação
+    'Efetivar pagamento de título'.
+    """
+    padrao = re.compile(
+        r'Efetivar pagamento de t.tulo.*?(?P<valor>\d{1,3}(?:\.\d{3})*,\d{2})',
+        re.DOTALL | re.IGNORECASE
+    )
+    valores = []
+    for m in padrao.finditer(texto):
+        v = _parse_valor_br(m.group('valor'))
+        valores.append(v)
     return valores
 
 
 def _parse_itau_salarios_rh(texto: str) -> list:
     """
     Extrai o 'Valor total (R$)' do resumo do lote de um PDF de pagamentos de
-    Salários/RH do Itaú. O texto extraído do PDF vem fora de ordem (rótulos de
-    coluna antes dos dados), mas o valor sempre aparece logo após a seção
-    'Empresa pagadora'.
+    Salários/RH do Itaú.
     """
-    m = re.search(r'Empresa pagadora.*?(?P<valor>\d{1,3}(?:\.\d{3})*,\d{2})', texto, re.DOTALL)
-    return [_parse_valor_br(m.group('valor'))] if m else []
+    padrao = re.compile(r'Valor total.*?(?P<valor>\d{1,3}(?:\.\d{3})*,\d{2})', re.IGNORECASE)
+    valores = []
+    for m in padrao.finditer(texto):
+        valores.append(_parse_valor_br(m.group('valor')))
+    return valores
 
 
 # Registro de parsers "agregados": em vez de casar cada lançamento individualmente
@@ -2851,11 +2864,20 @@ def _parse_itau_salarios_rh(texto: str) -> list:
 AGGREGATE_PARSERS = [
     {
         'nome': 'Banco do Brasil - Pendências PIX (FGTS)',
-        'match': lambda filename: 'bb-pendencias-pix' in (filename or '').lower(),
+        'match': lambda filename: 'bb-pendencias' in (filename or '').lower(),
         'extrair_valores': _parse_bb_pendencias_pix,
         'modo_alvo': 'exato',
         'alvo': ['FGTS FOLHA', 'FGTS - FOLHA DE PAGAMENTO'],
         'codigo_ok': 'BB-PIX',
+        'codigo_erro': 'ERRO'
+    },
+    {
+        'nome': 'Banco do Brasil - Pendências (VITRU)',
+        'match': lambda filename: 'bb-pendencias' in (filename or '').lower(),
+        'extrair_valores': _parse_bb_pendencias_vitru,
+        'modo_alvo': 'contem',
+        'alvo': ['VITRU BRASIL'],
+        'codigo_ok': 'BB-BOL',
         'codigo_erro': 'ERRO'
     },
     {
@@ -2864,7 +2886,7 @@ AGGREGATE_PARSERS = [
         'extrair_valores': _parse_itau_salarios_rh,
         'modo_alvo': 'contem',
         'alvo': ['RESCISAO', 'RESCICAO', 'FOLHA PAGTO', 'FERIAS'],
-        'codigo_ok': 'ITAU-CP',
+        'codigo_ok': 'ITAU',
         'codigo_erro': 'ERRO'
     }
 ]
@@ -2985,239 +3007,203 @@ async def conciliar_bancos(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    try:
-        import openpyxl
+    import json
+    import base64
+    
+    # Lemos os arquivos em memória antes do generator para evitar problemas
+    # de escopo da requisição ou fechamento do arquivo.
+    conteudo_planilha = await planilha.read()
+    original_name = planilha.filename or "planilha.xlsx"
+    
+    arquivos_extratos = []
+    for arquivo in extratos:
+        arq_content = await arquivo.read()
+        arquivos_extratos.append({"filename": arquivo.filename, "content": arq_content})
 
-        # 1. Carrega a planilha original só para LEITURA (identificar nomes/valores e
-        # decidir os códigos). A gravação final NÃO passa pelo openpyxl: reserializar o
-        # arquivo inteiro com ele corrompe pivot tables/gráficos (o Excel acusa "problema
-        # no conteúdo" ao abrir) — por isso a coluna A é escrita depois via edição direta
-        # do XML original, preservando o restante do arquivo byte a byte.
-        conteudo_planilha = await planilha.read()
-        # (Sem read_only=True: no modo leitura-rápida o openpyxl confia cegamente no
-        # <dimension> declarado no XML, que nesta planilha está inflado até a linha
-        # 1.048.576 — faria o loop abaixo varrer mais de 1 milhão de linhas à toa.)
-        wb = openpyxl.load_workbook(io.BytesIO(conteudo_planilha), data_only=True)
+    async def generate():
+        try:
+            yield json.dumps({"step": 1, "message": "Carregando a planilha principal..."}) + "\n"
+            import io
+            import pandas as pd
+            import pypdf
+            import hashlib
+            from urllib.parse import quote
 
-        sheet_name = next(
-            (s for s in wb.sheetnames if s.strip().startswith("Relatorio Geral")),
-            None
-        )
-        if not sheet_name:
-            raise HTTPException(
-                status_code=400,
-                detail="Não foi encontrada nenhuma aba iniciada com 'Relatorio Geral' na planilha."
+            # Usamos pandas para carregar a planilha muito mais rápido do que openpyxl.load_workbook
+            df_todas = pd.read_excel(io.BytesIO(conteudo_planilha), sheet_name=None, header=None)
+            sheet_name = next(
+                (s for s in df_todas.keys() if str(s).strip().startswith("Relatorio Geral")),
+                None
             )
-        ws = wb[sheet_name]
+            
+            if not sheet_name:
+                yield json.dumps({"error": "Não foi encontrada nenhuma aba iniciada com 'Relatorio Geral' na planilha."}) + "\n"
+                return
 
-        sheet_xml_path, _ = _localizar_sheet_xml(conteudo_planilha, "Relatorio Geral")
-        if not sheet_xml_path:
-            raise HTTPException(
-                status_code=400,
-                detail="Não foi possível localizar o XML interno da aba 'Relatorio Geral' na planilha."
-            )
+            sheet_xml_path, _ = _localizar_sheet_xml(conteudo_planilha, "Relatorio Geral")
+            if not sheet_xml_path:
+                yield json.dumps({"error": "Não foi possível localizar o XML interno da aba 'Relatorio Geral' na planilha."}) + "\n"
+                return
 
-        # Linhas de dados a partir da linha 2.
-        # Nome Abrev na coluna P (16) — usado para exibição;
-        # Nome Completo na coluna S (19) — usado para o cruzamento com o PDF (o banco trunca o nome);
-        # Valor na coluna R (18).
-        linhas_planilha = []
-        for row_idx in range(2, ws.max_row + 1):
-            nome_cel = ws.cell(row=row_idx, column=16).value  # P = Nome Abrev
-            if nome_cel is None or str(nome_cel).strip() == "":
-                continue
-            nome_completo_cel = ws.cell(row=row_idx, column=19).value  # S = Nome Completo
-            valor_cel = ws.cell(row=row_idx, column=18).value  # R = Valor
-            try:
-                valor = float(valor_cel) if valor_cel is not None else 0.0
-            except (TypeError, ValueError):
-                valor = 0.0
-            linhas_planilha.append({
-                'row': row_idx,
-                'nome': str(nome_cel).strip(),
-                'nome_norm': _normalizar_nome(nome_completo_cel or nome_cel),  # usa nome completo para cruzamento
-                'valor': valor,
-                'matched': False
-            })
+            df = df_todas[sheet_name]
+            linhas_planilha = []
+            
+            # row_idx no openpyxl começa em 1, então idx (0) seria row=1. 
+            # A lógica anterior começava em row_idx=2.
+            for idx, row in df.iterrows():
+                row_idx = idx + 1
+                if row_idx < 2:
+                    continue
+                    
+                nome_cel = row[15] if len(row) > 15 else None # P = Nome Abrev
+                if pd.isna(nome_cel) or str(nome_cel).strip() == "":
+                    continue
+                    
+                nome_completo_cel = row[18] if len(row) > 18 else None # S = Nome Completo
+                valor_cel = row[17] if len(row) > 17 else None # R = Valor
+                
+                try:
+                    valor = float(valor_cel) if pd.notna(valor_cel) else 0.0
+                except (TypeError, ValueError):
+                    valor = 0.0
+                    
+                linhas_planilha.append({
+                    'row': row_idx,
+                    'nome': str(nome_cel).strip(),
+                    'nome_norm': _normalizar_nome(nome_completo_cel if pd.notna(nome_completo_cel) else nome_cel),
+                    'valor': valor,
+                    'matched': False
+                })
 
-        # 2. Extrai os lançamentos/valores de cada PDF de extrato enviado. Cada arquivo é
-        # roteado para um parser "de lote" (concilia linha a linha) ou "agregado" (soma
-        # todos os valores e concilia contra nome(s) fixo(s) na planilha), conforme o nome.
-        import pypdf
-        import hashlib
+            yield json.dumps({"step": 2, "message": "Extraindo lançamentos dos extratos..."}) + "\n"
 
-        lancamentos = []
-        agregados_por_parser = {}
+            lancamentos = []
+            agregados_por_parser = {}
+            hashes_vistos = {}
 
-        # Deduplica por conteúdo: se o mesmo PDF (bytes idênticos) for enviado mais de uma
-        # vez (ex: usuário selecionou o mesmo arquivo duas vezes), ele é processado só uma
-        # vez — do contrário um valor "agregado" (como o de PIX x FGTS) seria contado em
-        # dobro e gerar um ERRO falso mesmo quando os valores realmente batem.
-        hashes_vistos = {}
+            for arq_dict in arquivos_extratos:
+                fname = arq_dict["filename"]
+                conteudo = arq_dict["content"]
+                
+                parser_lote = next((p for p in BANK_PARSERS if p['match'](fname)), None)
+                parsers_agregados = [p for p in AGGREGATE_PARSERS if p['match'](fname)]
 
-        for arquivo in extratos:
-            parser_lote = next((p for p in BANK_PARSERS if p['match'](arquivo.filename)), None)
-            parser_agregado = next((p for p in AGGREGATE_PARSERS if p['match'](arquivo.filename)), None)
+                if not parser_lote and not parsers_agregados:
+                    yield json.dumps({"error": f"Não foi possível identificar o banco/formato do arquivo '{fname}'."}) + "\n"
+                    return
 
-            if not parser_lote and not parser_agregado:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Não foi possível identificar o banco/formato do arquivo '{arquivo.filename}'."
-                )
+                hash_conteudo = hashlib.sha256(conteudo).hexdigest()
+                if hash_conteudo in hashes_vistos:
+                    continue
+                hashes_vistos[hash_conteudo] = fname
 
-            conteudo = await arquivo.read()
-            hash_conteudo = hashlib.sha256(conteudo).hexdigest()
-            if hash_conteudo in hashes_vistos:
-                print(f"  - Arquivo '{arquivo.filename}' ignorado: conteúdo idêntico ao de '{hashes_vistos[hash_conteudo]}' já enviado nesta requisição.")
-                continue
-            hashes_vistos[hash_conteudo] = arquivo.filename
+                leitor = pypdf.PdfReader(io.BytesIO(conteudo))
+                texto = "\n".join(pagina.extract_text(extraction_mode="layout") or "" for pagina in leitor.pages)
 
-            leitor = pypdf.PdfReader(io.BytesIO(conteudo))
-            texto = "\n".join(pagina.extract_text(extraction_mode="layout") or "" for pagina in leitor.pages)
+                if parser_lote:
+                    for entrada in parser_lote['parse'](texto):
+                        codigo = parser_lote['codigos'].get(entrada['situacao'])
+                        if not codigo:
+                            continue
+                        lancamentos.append({
+                            'arquivo': fname,
+                            'nome': entrada['nome'],
+                            'nome_norm': _normalizar_nome(entrada['nome']),
+                            'valor': entrada['valor'],
+                            'codigo': codigo
+                        })
 
-            if parser_lote:
-                for entrada in parser_lote['parse'](texto):
-                    codigo = parser_lote['codigos'].get(entrada['situacao'])
-                    if not codigo:
-                        continue
-                    lancamentos.append({
-                        'arquivo': arquivo.filename,
-                        'nome': entrada['nome'],
-                        'nome_norm': _normalizar_nome(entrada['nome']),
-                        'valor': entrada['valor'],
-                        'codigo': codigo
-                    })
+                for parser_agregado in parsers_agregados:
+                    chave = parser_agregado['nome']
+                    grupo = agregados_por_parser.setdefault(chave, {'parser': parser_agregado, 'valores': []})
+                    grupo['valores'].extend(parser_agregado['extrair_valores'](texto))
 
-            if parser_agregado:
-                chave = parser_agregado['nome']
-                grupo = agregados_por_parser.setdefault(chave, {'parser': parser_agregado, 'valores': []})
-                grupo['valores'].extend(parser_agregado['extrair_valores'](texto))
+            yield json.dumps({"step": 3, "message": "Cruzamento com a planilha e geração do arquivo..."}) + "\n"
 
-        # 3. Concilia cada lançamento contra as linhas ainda não conciliadas da planilha.
-        # Os códigos decididos aqui são só acumulados em memória (codigos_por_linha); a
-        # gravação de fato acontece depois, direto no XML original (ver passo 4).
-        #
-        # Feito em duas passagens (e não uma única, lançamento a lançamento) porque um
-        # mesmo fornecedor pode ter várias linhas na planilha pertencentes a títulos
-        # diferentes (ex: título A dividido em 2 linhas + título B em 1 linha só). Se a
-        # regra de soma (1 para N) fosse tentada linha a linha, na ordem em que os PDFs
-        # aparecem, ela poderia somar linhas de títulos diferentes que ainda não bateram
-        # 1 para 1 e nunca encontrar o valor certo — mesmo que o título B feche exato
-        # pouco depois. Resolvendo primeiro TODOS os 1 para 1 (de qualquer título/PDF) e
-        # só então tentando a soma no que restou, as linhas já batidas exatamente saem do
-        # "pool" antes da soma ser calculada.
-        TOLERANCIA = 0.01
-        matched_1a1 = 0
-        matched_soma = 0
-        sem_match = []
-        codigos_por_linha = {}
+            TOLERANCIA = 0.01
+            matched_1a1 = 0
+            matched_soma = 0
+            sem_match = []
+            codigos_por_linha = {}
 
-        # 3a. Regra 1 para 1 em todos os lançamentos primeiro.
-        pendentes_soma = []
-        for lanc in lancamentos:
-            candidatos = [l for l in linhas_planilha if not l['matched'] and _nomes_batem(lanc['nome_norm'], l['nome_norm'])]
-            if not candidatos:
-                pendentes_soma.append(lanc)
-                continue
+            pendentes_soma = []
+            for lanc in lancamentos:
+                candidatos = [l for l in linhas_planilha if not l['matched'] and _nomes_batem(lanc['nome_norm'], l['nome_norm'])]
+                if not candidatos:
+                    pendentes_soma.append(lanc)
+                    continue
 
-            # Existe uma linha isolada (ainda não conciliada) com o mesmo valor.
-            alvo = next((c for c in candidatos if abs(c['valor'] - lanc['valor']) < TOLERANCIA), None)
-            if alvo:
-                alvo['matched'] = True
-                codigos_por_linha[alvo['row']] = lanc['codigo']
-                matched_1a1 += 1
-            else:
-                pendentes_soma.append(lanc)
+                alvo = next((c for c in candidatos if abs(c['valor'] - lanc['valor']) < TOLERANCIA), None)
+                if alvo:
+                    alvo['matched'] = True
+                    codigos_por_linha[alvo['row']] = lanc['codigo']
+                    matched_1a1 += 1
+                else:
+                    pendentes_soma.append(lanc)
 
-        # 3b. Regra 1 para N (soma) só no que sobrou, com o pool de linhas já livre das
-        # que bateram exatamente na passagem acima.
-        for lanc in pendentes_soma:
-            candidatos = [l for l in linhas_planilha if not l['matched'] and _nomes_batem(lanc['nome_norm'], l['nome_norm'])]
-            if not candidatos:
+            for lanc in pendentes_soma:
+                candidatos = [l for l in linhas_planilha if not l['matched'] and _nomes_batem(lanc['nome_norm'], l['nome_norm'])]
+                if not candidatos:
+                    sem_match.append(lanc)
+                    continue
+
+                soma = sum(c['valor'] for c in candidatos)
+                if abs(soma - lanc['valor']) < TOLERANCIA:
+                    for c in candidatos:
+                        c['matched'] = True
+                        codigos_por_linha[c['row']] = lanc['codigo']
+                    matched_soma += 1
+                    continue
+
                 sem_match.append(lanc)
-                continue
 
-            soma = sum(c['valor'] for c in candidatos)
-            if abs(soma - lanc['valor']) < TOLERANCIA:
+            agregados_resultado = []
+            for chave, grupo in agregados_por_parser.items():
+                if not grupo['valores']:
+                    continue
+                    
+                parser_agregado = grupo['parser']
+                soma_pdf = sum(grupo['valores'])
+                alvo_norm = {_normalizar_nome(n) for n in parser_agregado['alvo']}
+
+                if parser_agregado['modo_alvo'] == 'contem':
+                    candidatos = [
+                        l for l in linhas_planilha
+                        if not l['matched'] and any(kw in l['nome_norm'] for kw in alvo_norm)
+                    ]
+                else:
+                    candidatos = [l for l in linhas_planilha if not l['matched'] and l['nome_norm'] in alvo_norm]
+
+                if not candidatos:
+                    agregados_resultado.append((chave, soma_pdf, None, None))
+                    continue
+
+                soma_excel = sum(c['valor'] for c in candidatos)
+                codigo = parser_agregado['codigo_ok'] if abs(soma_excel - soma_pdf) < TOLERANCIA else parser_agregado['codigo_erro']
                 for c in candidatos:
                     c['matched'] = True
-                    codigos_por_linha[c['row']] = lanc['codigo']
-                matched_soma += 1
-                continue
+                    codigos_por_linha[c['row']] = codigo
+                agregados_resultado.append((chave, soma_pdf, soma_excel, codigo))
 
-            sem_match.append(lanc)
+            conteudo_final = _gravar_codigos_na_planilha(conteudo_planilha, sheet_xml_path, codigos_por_linha)
+            
+            extensao = original_name.rsplit('.', 1)[-1] if '.' in original_name else 'xlsx'
+            ImportacaoService(db).registrar_importacao(original_name, extensao, "Conciliação Bancária", id_user_inc=current_user.iduser)
 
-        # 3b. Concilia os critérios "agregados" (ex: PIX x FGTS, Itaú x Rescisão/Férias/Folha):
-        # soma todos os valores extraídos do(s) PDF(s) daquele parser e compara contra a soma
-        # das linhas-alvo ainda não conciliadas na planilha (por nome exato ou por conter uma
-        # das palavras-chave, conforme 'modo_alvo'). Se não bater, grava 'codigo_erro' em
-        # todas as linhas-alvo (nunca deixa em branco).
-        agregados_resultado = []
-        for chave, grupo in agregados_por_parser.items():
-            parser_agregado = grupo['parser']
-            soma_pdf = sum(grupo['valores'])
-            alvo_norm = {_normalizar_nome(n) for n in parser_agregado['alvo']}
+            file_b64 = base64.b64encode(conteudo_final).decode('utf-8')
+            yield json.dumps({
+                "step": 4, 
+                "message": "Finalizado", 
+                "file_base64": file_b64, 
+                "filename": f"planilha_conciliada_{original_name}"
+            }) + "\n"
 
-            if parser_agregado['modo_alvo'] == 'contem':
-                candidatos = [
-                    l for l in linhas_planilha
-                    if not l['matched'] and any(kw in l['nome_norm'] for kw in alvo_norm)
-                ]
-            else:
-                candidatos = [l for l in linhas_planilha if not l['matched'] and l['nome_norm'] in alvo_norm]
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            yield json.dumps({"error": str(e)}) + "\n"
 
-            if not candidatos:
-                agregados_resultado.append((chave, soma_pdf, None, None))
-                continue
-
-            soma_excel = sum(c['valor'] for c in candidatos)
-            codigo = parser_agregado['codigo_ok'] if abs(soma_excel - soma_pdf) < TOLERANCIA else parser_agregado['codigo_erro']
-            for c in candidatos:
-                c['matched'] = True
-                codigos_por_linha[c['row']] = codigo
-            agregados_resultado.append((chave, soma_pdf, soma_excel, codigo))
-
-        print(f"\n=== CONCILIAÇÃO DE EXTRATOS BANCÁRIOS (aba '{sheet_name}') ===")
-        print(f"Lançamentos extraídos dos PDFs: {len(lancamentos)}")
-        print(f"Conciliados 1 para 1: {matched_1a1}")
-        print(f"Conciliados por soma (1 para N): {matched_soma}")
-        print(f"Sem correspondência: {len(sem_match)}")
-        for item in sem_match:
-            print(f"  - [{item['arquivo']}] {item['nome']} | R$ {item['valor']:.2f}")
-        for chave, soma_pdf, soma_excel, codigo in agregados_resultado:
-            if soma_excel is None:
-                print(f"  - [{chave}] Nenhuma linha-alvo encontrada na planilha (soma PDF: R$ {soma_pdf:.2f})")
-            else:
-                print(f"  - [{chave}] Soma PDF: R$ {soma_pdf:.2f} | Soma planilha: R$ {soma_excel:.2f} | Código: {codigo}")
-        print("====================================================\n")
-
-        # 4. Retorna a mesma planilha original, apenas com a coluna A preenchida. A edição é
-        # feita direto no XML original (não via wb.save()) para preservar 100% do restante
-        # do arquivo — pivot tables, pivot cache, gráficos, etc. — que o openpyxl não
-        # consegue reserializar sem perdas (o que fazia o Excel acusar arquivo corrompido).
-        conteudo_final = _gravar_codigos_na_planilha(conteudo_planilha, sheet_xml_path, codigos_por_linha)
-
-        from urllib.parse import quote
-        original_name = planilha.filename or "planilha.xlsx"
-        extensao = original_name.rsplit('.', 1)[-1] if '.' in original_name else 'xlsx'
-
-        # Registra a importação para aparecer no histórico da tela — sem gravar nenhuma
-        # movimentação, só o registro da importação em si (como já é feito nas outras
-        # rotas de conciliação/extração deste arquivo).
-        ImportacaoService(db).registrar_importacao(original_name, extensao, "Conciliação Bancária", id_user_inc=current_user.iduser)
-
-        nome_encoded = quote(original_name)
-        return StreamingResponse(
-            io.BytesIO(conteudo_final),
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename=\"planilha_conciliada.xlsx\"; filename*=UTF-8''{nome_encoded}"}
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    return StreamingResponse(generate(), media_type="application/x-ndjson")
 
 
 @router.post("/cema/conciliar")

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -48,6 +48,18 @@ export interface PendenciaKanban {
   clienteNome: string | null;
   dtVencimento: string | null;
   createdAt: string | null;
+  devolucao: string | null;
+  idCliente: number | null;
+  especie: string | null;
+  carteira: string | null;
+  idUnidade: number | null;
+  serie: string | null;
+  parccela: string | null;
+  portador: string | null;
+  dtEmissao: string | null;
+  dtEntrega: string | null;
+  valorOriginal: number | null;
+  valorSaldo: number | null;
 }
 
 export interface HistoricoApi {
@@ -73,15 +85,14 @@ export interface ImportacaoPendenciasResponse {
   idImportacao: number;
   totalLinhasComEspecie: number;
   importadas: number;
-  classificadasPorFallback: number;
+  prorrogadas: number;
+  baixadas?: number;
   ignoradasSemCliente: number;
   ignoradasSemVencimento: number;
   ignoradasDuplicadas: number;
   semUnidadeEncontrada: number;
   clientesCriados: number;
   matrizesCriadas: number;
-  finalizadasAutomaticamente: number;
-  resumoPorFaseStatus: { [key: string]: number };
 }
 
 export interface JanelaRegraDia {
@@ -97,7 +108,7 @@ export interface JanelaRegraDia {
 export class ImportacoesService {
   private apiUrl = `${environment.apiUrl}/importacoes`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private zone: NgZone) {}
 
   listar(page: number = 1, size: number = 10, search?: string, categoria?: string): Observable<ImportacaoPaginatedResponse> {
     let params = new HttpParams()
@@ -153,10 +164,63 @@ export class ImportacoesService {
     );
   }
 
-  importarPendenciasInadimplencia(file: File): Observable<ImportacaoPendenciasResponse> {
-    const formData = new FormData();
-    formData.append('file', file);
-    return this.http.post<ImportacaoPendenciasResponse>(`${this.apiUrl}/inadimplencia/importar-pendencias`, formData);
+  importarPendenciasInadimplencia(file: File): Observable<any> {
+    return new Observable(observer => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const token = localStorage.getItem('erp_access_token') || localStorage.getItem('access_token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      fetch(`${this.apiUrl}/inadimplencia/importar-pendencias`, {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      })
+      .then(async response => {
+        if (!response.ok) {
+          throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder('utf-8');
+        
+        if (!reader) {
+          throw new Error("Não foi possível ler a stream.");
+        }
+        
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.trim()) {
+              try {
+                const data = JSON.parse(line);
+                if (data.erro) {
+                   this.zone.run(() => observer.error(data.erro));
+                   return;
+                }
+                this.zone.run(() => observer.next(data));
+              } catch (e) {
+                console.warn("Erro ao parsear chunk JSON", line);
+              }
+            }
+          }
+        }
+        
+        this.zone.run(() => observer.complete());
+      })
+      .catch(error => {
+        this.zone.run(() => observer.error(error));
+      });
+    });
   }
 
   analisarExtrato(file: File, empresaNome: string): Observable<AnaliseExtratoResponse> {
@@ -711,7 +775,7 @@ export class ImportacoesService {
     });
   }
 
-  conciliarBancos(planilha: File, extratos: File[], idUserInc?: number): Observable<Blob> {
+  conciliarBancos(planilha: File, extratos: File[], idUserInc?: number): Observable<any> {
     const formData = new FormData();
     formData.append('planilha', planilha);
     extratos.forEach((file) => {
@@ -720,8 +784,63 @@ export class ImportacoesService {
     if (idUserInc) {
       formData.append('idUserInc', idUserInc.toString());
     }
-    return this.http.post(`${this.apiUrl}/conciliacao-pagamentos/conciliar-bancos`, formData, {
-      responseType: 'blob'
+
+    return new Observable(observer => {
+      const token = localStorage.getItem('erp_access_token');
+      const headers: any = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      fetch(`${this.apiUrl}/conciliacao-pagamentos/conciliar-bancos`, {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      })
+      .then(async response => {
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          observer.error({ error: errorData, status: response.status });
+          return;
+        }
+        
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+
+        if (!reader) {
+          observer.error(new Error('Nativo de stream não suportado pelo navegador.'));
+          return;
+        }
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // Maintain incomplete chunk
+
+          for (const line of lines) {
+            if (line.trim()) {
+              try {
+                const data = JSON.parse(line);
+                if (data.error) {
+                   observer.error(data);
+                   return;
+                }
+                observer.next(data);
+              } catch (e) {
+                console.error('Erro ao parsear chunk NDJSON:', e, line);
+              }
+            }
+          }
+        }
+        observer.complete();
+      })
+      .catch(err => {
+        observer.error(err);
+      });
     });
   }
 
