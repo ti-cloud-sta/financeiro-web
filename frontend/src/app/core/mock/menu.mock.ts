@@ -79,13 +79,13 @@ export const MOCK_MENU: MenuItem[] = [
     route: '/extratores',
     order: 3
   },
-  // {
-  //   id: 'menu-inadimplencia',
-  //   label: 'Inadimplência',
-  //   icon: 'fa-solid fa-file-invoice-dollar',
-  //   route: '/inadimplencia',
-  //   order: 4
-  // },
+  {
+    id: 'menu-inadimplencia',
+    label: 'Pendências',
+    icon: 'fa-solid fa-file-invoice-dollar',
+    route: '/inadimplencia',
+    order: 4
+  },
   {
     id: 'menu-conciliacao-pagamentos',
     label: 'Conciliação de Pagamentos',
@@ -94,11 +94,18 @@ export const MOCK_MENU: MenuItem[] = [
     order: 5
   },
   {
+    id: 'menu-previsao-caixa',
+    label: 'Previsão de Caixa',
+    icon: 'fa-solid fa-money-bill-trend-up',
+    route: '/previsao-caixa',
+    order: 6
+  },
+  {
     id: 'menu-settings',
     label: 'Configurações e Cadastros',
     icon: 'fa-solid fa-gear',
     route: '/configuracoes-cadastros',
-    order: 2,
+    order: 7,
     requiredPermissions: ['users:read']
   }
 ];

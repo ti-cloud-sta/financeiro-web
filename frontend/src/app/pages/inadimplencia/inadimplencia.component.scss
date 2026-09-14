@@ -423,3 +423,67 @@
     transform: translateY(0);
   }
 }
+
+/* =========================================
+   CONFIGURACOES LAYOUT (Horizontal Tabs)
+========================================= */
+.config-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 0;
+  min-height: 500px;
+}
+
+.config-nav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-bottom: 1px solid $border-color;
+  padding-bottom: 1rem;
+}
+
+.config-nav-item {
+  width: auto;
+}
+
+.config-nav-link {
+  width: auto;
+  text-align: center;
+  background: transparent;
+  border: none;
+  padding: 0.625rem 1rem;
+  border-radius: 8px;
+  color: $gray-600;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    background: $gray-50;
+    color: $gray-900;
+  }
+  &.active {
+    background: rgba($primary, 0.08);
+    color: $primary;
+    font-weight: 600;
+  }
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid $border-color;
+  padding-bottom: 0.5rem;
+
+  .config-nav {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}

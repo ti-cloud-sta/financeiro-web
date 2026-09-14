@@ -239,28 +239,51 @@ export class ConciliacaoPagamentosComponent implements OnInit {
     this.processingText.set('Enviando planilha e extratos bancários...');
 
     this.importacoesService.conciliarBancos(planilha, extratos, this.authService.currentUser()?.iduser).subscribe({
-      next: (blob) => {
-        this.isProcessing.set(false);
+      next: (evento) => {
+        if (evento.step) {
+          this.processingStep.set(evento.step);
+        }
+        if (evento.message) {
+          this.processingText.set(evento.message);
+        }
+        
+        // Se for o último passo (com o arquivo base64)
+        if (evento.file_base64) {
+          try {
+            const byteCharacters = atob(evento.file_base64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = evento.filename || planilha.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
 
-        // Baixa a mesma planilha recebida, agora com a coluna A preenchida
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = planilha.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-
-        this.selectedFileApb.set(null);
-        this.selectedFilesBanco.set([]);
-        this.carregarHistorico();
+            this.selectedFileApb.set(null);
+            this.selectedFilesBanco.set([]);
+            this.carregarHistorico();
+          } catch (e) {
+             console.error('Erro ao converter arquivo:', e);
+             this.openAlert('Erro na Conversão', 'O arquivo recebido está corrompido ou inválido.', 'danger');
+          }
+        }
       },
       error: (err) => {
         this.isProcessing.set(false);
         console.error('Erro ao conciliar extratos bancários:', err);
         const detail = this.extractErrorMessage(err);
         this.openAlert('Erro na Conciliação', `Não foi possível conciliar os extratos:\n${detail}`, 'danger');
+      },
+      complete: () => {
+        this.isProcessing.set(false);
       }
     });
   }

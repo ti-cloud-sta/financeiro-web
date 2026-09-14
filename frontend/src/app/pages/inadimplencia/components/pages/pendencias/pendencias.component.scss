@@ -370,3 +370,21 @@
     &:hover { background-color: rgba(255, 255, 255, 0.2); }
   }
 }
+
+/* ==========================================================================
+   CORES CUSTOMIZADAS (STATUS)
+   ========================================================================== */
+.bg-orange {
+  background-color: #f97316 !important;
+}
+.bg-orange.bg-opacity-10 {
+  background-color: rgba(249, 115, 22, 0.15) !important;
+}
+.text-orange {
+  color: #ea580c !important;
+}
+
+.switch-orange:checked {
+  background-color: #f97316 !important;
+  border-color: #f97316 !important;
+}

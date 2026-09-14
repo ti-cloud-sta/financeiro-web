@@ -30,12 +30,17 @@ export const pagesRoutes: Routes = [
   {
     path: 'inadimplencia',
     loadComponent: () => import('./inadimplencia/inadimplencia.component').then(m => m.InadimplenciaComponent),
-    data: { breadcrumb: 'Inadimplência', icon: 'fa-solid fa-file-invoice-dollar' }
+    data: { breadcrumb: 'Pendências', icon: 'fa-solid fa-file-invoice-dollar' }
   },
   {
     path: 'conciliacao-pagamentos',
     loadComponent: () => import('./conciliacao-pagamentos/conciliacao-pagamentos.component').then(m => m.ConciliacaoPagamentosComponent),
     data: { breadcrumb: 'Conciliação de Pagamentos', icon: 'fa-solid fa-scale-balanced' }
+  },
+  {
+    path: 'previsao-caixa',
+    loadComponent: () => import('./previsao-caixa/previsao-caixa.component').then(m => m.PrevisaoCaixaComponent),
+    data: { breadcrumb: 'Previsão de Caixa', icon: 'fa-solid fa-money-bill-trend-up' }
   },
   {
     path: 'configuracoes-cadastros',

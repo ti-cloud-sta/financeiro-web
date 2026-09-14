@@ -18,3 +18,4 @@ class Movimentacao(Base):
     updatedAte = Column(DateTime, nullable=True, onupdate=func.now())
 
     importacao = relationship("Importacao", back_populates="movimentacoes")
+    unidade = relationship("Unidade")

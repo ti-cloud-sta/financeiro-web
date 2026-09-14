@@ -131,13 +131,25 @@ export class PendenciaDetalheModalComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['card'] && this.card) {
-      this.gerarDadosMock(this.card);
+      this.preencherDados(this.card);
       this.carregarTratativas();
       this.carregarHistorico();
     }
     if (changes['isOpen'] && this.isOpen) {
       this.activeTab = 'tratativa';
     }
+  }
+
+  get faseColor(): string {
+    if (!this.detalhe) return 'secondary';
+    const f = (this.detalhe.fase || '').toLowerCase();
+    if (f === 'pendencias') return 'danger';
+    if (f === 'logistica') return 'warning';
+    if (f === 'fiscal') return 'info';
+    if (f === 'comercial') return 'primary';
+    if (f === 'financeiro') return 'secondary';
+    if (f === 'finalizado') return 'success';
+    return 'secondary';
   }
 
   carregarHistorico() {
@@ -170,11 +182,12 @@ export class PendenciaDetalheModalComponent implements OnChanges {
 
   private iconeCorPorTipo(tipo: string | null): { icone: string; cor: EventoHistorico['cor'] } {
     const t = (tipo || '').toLowerCase();
-    if (t.includes('finalização automática') || t.includes('finalizacao automatica')) {
-      return { icone: 'fa-solid fa-flag-checkered', cor: 'success' };
+    if (t.includes('finaliza') || t.includes('resolu')) {
+      return { icone: 'fa-solid fa-check-circle', cor: 'success' };
     }
+    if (t.includes('prorrogad')) return { icone: 'fa-regular fa-calendar-plus', cor: 'warning' };
     if (t.includes('importada')) return { icone: 'fa-solid fa-file-circle-plus', cor: 'primary' };
-    if (t.includes('fase')) return { icone: 'fa-solid fa-shuffle', cor: 'info' };
+    if (t.includes('fase') || t.includes('classifica')) return { icone: 'fa-solid fa-shuffle', cor: 'info' };
     if (t.includes('status')) return { icone: 'fa-solid fa-flag', cor: 'warning' };
     if (t.includes('tratativa')) return { icone: 'fa-solid fa-headset', cor: 'success' };
     return { icone: 'fa-solid fa-circle-info', cor: 'secondary' };
@@ -258,34 +271,26 @@ export class PendenciaDetalheModalComponent implements OnChanges {
   }
 
   // ------------------------------------------------------------
-  // Geração dos dados mocados a partir do card clicado
+  // Geração dos dados reais a partir do card clicado
   // ------------------------------------------------------------
-  private gerarDadosMock(card: KanbanCard) {
-    const seed = this.seedFromId(card.id);
+  private preencherDados(card: KanbanCard) {
     const hoje = new Date();
 
-    const dataEmissao = this.subDias(hoje, 30 + (seed % 20));
-    const dataEntrega = card.dtVencimento ? this.subDias(card.dtVencimento, 3 + (seed % 5)) : null;
-    const valorOriginal = 500 + (seed % 15000) + 0.9;
-    const saldo = card.status === 'ACORDO' || card.status === 'COMISSAO'
-      ? valorOriginal * 0.6
-      : valorOriginal;
-
     this.detalhe = {
-      codigoUnidade: [101, 104, 106][seed % 3].toString(),
-      especie: 'DP',
-      serie: (1 + (seed % 4)).toString(),
+      codigoUnidade: card.idUnidade?.toString() || '-',
+      especie: card.especie || '-',
+      serie: card.serie || '-',
       titulo: card.title,
-      parcela: '01',
-      codigoCliente: (450000 + seed).toString(),
+      parcela: card.parccela || '-',
+      codigoCliente: card.idCliente?.toString() || '-',
       nomeCliente: card.clientName,
-      portador: (10000 + (seed % 90000)).toString(),
-      dataEmissao,
-      dataEntrega,
+      portador: card.portador || '-',
+      dataEmissao: card.dtEmissao || hoje,
+      dataEntrega: card.dtEntrega,
       dataVencimento: card.dtVencimento,
-      valorOriginal,
-      saldo,
-      fase: this.faseLabel(card)
+      valorOriginal: card.valorOriginal || 0,
+      saldo: card.valorSaldo || 0,
+      fase: card.fase || '-'
     };
 
     this.statusSelecionado = this.statusOptions.includes(card.status) ? card.status : this.statusOptions[0];
@@ -294,70 +299,10 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     this.novaTratativa = '';
     this.editingTratativaIndex = null;
 
-    this.mensagens = [
-      {
-        id: 1,
-        autor: card.clientName,
-        iniciais: this.iniciais(card.clientName),
-        minhaMensagem: false,
-        data: this.subDias(hoje, 4),
-        assunto: `Título ${card.title} em aberto`,
-        corpo: 'Boa tarde! Recebemos a notificação sobre o título em aberto. Podem nos confirmar o valor atualizado e a forma de pagamento?',
-        anexos: []
-      },
-      {
-        id: 2,
-        autor: 'Camila Rocha',
-        iniciais: 'CR',
-        minhaMensagem: true,
-        data: this.subDias(hoje, 4),
-        corpo: 'Boa tarde! Segue em anexo o boleto atualizado com o valor corrigido até a data de hoje. Qualquer dúvida estou à disposição.',
-        anexos: ['boleto_atualizado.pdf']
-      },
-      {
-        id: 3,
-        autor: card.clientName,
-        iniciais: this.iniciais(card.clientName),
-        minhaMensagem: false,
-        data: this.subDias(hoje, 2),
-        corpo: 'Recebido, obrigado! Vamos providenciar o pagamento até sexta-feira.',
-        anexos: []
-      }
-    ];
+    // TODO: Mensagens do chat podem vir da API futuramente
+    this.mensagens = [];
 
     // Histórico vem da API (ver carregarHistorico) - permanece mocado só até lá ser chamado.
-  }
-
-  private faseLabel(card: KanbanCard): string {
-    const map: Record<string, string> = {
-      danger: 'PENDENCIAS',
-      warning: 'LOGISTICA',
-      info: 'FISCAL',
-      primary: 'COMERCIAL',
-      secondary: 'FINANCEIRO',
-      success: 'FINALIZADO'
-    };
-    return map[card.statusColor] || 'PENDENCIAS';
-  }
-
-  private seedFromId(id: string): number {
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-      hash = (hash * 31 + id.charCodeAt(i)) % 100000;
-    }
-    return Math.abs(hash);
-  }
-
-  private subDias(data: Date, dias: number): Date {
-    const d = new Date(data);
-    d.setDate(d.getDate() - dias);
-    return d;
-  }
-
-  private iniciais(nome: string): string {
-    const partes = nome.trim().split(/\s+/);
-    if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
-    return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
   }
 
   // ------------------------------------------------------------

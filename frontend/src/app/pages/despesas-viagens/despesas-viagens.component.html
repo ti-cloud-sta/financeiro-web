@@ -60,12 +60,10 @@
               </ul>
 
               <div class="dashboard-actions d-flex gap-2">
-                @if (activeDashboardTab() !== 'comercial-marketing') {
-                  <button class="btn btn-sm btn-outline-secondary"
-                    (click)="exportToPDF()">
-                    <i class="fa-regular fa-file-pdf me-1"></i> Exportar PDF
-                  </button>
-                }
+                <button class="btn btn-sm btn-outline-secondary"
+                  (click)="exportToPDF()">
+                  <i class="fa-regular fa-file-pdf me-1"></i> Exportar PDF
+                </button>
 
                 <button class="btn btn-sm btn-outline-secondary" (click)="toggleFullscreen()">
                   <i class="fa-solid" [ngClass]="isFullscreen ? 'fa-compress' : 'fa-expand'"></i>
@@ -105,6 +103,7 @@
                                 (ngModelChange)="onShortcutSelectChange($event)">
                                 <option value="ultimo-bimestre">Últ. Bimestre</option>
                                 <option value="ultimo-semestre">Últ. Semestre</option>
+                                <option value="este-mes">Este mês</option>
                                 <option value="este-ano">Este Ano</option>
                                 <option value="ano-passado">Ano Passado</option>
                                 <option value="personalizado" disabled>Personalizado</option>
@@ -762,6 +761,7 @@
                                     (ngModelChange)="onAnaliticoShortcutSelectChange($event)">
                                     <option value="ultimo-bimestre">Últ. Bimestre</option>
                                     <option value="ultimo-semestre">Últ. Semestre</option>
+                                    <option value="este-mes">Este mês</option>
                                     <option value="este-ano">Este Ano</option>
                                     <option value="ano-passado">Ano Passado</option>
                                     <option value="personalizado" disabled>Personalizado</option>
@@ -1267,21 +1267,24 @@
                       } 
                       
                       @else if (uploadState === 'processing') {
-                        <div class="processing-spinner mb-3">
-                          <app-loading type="spinner" size="lg"></app-loading>
-                        </div>
-                        <h4 class="mb-2">Processando arquivo...</h4>
-                        <div class="progress-steps-list text-start mx-auto mt-4 px-3" style="max-width: 320px;">
-                          @for (step of processingSteps; track step; let i = $index) {
-                            <div class="step-item" [class.active]="currentProcessingStep === i" [class.done]="currentProcessingStep > i">
-                              <i class="fa-solid" 
-                                [class.fa-spinner]="currentProcessingStep === i"
-                                [class.fa-spin]="currentProcessingStep === i"
-                                [class.fa-check]="currentProcessingStep > i" 
-                                [class.fa-circle]="currentProcessingStep < i"></i>
-                              <span>{{ step }}</span>
-                            </div>
-                          }
+                        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                          <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Processando...</span>
+                          </div>
+                          <h4 class="mb-2">Processando arquivo...</h4>
+                          <div class="progress-steps-list text-start mx-auto mt-4 px-3" style="max-width: 320px;">
+                            @for (step of processingSteps; track step; let i = $index) {
+                              <div class="step-item" [class.active]="currentProcessingStep === i" [class.done]="currentProcessingStep > i">
+                                <i class="fa-solid" 
+                                  [class.fa-spinner]="currentProcessingStep === i"
+                                  [class.fa-circle-notch]="currentProcessingStep === i"
+                                  [class.fa-spin]="currentProcessingStep === i"
+                                  [class.fa-check]="currentProcessingStep > i" 
+                                  [class.fa-circle]="currentProcessingStep < i"></i>
+                                <span>{{ step }}</span>
+                              </div>
+                            }
+                          </div>
                         </div>
                       } 
                       </div>
@@ -1291,8 +1294,8 @@
                       <div class="import-conferencia-content">
                           <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <div>
-                              <h4 class="mb-1 text-primary">Processamento de Despesa de Viagens.</h4>
-                              <p class="text-muted small mb-0">Confirme os colaboradores, categorias e valores antes de confirmar.</p>
+                              <h4 class="mb-1 text-primary">Conferência e Consolidação</h4>
+                              <p class="text-muted small mb-0">Confirme os dados extraídos antes de gravar.</p>
                             </div>
                           </div>
 
@@ -1311,38 +1314,50 @@
                           }
 
                           <!-- Search and Date Box -->
-                          <div class="mb-3 d-flex flex-column flex-md-row gap-2 align-items-md-center">
-                            <div class="d-flex align-items-center gap-2">
+                          <div class="mb-3 d-flex flex-column flex-md-row gap-3 align-items-md-end">
+                            <div class="d-flex flex-column gap-1">
                               <label class="text-muted small fw-semibold text-nowrap mb-0" style="letter-spacing: 0.5px;">Data Competência:</label>
                               <input type="date" class="form-control" style="width: 145px; height: 38px; border-radius: 8px;"
                                      [ngModel]="dataCompetencia()" (ngModelChange)="dataCompetencia.set($event)">
                             </div>
-                            
-                            <div class="search-box position-relative flex-grow-1 ms-md-2">
-                              <i class="fa-solid fa-magnifying-glass text-muted position-absolute" style="left: 0.85rem; top: 50%; transform: translateY(-50%); font-size: 0.85rem;"></i>
-                              <input type="text" class="form-control" placeholder="Pesquisar..."
-                                style="padding-left: 2.25rem; height: 38px; border-radius: 8px;"
-                                [ngModel]="searchDespesaTerm()" (ngModelChange)="searchDespesaTerm.set($event)">
+
+                            <div class="d-flex flex-column gap-1">
+                              <label class="text-muted small fw-semibold text-nowrap mb-0" style="letter-spacing: 0.5px;">Unidade:</label>
+                              <select class="form-select" style="width: 200px; height: 38px; border-radius: 8px;"
+                                      [ngModel]="unidadeSelecionadaId()" (ngModelChange)="unidadeSelecionadaId.set($event ? +$event : null)">
+                                <option [ngValue]="null">Selecione...</option>
+                                @for (u of listaUnidadesGeral; track u.idUnidade) {
+                                <option [ngValue]="u.idUnidade">{{ u.codigo }} - {{ u.descricao }}</option>
+                                }
+                              </select>
                             </div>
                             
-                            <button type="button" class="btn btn-sm text-nowrap ms-md-2" [class.btn-danger]="mostrarDivergenciaOnly()"
-                              [class.btn-outline-danger]="!mostrarDivergenciaOnly()" style="height: 38px; border-radius: 8px;"
-                              (click)="mostrarDivergenciaOnly.set(!mostrarDivergenciaOnly())">
-                              <i class="fa-solid" [class.fa-toggle-on]="mostrarDivergenciaOnly()"
-                                [class.fa-toggle-off]="!mostrarDivergenciaOnly()"></i>
-                              Mostrar divergências
+                            <div class="d-flex flex-column gap-1 flex-grow-1">
+                              <label class="text-muted small fw-semibold text-nowrap mb-0" style="letter-spacing: 0.5px; opacity: 0; pointer-events: none;">Pesquisar</label>
+                              <div class="search-box position-relative w-100">
+                                <i class="fa-solid fa-magnifying-glass text-muted position-absolute" style="left: 0.85rem; top: 50%; transform: translateY(-50%); font-size: 0.85rem;"></i>
+                                <input type="text" class="form-control w-100" placeholder="Pesquisar..."
+                                  style="padding-left: 2.25rem; height: 38px; border-radius: 8px;"
+                                  [ngModel]="searchDespesaTerm()" (ngModelChange)="searchDespesaTerm.set($event)">
+                              </div>
+                            </div>
+                            
+                            <button type="button" class="btn btn-outline-warning text-nowrap mt-3 mt-md-0" style="height: 38px; border-radius: 8px; font-weight: 500;"
+                              (click)="mostrarDivergenciaOnly.set(!mostrarDivergenciaOnly())"
+                              [class.active]="mostrarDivergenciaOnly()">
+                              <i class="fa-regular fa-eye me-1"></i> Mostrar divergências
                             </button>
                           </div>
 
                           <!-- Table Container -->
-                          <div class="audit-table-container import-audit-table">
-                            <table class="table table-hover align-middle mb-0 text-start audit-table">
+                          <div class="audit-table-container import-audit-table bg-white rounded-3 overflow-hidden border">
+                            <table class="table table-hover align-middle mb-0 audit-table">
                               <thead class="table-light sticky-top">
                                 <tr>
-                                  <th>Colaborador</th>
+                                  <th class="ps-4">Colaborador</th>
                                   <th>Categoria</th>
-                                  <th class="text-end" style="width: 150px;">Valor</th>
-                                  <th class="text-end" style="width: 120px;">Ações</th>
+                                  <th class="text-end">Valor</th>
+                                  <th class="text-center pe-4" style="width: 100px;">Ações</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1350,7 +1365,7 @@
                                 <tr [class.bg-danger-subtle]="!despesa.pessoa_encontrada || !despesa.categoria_encontrada">
                                   
                                   <!-- Colaborador -->
-                                  <td class="fw-semibold text-dark">
+                                  <td class="ps-4 fw-semibold text-dark text-uppercase border-bottom-light">
                                     @if (editingRowIndex() === $index) {
                                     <ng-select [items]="listaColaboradoresGeral" bindLabel="nome" bindValue="nome" [ngModel]="editColaborador()"
                                        (ngModelChange)="editColaborador.set($event)" [clearable]="false"
@@ -1367,7 +1382,7 @@
                                   </td>
 
                                   <!-- Categoria -->
-                                  <td class="fw-semibold text-dark">
+                                  <td class="fw-semibold text-dark border-bottom-light">
                                     @if (editingRowIndex() === $index) {
                                     <ng-select [items]="listaCategoriasGeral" bindLabel="nome" bindValue="nome" [ngModel]="editCategoria()"
                                        (ngModelChange)="editCategoria.set($event)" [clearable]="false"
@@ -1384,7 +1399,7 @@
                                   </td>
 
                                   <!-- Valor -->
-                                  <td class="text-end fw-semibold text-dark tabular-nums">
+                                  <td class="text-end fw-semibold text-dark tabular-nums border-bottom-light">
                                     @if (editingRowIndex() === $index) {
                                     <input type="number" class="form-control form-control-sm text-end" [value]="editValor()"
                                        (input)="onEditValorChange($event)">
@@ -1394,7 +1409,7 @@
                                   </td>
 
                                   <!-- Ações -->
-                                  <td class="text-end">
+                                  <td class="text-end pe-4 border-bottom-light">
                                     @if (editingRowIndex() === $index) {
                                     <div class="d-flex justify-content-end gap-1">
                                       <button class="btn btn-sm-action btn-success" (click)="saveEdit($index)">
@@ -1407,7 +1422,7 @@
                                     } @else {
                                     <div class="d-flex justify-content-end gap-1">
                                       @if (!despesa.pessoa_encontrada) {
-                                      <button class="btn btn-sm-action btn-outline-primary hover-lift" [disabled]="isAddingDespesa()" title="Vincular/Adicionar Colaborador">
+                                      <button class="btn btn-sm-action btn-outline-primary hover-lift" [disabled]="isAddingDespesa()" title="Vincular/Adicionar Colaborador" (click)="openCreateColaboradorModal(despesa)">
                                         <i class="fa-solid fa-user-plus"></i>
                                       </button>
                                       }
@@ -1428,7 +1443,7 @@
                                 <!-- ADICIONAR NOVA DESPESA MANUALMENTE -->
                                 @if (isAddingDespesa()) {
                                 <tr class="table-active">
-                                  <td>
+                                  <td class="text-uppercase">
                                     <ng-select [items]="listaColaboradoresGeral" bindLabel="nome" bindValue="nome"
                                        [ngModel]="newDespesaColaborador()" (ngModelChange)="newDespesaColaborador.set($event)"
                                        [clearable]="false" placeholder="Selecione o colaborador..." class="despesa-add-select" appendTo="body">
@@ -1458,7 +1473,7 @@
                                 </tr>
                                 } @else {
                                 <tr>
-                                  <td colspan="4" class="text-center py-2">
+                                  <td colspan="4" class="text-start py-2 px-2">
                                     <button class="btn btn-sm btn-outline-primary" (click)="startAddDespesa()"
                                       [disabled]="editingRowIndex() !== null">
                                       <i class="fa-solid fa-plus me-1"></i>Adicionar Despesa
@@ -1467,7 +1482,26 @@
                                 </tr>
                                 }
                               </tbody>
+                              <tfoot class="table-light fw-bold" style="position: sticky; bottom: 0; z-index: 2; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);">
+                                <tr>
+                                  <td colspan="2" class="text-start ps-4">TOTAL GERAL</td>
+                                  <td class="text-end text-primary tabular-nums border-0">
+                                    {{ totalDespesasExtraidas | currency:'BRL':'symbol':'1.2-2' }}
+                                  </td>
+                                  <td class="border-0"></td>
+                                </tr>
+                              </tfoot>
                             </table>
+                          </div>
+
+                          <!-- Statistics Alert -->
+                          <div class="alert alert-info py-2 px-3 mt-3 mb-2 d-flex justify-content-between align-items-center flex-wrap gap-2" style="font-size: 0.75rem;">
+                            <span>
+                              <i class="fa-solid fa-circle-info me-1"></i>
+                              Total de despesas auditadas: <strong>{{ despesasExtraidas.length }}</strong>
+                              ({{ totalPessoasExtraidas }} pessoas, {{ totalCategoriasExtraidas }} categorias).
+                            </span>
+                            <span class="small fw-medium">Arquivo: {{ selectedFileName }}</span>
                           </div>
 
                         </div>
@@ -1475,35 +1509,15 @@
 
                     @if (uploadState === 'done') {
                       <div class="erp-modal-footer" modal-footer>
-                        <div class="d-flex justify-content-between align-items-center w-100">
-                          <div class="d-flex gap-4">
-                            <div class="d-flex flex-column text-start">
-                              <span class="text-muted fw-bold" style="letter-spacing: 0.5px; font-size: 0.7rem;">TOTAL DE PESSOAS</span>
-                              <span class="fs-6 fw-bold" style="color: var(--color-text-primary);">{{ totalPessoasExtraidas }}</span>
-                            </div>
-                            <div class="d-flex flex-column text-start">
-                              <span class="text-muted fw-bold" style="letter-spacing: 0.5px; font-size: 0.7rem;">TOTAL DE CATEGORIAS</span>
-                              <span class="fs-6 fw-bold" style="color: var(--color-text-primary);">{{ totalCategoriasExtraidas }}</span>
-                            </div>
-                            <div class="d-flex flex-column text-start">
-                              <span class="text-muted fw-bold" style="letter-spacing: 0.5px; font-size: 0.7rem;">VALOR TOTAL</span>
-                              <span class="fs-5 fw-bold" style="color: var(--color-text-primary);">{{ totalDespesasExtraidas | currency:'BRL':'symbol':'1.2-2' }}</span>
-                            </div>
-                          </div>
-                          <div class="d-flex gap-2">
-                            <app-button variant="secondary" (clicked)="closeImportModal('cancel-button')" [disabled]="isConfirmandoESalvando">
-                              Cancelar
-                            </app-button>
-                            <app-button variant="primary" (clicked)="confirmarESalvar()"
-                              [disabled]="despesasExtraidas.length === 0 || isConfirmandoESalvando"
-                              [loading]="isConfirmandoESalvando">
-                              @if (isConfirmandoESalvando) {
-                                <i class="fa-solid fa-spinner fa-spin me-1"></i> Salvando...
-                              } @else {
-                                Confirmar
-                              }
-                            </app-button>
-                          </div>
+                        <div class="d-flex justify-content-end gap-2 w-100">
+                          <app-button variant="secondary" (clicked)="closeImportModal('cancel-button')" [disabled]="isConfirmandoESalvando">
+                            Cancelar
+                          </app-button>
+                          <app-button variant="primary" (clicked)="confirmarESalvar()"
+                            [disabled]="despesasExtraidas.length === 0 || isConfirmandoESalvando || !unidadeSelecionadaId()"
+                            [loading]="isConfirmandoESalvando">
+                            Confirmar
+                          </app-button>
                         </div>
                       </div>
                     }
@@ -1525,7 +1539,15 @@
 
                     <!-- Modal de Confirmação (Genérico) -->
                     <app-confirm-modal [isOpen]="isConfirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
-                    [isLoading]="isConfirmLoading" (confirmed)="executeConfirm()" (canceled)="closeConfirmModal()"></app-confirm-modal>
+                      confirmText="Confirmar" cancelText="Cancelar" variant="danger" (confirmed)="executeConfirm()"
+                      (cancelled)="closeConfirmModal()">
+                    </app-confirm-modal>
+
+                    <!-- Modal de Cadastro de Colaborador -->
+                    <app-colaborador-modal [isOpen]="isColaboradorModalOpen" [modalMode]="'create'"
+                      [initialName]="colaboradorToCreateName" (closed)="isColaboradorModalOpen = false"
+                      (saved)="onColaboradorSaved($event)">
+                    </app-colaborador-modal>
 
                     <!-- Toast Simples Customizado para Alertas -->
                     @if (toastMessage) {

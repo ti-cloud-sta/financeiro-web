@@ -90,6 +90,7 @@ def get_dashboard_visao_geral(
     id_empresa: int = Query(None),
     id_colaborador: int = Query(None),
     id_categoria: int = Query(None),
+    id_unidade: int = Query(None),
     db: Session = Depends(get_db)
 ):
     try:
@@ -99,7 +100,8 @@ def get_dashboard_visao_geral(
             "data_fim": data_fim,
             "id_empresa": id_empresa,
             "id_colaborador": id_colaborador,
-            "id_categoria": id_categoria
+            "id_categoria": id_categoria,
+            "id_unidade": id_unidade
         }
         return service.obter_visao_geral(filtros)
     except Exception as e:
@@ -112,6 +114,7 @@ def get_dashboard_comercial(
     id_empresa: int = Query(None),
     id_colaborador: int = Query(None),
     id_categoria: int = Query(None),
+    id_unidade: int = Query(None),
     db: Session = Depends(get_db)
 ):
     try:
@@ -121,7 +124,8 @@ def get_dashboard_comercial(
             "data_fim": data_fim,
             "id_empresa": id_empresa,
             "id_colaborador": id_colaborador,
-            "id_categoria": id_categoria
+            "id_categoria": id_categoria,
+            "id_unidade": id_unidade
         }
         return service.obter_visao_comercial(filtros)
     except Exception as e:
@@ -134,6 +138,7 @@ def get_relatorio_viagens(
     id_empresa: int = Query(None),
     id_colaborador: int = Query(None),
     id_centro_custo: str = Query(None),
+    id_unidade: int = Query(None),
     db: Session = Depends(get_db)
 ):
     try:
@@ -143,7 +148,8 @@ def get_relatorio_viagens(
             "data_fim": data_fim,
             "id_empresa": id_empresa,
             "id_colaborador": id_colaborador,
-            "id_centro_custo": id_centro_custo
+            "id_centro_custo": id_centro_custo,
+            "id_unidade": id_unidade
         }
         return service.obter_relatorio(filtros)
     except Exception as e:

@@ -589,3 +589,16 @@
 .animate-fade-in {
   animation: fadeIn 0.2s ease-out;
 }
+
+/* ==========================================================================
+   CORES CUSTOMIZADAS (STATUS)
+   ========================================================================== */
+.bg-orange {
+  background-color: #f97316 !important;
+}
+.bg-orange.bg-opacity-10 {
+  background-color: rgba(249, 115, 22, 0.15) !important;
+}
+.text-orange {
+  color: #ea580c !important;
+}

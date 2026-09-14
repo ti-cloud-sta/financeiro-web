@@ -17,21 +17,6 @@
           </button>
         </li>
         <li>
-          <button class="main-nav-link" [class.active]="activeTab === 'inadimplencia'" (click)="setActiveTab('inadimplencia')" title="Inadimplência">
-            <i class="fa-solid fa-file-invoice-dollar"></i> <span class="nav-text">Inadimplência</span>
-          </button>
-        </li>
-        <li>
-          <button class="main-nav-link" [class.active]="activeTab === 'representantes'" (click)="setActiveTab('representantes')" title="Representantes">
-            <i class="fa-solid fa-user-tie"></i> <span class="nav-text">Representantes</span>
-          </button>
-        </li>
-        <li>
-          <button class="main-nav-link" [class.active]="activeTab === 'gerentes'" (click)="setActiveTab('gerentes')" title="Gerentes">
-            <i class="fa-solid fa-user-shield"></i> <span class="nav-text">Gerentes</span>
-          </button>
-        </li>
-        <li>
           <button class="main-nav-link" [class.active]="activeTab === 'pendencias'" (click)="setActiveTab('pendencias')" title="Pendências">
             <i class="fa-solid fa-triangle-exclamation"></i> <span class="nav-text">Pendências</span>
           </button>
@@ -51,52 +36,41 @@
         <!-- Tab Dashboards -->
         <div class="tab-pane fade" [class.show]="activeTab === 'dashboards'" [class.active]="activeTab === 'dashboards'" role="tabpanel">
           <div class="config-layout">
-            <div class="dashboard-header border-bottom">
-              <h3 class="mb-0 p-3" style="font-size: 1.5rem; font-weight: 600;">Dashboards</h3>
+            <div class="dashboard-header d-flex justify-content-between align-items-center border-bottom pt-2">
+              <ul class="config-nav mb-0 border-bottom-0 pb-0 px-3">
+                <li class="config-nav-item">
+                  <button class="config-nav-link" [class.active]="horizontalTab() === 'representantes'"
+                    (click)="setHorizontalTab('representantes')">
+                    Representantes
+                  </button>
+                </li>
+                <li class="config-nav-item">
+                  <button class="config-nav-link" [class.active]="horizontalTab() === 'gerentes'"
+                    (click)="setHorizontalTab('gerentes')">
+                    Gerentes
+                  </button>
+                </li>
+              </ul>
             </div>
-            <div class="p-3">
-              <!-- Conteúdo de Dashboards virá aqui -->
-              <p class="text-muted">Conteúdo de Dashboards</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab Inadimplência -->
-        <div class="tab-pane fade" [class.show]="activeTab === 'inadimplencia'" [class.active]="activeTab === 'inadimplencia'" role="tabpanel">
-          <div class="config-layout">
-            <div class="dashboard-header border-bottom">
-              <h3 class="mb-0 p-3" style="font-size: 1.5rem; font-weight: 600;">Inadimplência</h3>
-            </div>
-            <div class="p-3">
-              <!-- Conteúdo de Inadimplência virá aqui -->
-              <p class="text-muted">Conteúdo de Inadimplência</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab Representantes -->
-        <div class="tab-pane fade" [class.show]="activeTab === 'representantes'" [class.active]="activeTab === 'representantes'" role="tabpanel">
-          <div class="config-layout">
-            <div class="dashboard-header border-bottom">
-              <h3 class="mb-0 p-3" style="font-size: 1.5rem; font-weight: 600;">Representantes</h3>
-            </div>
-            <div class="p-3">
-              <!-- Conteúdo de Representantes virá aqui -->
-              <p class="text-muted">Conteúdo de Representantes</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab Gerentes -->
-        <div class="tab-pane fade" [class.show]="activeTab === 'gerentes'" [class.active]="activeTab === 'gerentes'" role="tabpanel">
-          <div class="config-layout">
-            <div class="dashboard-header border-bottom">
-              <h3 class="mb-0 p-3" style="font-size: 1.5rem; font-weight: 600;">Gerentes</h3>
-            </div>
-            <div class="p-3">
-              <!-- Conteúdo de Gerentes virá aqui -->
-              <p class="text-muted">Conteúdo de Gerentes</p>
-            </div>
+            <main class="dashboard-content px-2 py-3 p-md-4" style="flex-grow: 1;">
+              @if (horizontalTab() === 'representantes') {
+              <div class="dashboard-section-header mb-4">
+                <h3>Dashboards de Representantes</h3>
+                <p class="text-muted">Acompanhe os indicadores e metas de cada representante.</p>
+              </div>
+              <div class="p-3">
+                <p class="text-muted">Conteúdo de Representantes virá aqui</p>
+              </div>
+              } @else {
+              <div class="dashboard-section-header mb-4">
+                <h3>Dashboards de Gerentes</h3>
+                <p class="text-muted">Acompanhe os indicadores gerais e consolidados por gerência.</p>
+              </div>
+              <div class="p-3">
+                <p class="text-muted">Conteúdo de Gerentes virá aqui</p>
+              </div>
+              }
+            </main>
           </div>
         </div>
 
@@ -106,7 +80,7 @@
             <div class="dashboard-header border-bottom">
               <h3 class="mb-0 p-3" style="font-size: 1.5rem; font-weight: 600;">Pendências</h3>
             </div>
-            <div class="p-3">
+            <div class="">
               <!-- Conteúdo de Pendências virá aqui -->
               <app-pendencias></app-pendencias>
             </div>
@@ -133,7 +107,9 @@
                 <div class="upload-field-box">
                   <label class="form-label">Planilha de Atualização (Excel)</label>
                   <div class="custom-upload-zone" (click)="triggerUploadAtualizacao()"
-                    [class.has-file]="selectedFileAtualizacao() !== null">
+                    [class.has-file]="selectedFileAtualizacao() !== null"
+                    [style.pointer-events]="isImportandoDados() ? 'none' : 'auto'"
+                    [style.opacity]="isImportandoDados() ? '0.6' : '1'">
                     @if (selectedFileAtualizacao()) {
                     <i class="fa-regular fa-file-excel fs-3 text-success"></i>
                     <div class="upload-text">
@@ -150,12 +126,27 @@
                 </div>
               </div>
 
-              <div class="import-actions-row">
+              <div class="import-actions-row d-flex align-items-center">
                 <app-button variant="primary" icon="fa-solid fa-arrows-rotate"
                   [disabled]="!selectedFileAtualizacao() || isImportandoDados()" [loading]="isImportandoDados()"
                   (clicked)="processarAtualizacaoDados()">
                   {{ isImportandoDados() ? 'Importando...' : 'Atualizar Dados' }}
                 </app-button>
+                @if (isImportandoDados()) {
+                <div class="progress-container flex-grow-1 ms-4" style="max-width: 400px;">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-primary fw-semibold small" style="font-size: 0.85rem;">{{ importacaoProgressMsg() }}</span>
+                    <span class="text-primary fw-bold small" style="font-size: 0.85rem;">{{ importacaoProgressPercent() }}%</span>
+                  </div>
+                  <div class="progress" style="height: 10px; border-radius: 8px; background-color: rgba(13, 110, 253, 0.1);">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                         role="progressbar" 
+                         [style.width]="importacaoProgressPercent() + '%'" 
+                         style="border-radius: 8px;">
+                    </div>
+                  </div>
+                </div>
+                }
               </div>
             </div>
 
@@ -200,7 +191,7 @@
                       </td>
                       <td class="text-muted small">{{ history.tipo }}</td>
                       <td>
-                        <span class="text-muted small fw-medium">
+                        <span class="text-muted small fw-medium text-nowrap">
                           <i class="fa-regular fa-user me-1"></i>{{ history.autor || '-' }}
                         </span>
                       </td>
@@ -235,7 +226,7 @@
 
   <!-- Hidden File Input -->
   <input type="file" #atualizacaoFileInput style="display: none;" accept=".xlsx, .xls, .csv"
-    (change)="onFileSelectedAtualizacao($event)">
+    (change)="onFileSelectedAtualizacao($event)" [disabled]="isImportandoDados()">
 
   <!-- Confirm / Alert Modal -->
   <app-confirm-modal

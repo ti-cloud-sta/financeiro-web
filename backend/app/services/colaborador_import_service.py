@@ -13,6 +13,8 @@ from app.schemas.colaborador_import import (
     ImportNovo, ImportDivergente, ImportDesligado, ImportErro,
     ImportPreviewResponse, ImportProcessarRequest, ImportProcessarResponse
 )
+from app.schemas.colaborador import ColaboradorCreate
+from app.services.colaborador_service import ColaboradorService
 from app.models.colaboradores_movimento import ColaboradoresMovimento
 
 HEADER_ROW = 2
@@ -170,23 +172,17 @@ class ColaboradorImportService:
         desligados = 0
 
         try:
+            colab_service = ColaboradorService(self.db)
+            
             for novo in payload.novos:
-                db_obj = Colaborador(
+                colab_in = ColaboradorCreate(
                     nome=novo.nome,
                     documento=novo.documento,
                     idCentroCusto=novo.idCentroCusto,
                     idCargoColaborador=id_cargo_padrao,
-                    snAtivo='S'
+                    origem='ATUALIZACAO_BASE'
                 )
-                self.db.add(db_obj)
-                self.db.flush() # Para gerar o idColaborador
-                movimento = ColaboradoresMovimento(
-                    idColaboradores=db_obj.idColaborador,
-                    origem='ATUALIZACAO_BASE',
-                    userCreatedId=user_id,
-                    tipoMovimento='ATIVACAO'
-                )
-                self.db.add(movimento)
+                colab_service.create_colaborador(colab_in, user_id)
                 cadastrados += 1
 
             for div in payload.divergentes:

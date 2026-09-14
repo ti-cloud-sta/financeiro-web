@@ -1,16 +1,16 @@
-import io
-import math
 import datetime
+import math
+import io
+import json
 from typing import Optional, Tuple
-
 import pandas as pd
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from app.models.cliente import Cliente
 from app.models.matriz_cliente import MatrizCliente
 from app.models.unidade import Unidade
-from app.models.nf_pendencia import NfPendencia
+from app.models.nf_pendencia import NfPendencia, VwNfPendenciaFase
 from app.models.tratativa import Tratativa
 from app.models.historico_pendencia import HistoricoPendencia
 from app.models.user import User
@@ -36,11 +36,7 @@ STATUS_OPTIONS = [
 
 def _excel_serial_to_date(value) -> Optional[datetime.date]:
     """
-    Converte uma célula de data da planilha para datetime.date, aceitando os dois formatos
-    que já apareceram nos arquivos reais: número de série do Excel (quando a célula não tem
-    formatação de data aplicada) ou um valor já parseado pelo pandas como Timestamp/datetime
-    (quando a célula tem formatação de data - caso em que o cast direto para int() falharia
-    silenciosamente e derrubava todo o filtro de vencimento para 0 linhas elegíveis).
+    Converte uma célula de data da planilha para datetime.date.
     """
     if value is None:
         return None
@@ -53,6 +49,16 @@ def _excel_serial_to_date(value) -> Optional[datetime.date]:
         return value.date()
     if isinstance(value, datetime.date):
         return value
+    if isinstance(value, str):
+        value_str = value.strip()
+        if not value_str:
+            return None
+        # Tenta os formatos comuns no Brasil
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%Y-%m-%d %H:%M:%S", "%d/%m/%Y %H:%M:%S"):
+            try:
+                return datetime.datetime.strptime(value_str, fmt).date()
+            except ValueError:
+                pass
     try:
         return EXCEL_EPOCH + datetime.timedelta(days=int(value))
     except (ValueError, OverflowError, TypeError):
@@ -124,59 +130,6 @@ def resolver_intervalo_vencimento(hoje: datetime.date) -> Tuple[datetime.date, d
     )
 
 
-def classificar_fase_status(
-    especie: Optional[str],
-    tipo_pedido: Optional[str],
-    carteira: Optional[str],
-    tem_data_entrega: bool,
-    valor_original: Optional[float],
-    saldo: Optional[float],
-) -> Tuple[Optional[str], Optional[str]]:
-    """
-    Critérios 3 a 6: define (fase, status) a partir das colunas B (espécie), G (tipo pedido),
-    M (carteira) e O (data de entrega), e da comparação Saldo (U) x Valor Original (T).
-    As regras são avaliadas na ordem descrita pelo negócio - a primeira que casar decide o
-    resultado (existem combinações que se sobrepõem, ex.: DP+DEV também podendo ser DP+PV+O vazio).
-    """
-    b = (especie or "").upper()
-    g = (tipo_pedido or "").upper()
-    m = (carteira or "").upper()
-    saldo_menor_que_original = (
-        saldo is not None and valor_original is not None and saldo < valor_original
-    )
-
-    # 3º critério - LOGISTICA
-    if b == "DP" and m == "DEV":
-        return "LOGISTICA", "DEVOLUCAO"
-    if b == "DP" and g == "PV" and not tem_data_entrega:
-        return "LOGISTICA", "SEM DATA DE ENTREGA"
-
-    # 4º critério - COMERCIAL
-    if b == "DP" and g == "PV" and tem_data_entrega and m == "CAR" and saldo_menor_que_original:
-        return "COMERCIAL", "ACORDO"
-
-    # 5º critério - FISCAL
-    if b == "DP" and g == "ER" and tem_data_entrega and m == "CAR" and saldo_menor_que_original:
-        return "FISCAL", "COMISSAO"
-
-    # 6º critério - PENDENCIAS / FINANCEIRO
-    if b == "AD":
-        return "PENDENCIAS", "AD"
-    if b == "AN":
-        return "PENDENCIAS", "AN"
-    if b == "DP" and g == "PX" and not tem_data_entrega:
-        return "PENDENCIAS", "EXPORTACAO"
-    if b == "DP" and g == "ER" and not tem_data_entrega:
-        return "PENDENCIAS", "MARTINS"
-    if b == "DP" and g == "E1" and not tem_data_entrega:
-        return "PENDENCIAS", "MERCADINHO"
-    if b == "DP" and g == "PV" and m == "DES" and tem_data_entrega:
-        return "PENDENCIAS", "CART-DES"
-    if b == "DP" and g == "PV" and m in ("SIM", "VIN") and tem_data_entrega:
-        return "FINANCEIRO", "ATRASADO"
-
-    return None, None
-
 
 class InadimplenciaService:
     # Índices das colunas (0-based) no layout fixo da planilha "Base pendencias.xlsx"
@@ -206,56 +159,55 @@ class InadimplenciaService:
         self._cache_matrizes: dict[int, int] = {}
         self._cache_unidades: dict[int, Optional[int]] = {}
 
-    def importar_pendencias(self, conteudo: bytes, nome_arquivo: str, id_user: Optional[int] = None) -> dict:
+    def importar_pendencias(self, conteudo: bytes, nome_arquivo: str, id_user: Optional[int] = None):
+        import json
         try:
-            df = pd.read_excel(io.BytesIO(conteudo), header=0)
+            df = pd.read_excel(io.BytesIO(conteudo), sheet_name="Resumo", header=0)
         except Exception as exc:
-            raise ValueError(f"Não foi possível ler a planilha: {exc}")
+            yield json.dumps({"erro": f"Não foi possível ler a planilha: {exc}"}) + "\n"
+            return
 
         if df.shape[1] < self.MIN_COLUNAS:
-            raise ValueError(
-                f"A planilha precisa ter pelo menos {self.MIN_COLUNAS} colunas (até a coluna U). "
-                f"Colunas encontradas: {df.shape[1]}."
-            )
+            yield json.dumps({"erro": f"A planilha precisa ter pelo menos {self.MIN_COLUNAS} colunas (até a coluna U). Colunas encontradas: {df.shape[1]}."}) + "\n"
+            return
 
         total_com_especie = 0
         importadas = 0
-        classificadas_por_fallback = 0
+        prorrogadas = 0
         ignoradas_sem_cliente = 0
         ignoradas_sem_vencimento = 0
         ignoradas_duplicadas = 0
         sem_unidade_encontrada = 0
         clientes_criados = 0
         matrizes_criadas = 0
-        finalizadas_automaticamente = 0
-        resumo_fase_status: dict[str, int] = {}
 
-        # Chave natural (mesma usada para dedup) de toda linha real da planilha, independente
-        # da data - usada ao final para fechar automaticamente pendências que já não aparecem
-        # mais no export do ERP (critério de finalização automática).
         chaves_presentes_planilha: set[Tuple[Optional[int], Optional[int], Optional[str], Optional[float]]] = set()
-
         extensao = nome_arquivo.rsplit(".", 1)[-1].lower() if "." in nome_arquivo else "xlsx"
 
-        # Primeiro critério de processo: registra a importação antes de processar as linhas.
-        importacao = ImportacaoService(self.db).registrar_importacao(
-            nome_arquivo=nome_arquivo,
-            extensao=extensao,
-            tipo="PENDENCIAS",
-            id_user_inc=id_user
-        )
-
         try:
-            for _, row in df.iterrows():
+            importacao = ImportacaoService(self.db).registrar_importacao(
+                nome_arquivo=nome_arquivo,
+                extensao=extensao,
+                tipo="PENDENCIAS",
+                id_user_inc=id_user
+            )
+            self.db.commit() # Garante que a importação exista
+        except Exception as e:
+            yield json.dumps({"erro": f"Erro ao registrar importação: {e}"}) + "\n"
+            return
+
+        total_rows = len(df)
+        
+        try:
+            for idx, row in df.iterrows():
                 especie = _clean_str(row.iloc[self.COL_ESPECIE])
+                if especie:
+                    especie = especie.upper()
                 if not especie:
                     continue  # linha em branco / separador / rodapé do relatório
 
                 total_com_especie += 1
 
-                # Chave natural computada para TODA linha real, usada tanto para o dedup
-                # quanto para o critério de finalização automática (saber se o título ainda
-                # existe em algum lugar da planilha).
                 codigo_estabelecimento = _to_int(row.iloc[self.COL_ESTABELECIMENTO])
                 id_unidade = self._buscar_unidade(codigo_estabelecimento)
                 if codigo_estabelecimento is not None and id_unidade is None:
@@ -267,31 +219,20 @@ class InadimplenciaService:
                 if titulo is not None:
                     chaves_presentes_planilha.add((id_unidade, serie, titulo, parcela))
 
-                # A importação agora traz todo o conteúdo da planilha (não só o que vence
-                # hoje) - o recorte por data vira um filtro de consulta na tela de Pendências.
                 vencimento = _excel_serial_to_date(row.iloc[self.COL_VENCIMENTO])
                 if vencimento is None:
                     ignoradas_sem_vencimento += 1
                     continue
 
                 tipo_pedido = _clean_str(row.iloc[self.COL_TIPO_PEDIDO])
+                if tipo_pedido:
+                    tipo_pedido = tipo_pedido.upper()
                 carteira = _clean_str(row.iloc[self.COL_CARTEIRA])
+                if carteira:
+                    carteira = carteira.upper()
                 data_entrega = _excel_serial_to_date(row.iloc[self.COL_DATA_ENTREGA])
                 valor_original = _to_float(row.iloc[self.COL_VALOR_ORIGINAL])
                 saldo = _to_float(row.iloc[self.COL_SALDO])
-
-                fase, status = classificar_fase_status(
-                    especie, tipo_pedido, carteira,
-                    tem_data_entrega=data_entrega is not None,
-                    valor_original=valor_original,
-                    saldo=saldo,
-                )
-
-                # Sétimo critério: elegível pela data mas não bateu com nenhuma regra 3-6
-                # específica - ainda assim entra, marcado para triagem manual.
-                if fase is None:
-                    fase, status = "PENDENCIAS", "ANALISAR"
-                    classificadas_por_fallback += 1
 
                 codigo_cliente = _to_int(row.iloc[self.COL_CLIENTE_CODIGO])
                 nome_cliente = _clean_str(row.iloc[self.COL_NOME_CLIENTE])
@@ -311,92 +252,154 @@ class InadimplenciaService:
                     if criado_matriz:
                         matrizes_criadas += 1
 
-                # Não pode subir nota repetida: mesma unidade + série + título + parcela já
-                # existente não é reinserida (não há constraint de unicidade no banco).
-                if self._ja_importada(id_unidade, serie, titulo, parcela):
-                    ignoradas_duplicadas += 1
-                    continue
+                pendencia_existente = self._obter_pendencia_existente(id_unidade, serie, titulo, parcela)
+                if pendencia_existente:
+                    if getattr(pendencia_existente, 'encerrado', None) == 'S':
+                        pendencia_existente.encerrado = 'N'
+                        
+                    if vencimento is not None:
+                        venc_db = pendencia_existente.dtVencimento
+                        
+                        if isinstance(venc_db, datetime.datetime):
+                            venc_db = venc_db.date()
+                        elif isinstance(venc_db, str):
+                            try:
+                                venc_db = datetime.datetime.strptime(venc_db.split('T')[0].split(' ')[0], '%Y-%m-%d').date()
+                            except:
+                                venc_db = None
+                                
+                        venc_excel = vencimento
+                        if isinstance(venc_excel, datetime.datetime):
+                            venc_excel = venc_excel.date()
 
-                nf = NfPendencia(
-                    idUnidade=id_unidade,
-                    idImportacoes=importacao.idImportacoes,
-                    especie=especie,
-                    serie=serie,
-                    titulo=titulo,
-                    parccela=parcela,
-                    nrPedidoCliente=_to_int(row.iloc[self.COL_NR_PEDIDO_CLIENTE]),
-                    tipoPedido=tipo_pedido,
-                    idCliente=id_cliente,
-                    idClienteMatriz=id_matriz,
-                    portador=_to_int(row.iloc[self.COL_PORTADOR]),
-                    carteira=carteira,
-                    dtEmissao=_excel_serial_to_date(row.iloc[self.COL_EMISSAO]),
-                    dtEntrega=data_entrega,
-                    dtVencimento=vencimento,
-                    valorOriginal=valor_original,
-                    valorSaldo=saldo,
-                    fase=fase,
-                    status=status,
-                )
-                self.db.add(nf)
-                self.db.flush()  # popula nf.idnfpendencias para o registro de histórico abaixo
-                self._novo_historico(
-                    nf.idnfpendencias,
-                    "Pendencia Importada",
-                    f"Título {titulo} importado da planilha '{nome_arquivo}' e classificado como {fase} / {status}.",
-                    id_user,
-                )
-                importadas += 1
-                chave = f"{fase} / {status}"
-                resumo_fase_status[chave] = resumo_fase_status.get(chave, 0) + 1
+                        if venc_db is None or venc_excel > venc_db:
+                            data_inicial_str = venc_db.strftime('%d/%m/%Y') if venc_db else "Sem Vencimento"
+                            data_nova_str = venc_excel.strftime('%d/%m/%Y')
+                            
+                            pendencia_existente.dtVencimento = venc_excel
+                            if saldo is not None:
+                                pendencia_existente.valorSaldo = saldo
+                            
+                            foi_encerrado_agora = False
+                            if getattr(pendencia_existente, 'encerrado', 'N') != 'S':
+                                pendencia_existente.encerrado = 'S'
+                                foi_encerrado_agora = True
+                            
+                            self.db.flush()
+                            self._novo_historico(
+                                pendencia_existente.idnfpendencias,
+                                "Título Prorrogado",
+                                f"Titulo {titulo} prorrogado de {data_inicial_str} para {data_nova_str}",
+                                14 # system
+                            )
+                            
+                            if foi_encerrado_agora:
+                                self._novo_historico(
+                                    pendencia_existente.idnfpendencias,
+                                    "Resolução",
+                                    "Pendência finalizada devido à prorrogação do título.",
+                                    14 # system
+                                )
+                                
+                            prorrogadas += 1
+                        else:
+                            ignoradas_duplicadas += 1
+                    else:
+                        ignoradas_duplicadas += 1
+                else:
+                    nf = NfPendencia(
+                        idUnidade=id_unidade,
+                        idImportacoes=importacao.idImportacoes,
+                        especie=especie,
+                        serie=serie,
+                        titulo=titulo,
+                        parccela=parcela,
+                        nrPedidoCliente=_to_int(row.iloc[self.COL_NR_PEDIDO_CLIENTE]),
+                        tipoPedido=tipo_pedido,
+                        idCliente=id_cliente,
+                        idClienteMatriz=id_matriz,
+                        portador=_to_int(row.iloc[self.COL_PORTADOR]),
+                        carteira=carteira,
+                        dtEmissao=_excel_serial_to_date(row.iloc[self.COL_EMISSAO]),
+                        dtEntrega=data_entrega,
+                        dtVencimento=vencimento,
+                        valorOriginal=valor_original,
+                        valorSaldo=saldo,
+                        encerrado='N'
+                    )
+                    self.db.add(nf)
+                    self.db.flush()
+                    self._novo_historico(
+                        nf.idnfpendencias,
+                        "Pendencia Importada",
+                        f"Título {titulo} importado da planilha '{nome_arquivo}'.",
+                        id_user,
+                    )
+                    
+                    # Consulta a view para pegar fase e status e gravar novo histórico
+                    vw = self.db.query(VwNfPendenciaFase).filter_by(idnfpendencias=nf.idnfpendencias).first()
+                    if vw:
+                        self._novo_historico(
+                            nf.idnfpendencias,
+                            "Classificação",
+                            f"Titulo classificado como pendência {vw.fase} e status {vw.status}.",
+                            14
+                        )
+                        
+                    importadas += 1
 
-            # Critério de finalização automática: qualquer pendência que já esteja cadastrada
-            # (fase != FINALIZADO) e não apareça mais em nenhuma linha da planilha atual foi
-            # paga/baixada no ERP de origem - fecha automaticamente, independente de data.
-            notas_em_aberto = (
-                self.db.query(NfPendencia)
-                .filter(or_(NfPendencia.fase != "FINALIZADO", NfPendencia.fase.is_(None)))
-                .all()
-            )
-            for nota in notas_em_aberto:
-                if nota.titulo is None:
-                    continue
-                chave_nota = (nota.idUnidade, nota.serie, nota.titulo, nota.parccela)
-                if chave_nota in chaves_presentes_planilha:
-                    continue
+                # Batch commit every 50 records
+                if total_com_especie % 50 == 0:
+                    self.db.commit()
+                    yield json.dumps({
+                        "progresso": int(idx),
+                        "total": total_rows,
+                        "importadas": importadas,
+                        "prorrogadas": prorrogadas,
+                        "ignoradas_duplicadas": ignoradas_duplicadas
+                    }) + "\n"
 
-                fase_anterior = nota.fase or "-"
-                nota.fase = "FINALIZADO"
-                self._novo_historico(
-                    nota.idnfpendencias,
-                    "Finalização Automática",
-                    f"Fase alterada automaticamente de '{fase_anterior}' para 'FINALIZADO' - título "
-                    f"não encontrado na planilha '{nome_arquivo}' (considerado quitado/baixado no ERP).",
-                    id_user,
-                )
-                finalizadas_automaticamente += 1
+            baixadas = 0
+            if total_com_especie > 0:
+                pendencias_ativas = self.db.query(NfPendencia).filter(
+                    (NfPendencia.encerrado == 'N') | (NfPendencia.encerrado == None)
+                ).all()
+                for p_ativa in pendencias_ativas:
+                    chave_ativa = (p_ativa.idUnidade, p_ativa.serie, p_ativa.titulo, p_ativa.parccela)
+                    if chave_ativa not in chaves_presentes_planilha:
+                        p_ativa.encerrado = 'S'
+                        self.db.flush()
+                        self._novo_historico(
+                            p_ativa.idnfpendencias,
+                            "Pendência finalizada",
+                            "Pendência finalizada",
+                            14 # system
+                        )
+                        baixadas += 1
 
+            # Final commit
             self.db.commit()
-        except Exception:
+            
+            yield json.dumps({
+                "sucesso": True,
+                "arquivo": nome_arquivo,
+                "idImportacao": importacao.idImportacoes,
+                "totalLinhasComEspecie": total_com_especie,
+                "importadas": importadas,
+                "prorrogadas": prorrogadas,
+                "baixadas": baixadas,
+                "ignoradasSemCliente": ignoradas_sem_cliente,
+                "ignoradasSemVencimento": ignoradas_sem_vencimento,
+                "ignoradasDuplicadas": ignoradas_duplicadas,
+                "semUnidadeEncontrada": sem_unidade_encontrada,
+                "clientesCriados": clientes_criados,
+                "matrizesCriadas": matrizes_criadas,
+            }) + "\n"
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
             self.db.rollback()
-            raise
-
-        return {
-            "sucesso": True,
-            "arquivo": nome_arquivo,
-            "idImportacao": importacao.idImportacoes,
-            "totalLinhasComEspecie": total_com_especie,
-            "importadas": importadas,
-            "classificadasPorFallback": classificadas_por_fallback,
-            "ignoradasSemCliente": ignoradas_sem_cliente,
-            "ignoradasSemVencimento": ignoradas_sem_vencimento,
-            "ignoradasDuplicadas": ignoradas_duplicadas,
-            "semUnidadeEncontrada": sem_unidade_encontrada,
-            "clientesCriados": clientes_criados,
-            "matrizesCriadas": matrizes_criadas,
-            "finalizadasAutomaticamente": finalizadas_automaticamente,
-            "resumoPorFaseStatus": resumo_fase_status,
-        }
+            yield json.dumps({"erro": f"Falha no processamento: {str(e)}"}) + "\n"
 
     def listar_pendencias(
         self,
@@ -411,32 +414,44 @@ class InadimplenciaService:
         Com vencimento_inicio/vencimento_fim, filtra pelo intervalo informado (ex.: o atalho
         "Regra do Dia" ou um período personalizado escolhido na tela).
         """
-        query = self.db.query(NfPendencia, Cliente.nome).outerjoin(
-            Cliente, NfPendencia.idCliente == Cliente.idclientes
+        query = self.db.query(VwNfPendenciaFase, Cliente.nome).outerjoin(
+            Cliente, VwNfPendenciaFase.idCliente == Cliente.idclientes
         )
 
         if vencimento_inicio is None and vencimento_fim is None:
-            query = query.filter(NfPendencia.dtVencimento < datetime.date.today())
+            query = query.filter(VwNfPendenciaFase.dtVencimento < datetime.date.today())
         else:
             if vencimento_inicio is not None:
-                query = query.filter(NfPendencia.dtVencimento >= vencimento_inicio)
+                query = query.filter(VwNfPendenciaFase.dtVencimento >= vencimento_inicio)
             if vencimento_fim is not None:
-                query = query.filter(NfPendencia.dtVencimento <= vencimento_fim)
+                query = query.filter(VwNfPendenciaFase.dtVencimento <= vencimento_fim)
 
-        registros = query.order_by(NfPendencia.dtVencimento.asc()).all()
+        registros = query.order_by(VwNfPendenciaFase.dtVencimento.asc()).all()
 
-        return [
-            {
-                "idnfpendencias": nf.idnfpendencias,
-                "titulo": nf.titulo,
-                "fase": nf.fase,
-                "status": nf.status,
+        resultados = []
+        for vw, nome_cliente in registros:
+            resultados.append({
+                "idnfpendencias": vw.idnfpendencias,
+                "titulo": vw.titulo,
+                "fase": vw.fase,
+                "status": vw.status,
+                "devolucao": "S" if vw.status == 'DEVOLUCAO' else "N",
                 "clienteNome": nome_cliente,
-                "dtVencimento": nf.dtVencimento.isoformat() if nf.dtVencimento else None,
-                "createdAt": nf.createdAt.isoformat() if nf.createdAt else None,
-            }
-            for nf, nome_cliente in registros
-        ]
+                "idCliente": vw.idCliente,
+                "dtVencimento": vw.dtVencimento.isoformat() if vw.dtVencimento else None,
+                "createdAt": vw.createdAt.isoformat() if vw.createdAt else None,
+                "especie": vw.especie,
+                "carteira": vw.carteira,
+                "idUnidade": vw.idUnidade,
+                "serie": vw.serie,
+                "parccela": vw.parccela,
+                "portador": vw.portador,
+                "dtEmissao": vw.dtEmissao.isoformat() if vw.dtEmissao else None,
+                "dtEntrega": vw.dtEntrega.isoformat() if vw.dtEntrega else None,
+                "valorOriginal": vw.valorOriginal,
+                "valorSaldo": vw.valorSaldo,
+            })
+        return resultados
 
     def obter_janela_regra_dia(self) -> dict:
         """
@@ -654,19 +669,18 @@ class InadimplenciaService:
         self._cache_unidades[codigo_estabelecimento] = id_unidade
         return id_unidade
 
-    def _ja_importada(
+    def _obter_pendencia_existente(
         self,
         id_unidade: Optional[int],
         serie: Optional[int],
         titulo: Optional[str],
         parcela: Optional[float],
-    ) -> bool:
+    ) -> Optional[NfPendencia]:
         if titulo is None:
-            return False
-        existente = self.db.query(NfPendencia.idnfpendencias).filter(
+            return None
+        return self.db.query(NfPendencia).filter(
             NfPendencia.idUnidade == id_unidade,
             NfPendencia.serie == serie,
             NfPendencia.titulo == titulo,
             NfPendencia.parccela == parcela,
         ).first()
-        return existente is not None

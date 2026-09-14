@@ -24,14 +24,35 @@ class NfPendencia(Base):
     valorOriginal = Column(Float(precision=18, decimal_return_scale=2), nullable=True)  # Coluna T - Val Original
     valorSaldo = Column(Float(precision=18, decimal_return_scale=2), nullable=True)     # Coluna U - Saldo
 
-    # Classificação calculada a partir dos critérios de importação
-    fase = Column(String(100), nullable=True)
-    status = Column(String(100), nullable=True)
-
     idImportacoes = Column(Integer, ForeignKey("importacoes.idImportacoes"), nullable=True)
     createdAt = Column(DateTime, nullable=True, default=func.now())
+    encerrado = Column(String(1), server_default='S')
 
     unidade_rel = relationship("Unidade")
     cliente = relationship("Cliente")
     matriz_cliente = relationship("MatrizCliente")
     importacao = relationship("Importacao")
+
+class VwNfPendenciaFase(Base):
+    __tablename__ = "vw_nfpendencias_fase"
+    
+    idnfpendencias = Column(Integer, primary_key=True)
+    titulo = Column(String(50))
+    dtVencimento = Column(Date)
+    createdAt = Column(DateTime)
+    idCliente = Column(Integer, ForeignKey("clientes.idclientes"))
+    fase = Column(String(100))
+    status = Column(String(100))
+    especie = Column(String(5))
+    carteira = Column(String(45))
+    
+    idUnidade = Column(Integer)
+    serie = Column(String(10))
+    parccela = Column(String(5))
+    portador = Column(String(45))
+    dtEmissao = Column(Date)
+    dtEntrega = Column(Date)
+    valorOriginal = Column(Float)
+    valorSaldo = Column(Float)
+    
+    cliente = relationship("Cliente")

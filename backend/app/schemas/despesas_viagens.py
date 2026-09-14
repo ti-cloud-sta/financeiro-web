@@ -19,5 +19,6 @@ class SalvarDespesaViagemPayload(BaseModel):
     despesas: List[DespesaExtraida]
     idUserInc: Optional[int] = None
     dataCompetencia: Optional[str] = None  # YYYY-MM-DD — data do form para o createdAt
+    idUnidade: Optional[int] = None        # Adicionado campo Unidade
     isManualEntry: Optional[bool] = False   # True = lançamento manual (sem importação)
     idEmpresaManual: Optional[int] = None  # empresa selecionada no modal manual

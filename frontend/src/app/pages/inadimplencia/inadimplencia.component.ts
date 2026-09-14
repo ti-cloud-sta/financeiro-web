@@ -18,6 +18,7 @@ export class InadimplenciaComponent implements OnInit {
 
   isSidebarCollapsed = false;
   activeTab = 'pendencias';
+  horizontalTab = signal<'representantes' | 'gerentes'>('representantes');
 
   ngOnInit() {
     this.isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
@@ -33,6 +34,10 @@ export class InadimplenciaComponent implements OnInit {
     this.activeTab = tab;
   }
 
+  setHorizontalTab(tab: 'representantes' | 'gerentes') {
+    this.horizontalTab.set(tab);
+  }
+
   // ----------------------------------------------------
   // Atualização de Dados
   // ----------------------------------------------------
@@ -43,6 +48,8 @@ export class InadimplenciaComponent implements OnInit {
   searchAtualizacao = signal<string>('');
   atualizacaoHistory = signal<Importacao[]>([]);
   isImportandoDados = signal<boolean>(false);
+  importacaoProgressMsg = signal<string>('');
+  importacaoProgressPercent = signal<number>(0);
 
   filteredAtualizacaoHistory = computed(() => {
     const term = this.searchAtualizacao().toLowerCase().trim();
@@ -68,6 +75,7 @@ export class InadimplenciaComponent implements OnInit {
   }
 
   triggerUploadAtualizacao() {
+    if (this.isImportandoDados()) return;
     if (this.atualizacaoFileInput) {
       this.atualizacaoFileInput.nativeElement.value = '';
       this.atualizacaoFileInput.nativeElement.click();
@@ -86,18 +94,45 @@ export class InadimplenciaComponent implements OnInit {
     if (!arquivo || this.isImportandoDados()) return;
 
     this.isImportandoDados.set(true);
+    this.importacaoProgressMsg.set('Iniciando envio e processamento...');
+    this.importacaoProgressPercent.set(0);
+    
+    let lastRes: any = null;
+
     this.importacoesService.importarPendenciasInadimplencia(arquivo).subscribe({
       next: (res) => {
-        this.isImportandoDados.set(false);
-        this.selectedFileAtualizacao.set(null);
-        this.carregarHistoricoAtualizacao();
-        this.pendenciasComponent?.carregarPendencias();
-        this.openAlert('Importação Concluída', this.montarResumoImportacao(res), 'primary');
+        if (res && res.sucesso) {
+          lastRes = res;
+        } else if (res && res.progresso !== undefined) {
+          this.importacaoProgressMsg.set(`Processando linha ${res.progresso} de ${res.total}... Prorrogadas: ${res.prorrogadas}`);
+          if (res.total > 0) {
+            this.importacaoProgressPercent.set(Math.round((res.progresso / res.total) * 100));
+          }
+        }
       },
       error: (err) => {
         this.isImportandoDados.set(false);
+        this.importacaoProgressMsg.set('');
+        this.importacaoProgressPercent.set(0);
         console.error('Erro ao importar pendências:', err);
         this.openAlert('Erro na Importação', this.extractErrorMessage(err), 'danger');
+      },
+      complete: () => {
+        this.isImportandoDados.set(false);
+        this.importacaoProgressMsg.set('');
+        this.importacaoProgressPercent.set(0);
+        this.selectedFileAtualizacao.set(null);
+        this.carregarHistoricoAtualizacao();
+        
+        // Redireciona e atualiza a tela de pendências imediatamente
+        this.activeTab = 'pendencias';
+        setTimeout(() => {
+          this.pendenciasComponent?.carregarPendencias();
+        }, 100);
+        
+        if (lastRes) {
+          this.openAlert('Importação Concluída', this.montarResumoImportacao(lastRes), 'primary');
+        }
       }
     });
   }
@@ -105,18 +140,19 @@ export class InadimplenciaComponent implements OnInit {
   private montarResumoImportacao(res: ImportacaoPendenciasResponse): string {
     const linhas = [
       `Linhas com título: ${res.totalLinhasComEspecie}`,
-      `Importadas: ${res.importadas}`,
-      `Marcadas para análise (sem regra específica): ${res.classificadasPorFallback}`,
-      `Ignoradas duplicadas: ${res.ignoradasDuplicadas}`,
-      `Ignoradas sem vencimento: ${res.ignoradasSemVencimento}`,
+      `Importadas (Novas): ${res.importadas}`,
+      `Prorrogadas (Atualizadas): ${res.prorrogadas || 0}`,
+      `Títulos Baixados (Encerrados): ${res.baixadas || 0}`,
+      `Ignoradas (Duplicadas): ${res.ignoradasDuplicadas}`,
+      `Ignoradas (Sem vencimento): ${res.ignoradasSemVencimento}`,
       `Clientes criados: ${res.clientesCriados}`,
-      `Matrizes criadas: ${res.matrizesCriadas}`,
-      `Finalizadas automaticamente (sumiram da planilha): ${res.finalizadasAutomaticamente}`
+      `Matrizes criadas: ${res.matrizesCriadas}`
     ];
     return linhas.join('\n');
   }
 
   private extractErrorMessage(err: any): string {
+    if (typeof err === 'string') return err;
     if (err && err.error) {
       if (typeof err.error.detail === 'string') {
         return err.error.detail;
@@ -128,7 +164,7 @@ export class InadimplenciaComponent implements OnInit {
         return err.error.message;
       }
     }
-    return err.message || 'Erro desconhecido no servidor';
+    return err?.message || 'Erro desconhecido no servidor';
   }
 
   excluirAtualizacao(id: number) {

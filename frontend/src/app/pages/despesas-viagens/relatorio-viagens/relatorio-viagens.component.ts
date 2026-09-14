@@ -5,6 +5,7 @@ import { HttpClientModule } from '@angular/common/http';
 import * as XLSX from 'xlsx';
 
 import { FlatpickrModule } from 'angularx-flatpickr';
+import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { DespesasViagensService } from '../../../core/services/despesas-viagens.service';
 import { EmpresasService } from '../../../core/services/empresas.service';
 import { ColaboradoresService } from '../../../core/services/colaboradores.service';
@@ -14,7 +15,7 @@ import { Portuguese } from 'flatpickr/dist/l10n/pt';
 @Component({
   selector: 'app-relatorio-viagens',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule, FlatpickrModule],
+  imports: [CommonModule, FormsModule, HttpClientModule, FlatpickrModule, ButtonComponent],
   templateUrl: './relatorio-viagens.component.html',
   styleUrls: ['./relatorio-viagens.component.scss']
 })
@@ -29,10 +30,10 @@ export class RelatorioViagensComponent implements OnInit {
   // Filtros Relatório
   relatorioDataInicio: Date | null = null;
   relatorioDataFim: Date | null = null;
-  relatorioPeriodShortcut: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-ano' | 'ano-passado' | 'personalizado' | null = 'este-ano';
+  relatorioPeriodShortcut: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-mes' | 'este-ano' | 'ano-passado' | 'personalizado' | null = 'este-ano';
   relatorioEmpresa: number | null = null;
   relatorioColaborador: number | null = null;
-  relatorioCentroCusto: string | null = null;
+
 
   isRelatorioLoading = false;
   relatorioDetalhesMatrizOriginal: any[] = [];
@@ -104,7 +105,7 @@ export class RelatorioViagensComponent implements OnInit {
     }
   }
 
-  selecionarAtalhoPeriodoRelatorio(shortcut: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-ano' | 'ano-passado') {
+  selecionarAtalhoPeriodoRelatorio(shortcut: 'ultimo-bimestre' | 'ultimo-semestre' | 'este-mes' | 'este-ano' | 'ano-passado') {
     const today = new Date();
     const getPastDate = (months: number) => {
       const d = new Date();
@@ -120,6 +121,10 @@ export class RelatorioViagensComponent implements OnInit {
       case 'ultimo-semestre':
         this.relatorioDataInicio = getPastDate(6);
         this.relatorioDataFim = today;
+        break;
+      case 'este-mes':
+        this.relatorioDataInicio = new Date(today.getFullYear(), today.getMonth(), 1);
+        this.relatorioDataFim = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         break;
       case 'este-ano':
         this.relatorioDataInicio = new Date(today.getFullYear(), 0, 1);
@@ -140,8 +145,7 @@ export class RelatorioViagensComponent implements OnInit {
       data_inicio: this.relatorioDataInicio ? this.relatorioDataInicio.toISOString().split('T')[0] : null,
       data_fim: this.relatorioDataFim ? this.relatorioDataFim.toISOString().split('T')[0] : null,
       id_empresa: this.relatorioEmpresa || null,
-      id_colaborador: this.relatorioColaborador || null,
-      id_centro_custo: this.relatorioCentroCusto || null
+      id_colaborador: this.relatorioColaborador || null
     };
 
     this.despesasViagensService.obterRelatorio(filtros).subscribe({
@@ -171,6 +175,7 @@ export class RelatorioViagensComponent implements OnInit {
     }
 
     const header = [
+      'UNIDADE',
       'COLABORADOR',
       'EMPRESA',
       'CENTRO DE CUSTO',
@@ -180,6 +185,7 @@ export class RelatorioViagensComponent implements OnInit {
 
     const dataRows = this.relatorioDetalhesMatrizFiltrada.map(row => {
       const r = [
+        row.unidadeNome ? row.unidadeNome.split('-')[0].trim() : '-',
         row.colaboradorNome || '-',
         row.empresaNome || '-',
         row.centroCustoCodigo || '-'
@@ -193,6 +199,7 @@ export class RelatorioViagensComponent implements OnInit {
 
     const footerRow: any[] = [
       'TOTAL GERAL',
+      '',
       '',
       ''
     ];

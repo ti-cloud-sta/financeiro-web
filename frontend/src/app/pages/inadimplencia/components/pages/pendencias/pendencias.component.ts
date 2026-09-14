@@ -14,6 +14,21 @@ export interface KanbanCard {
   clientName: string;
   dtVencimento: Date | null;
   leadTimeDays: number | null;
+  isDevolucao: boolean;
+  
+  // Real details for modal
+  fase: string | null;
+  idCliente: number | null;
+  especie: string | null;
+  carteira: string | null;
+  idUnidade: number | null;
+  serie: string | null;
+  parccela: string | null;
+  portador: string | null;
+  dtEmissao: Date | null;
+  dtEntrega: Date | null;
+  valorOriginal: number | null;
+  valorSaldo: number | null;
 }
 
 export interface KanbanColumn {
@@ -24,7 +39,7 @@ export interface KanbanColumn {
   cards: KanbanCard[];
 }
 
-type PeriodShortcut = 'vencidas' | 'ultimo-bimestre' | 'ultimo-semestre' | 'este-ano' | 'ano-passado' | 'regra-dia' | 'personalizado';
+type PeriodShortcut = 'vencidas' | 'este-mes' | 'ultimo-bimestre' | 'ultimo-semestre' | 'este-ano' | 'ano-passado' | 'regra-dia' | 'personalizado';
 
 const COLUMN_VISIBILITY_STORAGE_KEY = 'pendencias_colunas_visiveis';
 
@@ -67,6 +82,8 @@ export class PendenciasComponent implements OnInit {
   dataFim: Date | null = null;
   activePeriodShortcut: PeriodShortcut | null = null;
   statusFiltro: string | null = null;
+  textoFiltro: string = '';
+  filtroDevolucaoAtivo = false;
   isLoading = false;
 
   // Atalho "Regra do Dia": mesma janela de vencimento (critério de dia da semana) que antes
@@ -103,7 +120,7 @@ export class PendenciasComponent implements OnInit {
   @ViewChild('columnFilterWrapper') columnFilterWrapper?: ElementRef<HTMLElement>;
 
   ngOnInit() {
-    this.carregarPendencias();
+    this.limparPeriodo();
     this.carregarJanelaRegraDia();
   }
 
@@ -153,10 +170,24 @@ export class PendenciasComponent implements OnInit {
         id: item.idnfpendencias.toString(),
         title: item.titulo || '-',
         status: item.status || '-',
-        statusColor: coluna.colorClass,
+        statusColor: item.status === 'Ok' ? 'success' : (item.status === 'DEVOLUCAO' ? 'orange' : coluna.colorClass),
         clientName: this.sliceClientName(item.clienteNome),
         dtVencimento: item.dtVencimento ? new Date(item.dtVencimento + 'T00:00:00') : null,
-        leadTimeDays: this.calcularDiasDesdeImportacao(item.createdAt)
+        leadTimeDays: this.calcularDiasDesdeImportacao(item.createdAt),
+        isDevolucao: item.devolucao === 'S',
+        
+        fase: item.fase,
+        idCliente: item.idCliente,
+        especie: item.especie,
+        carteira: item.carteira,
+        idUnidade: item.idUnidade,
+        serie: item.serie,
+        parccela: item.parccela,
+        portador: item.portador,
+        dtEmissao: item.dtEmissao ? new Date(item.dtEmissao + 'T00:00:00') : null,
+        dtEntrega: item.dtEntrega ? new Date(item.dtEntrega + 'T00:00:00') : null,
+        valorOriginal: item.valorOriginal,
+        valorSaldo: item.valorSaldo
       });
     }
   }
@@ -190,7 +221,16 @@ export class PendenciasComponent implements OnInit {
   }
 
   get statusOptions(): string[] {
-    const statuses = this.columns.flatMap(col => col.cards.map(card => card.status));
+    const statuses = this.columns.flatMap(col => 
+      col.cards.filter(card => {
+        if (col.id === 'logistica') {
+          const isDev = card.status === 'DEVOLUCAO';
+          if (this.filtroDevolucaoAtivo && !isDev) return false;
+          if (!this.filtroDevolucaoAtivo && isDev) return false;
+        }
+        return true;
+      }).map(card => card.status)
+    );
     return Array.from(new Set(statuses));
   }
 
@@ -224,14 +264,49 @@ export class PendenciasComponent implements OnInit {
       .filter(column => this.visibleColumnIds.has(column.id))
       .map(column => ({
         ...column,
-        cards: column.cards.filter(card => this.cardMatchesFilters(card))
+        cards: column.cards.filter(card => {
+          if (column.id === 'logistica') {
+            const isDevolucao = card.status === 'DEVOLUCAO';
+            if (this.filtroDevolucaoAtivo && !isDevolucao) return false;
+            if (!this.filtroDevolucaoAtivo && isDevolucao) return false;
+          }
+          return this.cardMatchesFilters(card);
+        })
       }));
   }
 
   private cardMatchesFilters(card: KanbanCard): boolean {
-    // O filtro de período (data) já é aplicado pelo backend em carregarPendencias() -
-    // aqui só resta o filtro de status, que continua sendo client-side sobre o board.
-    return !this.statusFiltro || card.status === this.statusFiltro;
+    // O filtro de período (data) já é aplicado pelo backend em carregarPendencias()
+    if (this.statusFiltro && card.status !== this.statusFiltro) {
+      return false;
+    }
+    
+    if (this.textoFiltro && this.textoFiltro.trim() !== '') {
+      const term = this.textoFiltro.toLowerCase().trim();
+      const searchableFields = [
+        card.id,
+        card.title,
+        card.status,
+        card.clientName,
+        card.fase,
+        card.idCliente,
+        card.especie,
+        card.carteira,
+        card.idUnidade,
+        card.serie,
+        card.parccela,
+        card.portador,
+        card.valorOriginal,
+        card.valorSaldo
+      ];
+      const fullText = searchableFields.join(' ').toLowerCase();
+      
+      if (!fullText.includes(term)) {
+        return false;
+      }
+    }
+    
+    return true;
   }
 
   onDataInicioChange() {
@@ -277,7 +352,10 @@ export class PendenciasComponent implements OnInit {
       return d;
     };
 
-    if (shortcut === 'ultimo-bimestre') {
+    if (shortcut === 'este-mes') {
+      this.dataInicio = new Date(today.getFullYear(), today.getMonth(), 1);
+      this.dataFim = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    } else if (shortcut === 'ultimo-bimestre') {
       this.dataInicio = getPastDate(2);
       this.dataFim = today;
     } else if (shortcut === 'ultimo-semestre') {
