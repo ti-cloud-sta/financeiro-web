@@ -561,3 +561,25 @@ Serviço de análise do plano de saúde:       plano_saude_ia_service.py L184
 Resolução de colaboradores (plano saúde):   plano_saude_ia_service.py L53
 Aprendizado de aliases:                     colaborador_alias_repository.py L13
 ```
+
+---
+
+## PARTE 6 — MÓDULO INADIMPLÊNCIA / PENDÊNCIAS
+
+Este módulo controla as pendências e títulos em aberto importados.
+
+### 6.1 Regras de Negócio e Banco de Dados (Views)
+- **NÃO MEXER NO SQL**: O agente é expressamente proibido de editar os arquivos `.sql` que contêm a view `vw_nfpendencias_fase` e afins. Qualquer alteração de lógica de fase (Financeiro, Logística, Pendências, etc.) deve ser instruída pelo agente para que o usuário copie a query e aplique no banco manualmente.
+- **Fase PENDENCIAS**: Trata-se de uma fase de exceções e triagem. Regras documentadas rigorosamente no arquivo `.agents/rules/importar-pendencias-legacy-rules.md`. Exceções de importação caem aqui, como status `PR`, `RJ`, `DES`, `AD`, `AN`, `EXPORTACAO`, `MARTINS`, etc.
+- **Padronização**: Status `Ok` foi substituído para `OK`. Status `CART-DES` foi simplificado para `DES`. Status `PR/RJ` foram desmembrados.
+
+### 6.2 Comportamento da Interface Kanban
+- **Drag & Drop (FINALIZADO)**: Quando um card é removido manualmente da coluna "FINALIZADO" para outra fase (coluna), o frontend intercepta a ação e exibe o popup `pendencia-detalhe-modal`. O usuário deve obrigatoriamente selecionar um "Novo Status" neste modal antes de persistir o movimento.
+- **Lista de Status (Filtro)**: O *select box* de filtro do Kanban no topo foi padronizado para usar a constante estática e alfabética `STATUS_OPTIONS` do `pendencia-detalhe-modal.component.ts`, garantindo que todas as opções estejam sempre visíveis independentemente dos cards filtrados em tela. O option "Todos" mapeia para o valor `"null"` (string).
+
+### 6.3 Toggles e Cores de Exceção (Aba Kanban)
+A interface do Kanban possui *toggles* no cabeçalho das colunas para alternar a visibilidade de cards críticos:
+- **Coluna Logística**: Possui um toggle laranja (`switch-orange`) para mostrar/ocultar os status de `DEVOLUCAO` (cor `orange`).
+- **Coluna Financeiro**: Possui um toggle vermelho (`switch-danger`) para mostrar/ocultar os status de `PROTESTADO` (cor `danger`).
+- **Atrasados**: Cards com status `ATRASADO` assumem a cor `warning` (laranja claro/amarelo escuro) para se destacarem.
+- **Auto-Ativação**: O evento `onStatusFiltroChange` monitora o filtro global do Kanban. Ao selecionar explicitamente a opção "DEVOLUCAO" ou "PROTESTADO" no select, o sistema **liga** (true) automaticamente o *toggle* respectivo na coluna correspondente, permitindo que os cards se tornem visíveis.
