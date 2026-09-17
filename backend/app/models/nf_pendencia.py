@@ -27,6 +27,8 @@ class NfPendencia(Base):
     idImportacoes = Column(Integer, ForeignKey("importacoes.idImportacoes"), nullable=True)
     createdAt = Column(DateTime, nullable=True, default=func.now())
     encerrado = Column(String(1), server_default='S')
+    fase = Column(String(100), nullable=True)
+    status = Column(String(100), nullable=True)
 
     unidade_rel = relationship("Unidade")
     cliente = relationship("Cliente")

@@ -136,7 +136,7 @@ export class ExtratoresComponent implements OnInit {
       name: 'Atacadão',
       description: 'Importação de dados da composição de pagamento',
       icon: 'fa-solid fa-wand-magic-sparkles',
-      logo: 'https://ecofresh.com.br/wp-content/uploads/2022/01/encontrar-logo2.png',
+      logo: 'images/atacadao-logo.png',
       colorClass: 'text-primary bg-primary-subtle',
       status: 'active',
       statusText: 'Ativo',
@@ -231,11 +231,44 @@ export class ExtratoresComponent implements OnInit {
       statusVariant: 'success'
     },
     {
+      id: 'ext-adicao-composicao',
+      name: 'Adição',
+      description: 'Importação de dados da composição de pagamento',
+      icon: 'fa-solid fa-file-excel',
+      logo: 'images/adicao-logo.png',
+      colorClass: 'text-primary bg-primary-subtle',
+      status: 'active',
+      statusText: 'Ativo',
+      statusVariant: 'success'
+    },
+    {
+      id: 'ext-sonda-composicao',
+      name: 'Sonda',
+      description: 'Importação de dados da composição de pagamento',
+      icon: 'fa-solid fa-file-excel',
+      logo: 'images/sonda-logo.png',
+      colorClass: 'text-danger bg-danger-subtle',
+      status: 'active',
+      statusText: 'Ativo',
+      statusVariant: 'success'
+    },
+    {
+      id: 'ext-zeferino-composicao',
+      name: 'Zeferino',
+      description: 'Importação de dados da composição de pagamento',
+      icon: 'fa-solid fa-file-excel',
+      logo: 'images/zeferino-logo.png',
+      colorClass: 'text-primary bg-primary-subtle',
+      status: 'active',
+      statusText: 'Ativo',
+      statusVariant: 'success'
+    },
+    {
       id: 'ext-atacadao-prorrogacao',
       name: 'Atacadão',
       description: 'Importação de dados de prorrogação',
       icon: 'fa-solid fa-clock-rotate-left',
-      logo: 'https://ecofresh.com.br/wp-content/uploads/2022/01/encontrar-logo2.png',
+      logo: 'images/atacadao-logo.png',
       colorClass: 'text-info bg-info-subtle',
       status: 'active',
       statusText: 'Ativo',
@@ -325,6 +358,39 @@ export class ExtratoresComponent implements OnInit {
       icon: 'fa-solid fa-clock-rotate-left',
       logo: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQDWJcB0nVZmbH3hxE0N672dnh0ehHozhAT4TzbRN0vqg&s=10',
       colorClass: 'text-success bg-success-subtle',
+      status: 'active',
+      statusText: 'Ativo',
+      statusVariant: 'success'
+    },
+    {
+      id: 'ext-adicao-prorrogacao',
+      name: 'Adição',
+      description: 'Importação de dados de prorrogação',
+      icon: 'fa-solid fa-clock-rotate-left',
+      logo: 'images/adicao-logo.png',
+      colorClass: 'text-primary bg-primary-subtle',
+      status: 'active',
+      statusText: 'Ativo',
+      statusVariant: 'success'
+    },
+    {
+      id: 'ext-sonda-prorrogacao',
+      name: 'Sonda',
+      description: 'Importação de dados de prorrogação',
+      icon: 'fa-solid fa-clock-rotate-left',
+      logo: 'images/sonda-logo.png',
+      colorClass: 'text-danger bg-danger-subtle',
+      status: 'active',
+      statusText: 'Ativo',
+      statusVariant: 'success'
+    },
+    {
+      id: 'ext-zeferino-prorrogacao',
+      name: 'Zeferino',
+      description: 'Importação de dados de prorrogação',
+      icon: 'fa-solid fa-clock-rotate-left',
+      logo: 'images/zeferino-logo.png',
+      colorClass: 'text-primary bg-primary-subtle',
       status: 'active',
       statusText: 'Ativo',
       statusVariant: 'success'
@@ -474,7 +540,74 @@ export class ExtratoresComponent implements OnInit {
       this._processAmazonProrrogacao(empresaFile, acrFile);
     } else if (extId === 'ext-gpa-prorrogacao') {
       this._processGPAProrrogacao(empresaFile, acrFile);
+    } else if (extId === 'ext-adicao-prorrogacao') {
+      this._processAdicaoProrrogacao(empresaFile, acrFile);
+    } else if (extId === 'ext-sonda-prorrogacao') {
+      this._processSondaProrrogacao(empresaFile, acrFile);
+    } else if (extId === 'ext-zeferino-prorrogacao') {
+      this._processZeferinoProrrogacao(empresaFile, acrFile);
     }
+  }
+
+  private _processZeferinoProrrogacao(empresa: File, acr: File) {
+    this.importacoesService.conciliarProrrogacaoZeferino(empresa, acr, this.authService.currentUser()?.iduser).subscribe({
+      next: (blob) => {
+        this.carregarHistorico();
+        this.isProrrogacaoUnifiedProcessing.set(false);
+        this.isProrrogacaoUnifiedModalOpen = false;
+        const originalName = empresa.name.substring(0, empresa.name.lastIndexOf('.')) || 'Conciliado';
+        this._downloadBlob(blob, `${originalName}_conciliado.xlsx`);
+      },
+      error: async (err: any) => {
+        this.isProrrogacaoUnifiedProcessing.set(false);
+        console.error(err);
+        let errorDetail = 'Erro ao processar arquivo do Zeferino.';
+        if (err.error instanceof Blob) {
+          try {
+            const text = await err.error.text();
+            const json = JSON.parse(text);
+            if (json.detail) {
+              errorDetail = json.detail;
+            }
+          } catch (e) {}
+        } else if (err.error?.detail) {
+          errorDetail = err.error.detail;
+        }
+        this.prorrogacaoUnifiedError.set(errorDetail);
+      }
+    });
+  }
+
+  private _processAdicaoProrrogacao(empresa: File, acr: File) {
+    this.importacoesService.conciliarProrrogacaoAdicao(empresa, acr, this.authService.currentUser()?.iduser).subscribe({
+      next: (blob) => {
+        this.carregarHistorico();
+        this.isProrrogacaoUnifiedProcessing.set(false);
+        this.isProrrogacaoUnifiedModalOpen = false;
+        const originalName = empresa.name.substring(0, empresa.name.lastIndexOf('.')) || 'Conciliado';
+        this._downloadBlob(blob, `${originalName}_conciliado.xlsx`);
+      },
+      error: (err) => {
+        this.isProrrogacaoUnifiedProcessing.set(false);
+        this.prorrogacaoUnifiedError.set(err.error?.detail || 'Erro ao processar arquivo da Adição.');
+      }
+    });
+  }
+
+  private _processSondaProrrogacao(empresa: File, acr: File) {
+    this.importacoesService.conciliarProrrogacaoSonda(empresa, acr, this.authService.currentUser()?.iduser).subscribe({
+      next: (blob) => {
+        this.carregarHistorico();
+        this.isProrrogacaoUnifiedProcessing.set(false);
+        this.isProrrogacaoUnifiedModalOpen = false;
+        const originalName = empresa.name.substring(0, empresa.name.lastIndexOf('.')) || 'Conciliado';
+        this._downloadBlob(blob, `${originalName}_conciliado.xlsx`);
+      },
+      error: (err) => {
+        this.isProrrogacaoUnifiedProcessing.set(false);
+        this.prorrogacaoUnifiedError.set(err.error?.detail || 'Erro ao processar arquivo do Sonda.');
+      }
+    });
   }
 
   private _processAmazonProrrogacao(empresa: File, acr: File) {
@@ -716,6 +849,15 @@ export class ExtratoresComponent implements OnInit {
       case 'ext-gpa-composicao':
         requestObservable = this.importacoesService.extrairGPA(empresaFile, acrFile, this.authService.currentUser()?.iduser);
         break;
+      case 'ext-adicao-composicao':
+        requestObservable = this.importacoesService.extrairAdicao(empresaFile, acrFile, this.authService.currentUser()?.iduser);
+        break;
+      case 'ext-sonda-composicao':
+        requestObservable = this.importacoesService.extrairSonda(empresaFile, acrFile, this.authService.currentUser()?.iduser);
+        break;
+      case 'ext-zeferino-composicao':
+        requestObservable = this.importacoesService.extrairZeferino(empresaFile, acrFile, this.authService.currentUser()?.iduser);
+        break;
       default:
         this.composicaoUnifiedError.set('Funcionalidade ainda não implementada.');
         this.isComposicaoUnifiedProcessing.set(false);
@@ -738,10 +880,22 @@ export class ExtratoresComponent implements OnInit {
         this.composicaoEmpresaFile.set(null);
         this.composicaoAcrFile.set(null);
       },
-      error: (err: any) => {
+      error: async (err: any) => {
         this.isComposicaoUnifiedProcessing.set(false);
         console.error(err);
-        this.composicaoUnifiedError.set('Erro ao processar a planilha. Verifique se as colunas estão corretas.');
+        let errorDetail = 'Erro ao processar a planilha. Verifique se as colunas estão corretas.';
+        if (err.error instanceof Blob) {
+          try {
+            const text = await err.error.text();
+            const json = JSON.parse(text);
+            if (json.detail) {
+              errorDetail = json.detail;
+            }
+          } catch (e) {}
+        } else if (err.error?.detail) {
+          errorDetail = err.error.detail;
+        }
+        this.composicaoUnifiedError.set(errorDetail);
       }
     });
   }

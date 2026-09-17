@@ -136,9 +136,14 @@ export class ImportacoesService {
     return this.http.get<JanelaRegraDia>(`${this.apiUrl}/inadimplencia/janela-regra-dia`);
   }
 
-  alterarFasePendencia(id: number, fase: string): Observable<{ idnfpendencias: number; fase: string }> {
+  alterarFasePendencia(id: number, fase: string, status?: string): Observable<{ idnfpendencias: number; fase: string }> {
+    const payload: any = { fase };
+    if (status) {
+      payload.status = status;
+    }
     return this.http.patch<{ idnfpendencias: number; fase: string }>(
-      `${this.apiUrl}/inadimplencia/pendencias/${id}/fase`, { fase }
+      `${this.apiUrl}/inadimplencia/pendencias/${id}/fase`,
+      payload
     );
   }
 
@@ -403,27 +408,6 @@ export class ImportacoesService {
     if (idUserInc) {
       formData.append('idUserInc', idUserInc.toString());
     }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
     return this.http.post(`${this.apiUrl}/cema/extrair`, formData, { responseType: 'blob' });
   }
 
@@ -431,27 +415,6 @@ export class ImportacoesService {
     const formData = new FormData();
     formData.append('empresa_file', empresaFile);
     formData.append('acr_file', acrFile);
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
     if (idUserInc) {
       formData.append('idUserInc', idUserInc.toString());
     }
@@ -527,28 +490,67 @@ export class ImportacoesService {
     if (idUserInc) {
       formData.append('idUserInc', idUserInc.toString());
     }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
-    if (idUserInc) {
-      formData.append('idUserInc', idUserInc.toString());
-    }
     return this.http.post(`${this.apiUrl}/gpa/extrair`, formData, { responseType: 'blob' });
+  }
+
+  extrairAdicao(empresaFile: File, acrFile: File, idUserInc?: number): Observable<Blob> {
+    const formData = new FormData();
+    formData.append('empresa_file', empresaFile);
+    formData.append('acr_file', acrFile);
+    if (idUserInc) {
+      formData.append('idUserInc', idUserInc.toString());
+    }
+    return this.http.post(`${this.apiUrl}/adicao/extrair`, formData, { responseType: 'blob' });
+  }
+
+  extrairSonda(empresaFile: File, acrFile: File, idUserInc?: number): Observable<Blob> {
+    const formData = new FormData();
+    formData.append('empresa_file', empresaFile);
+    formData.append('acr_file', acrFile);
+    if (idUserInc) {
+      formData.append('idUserInc', idUserInc.toString());
+    }
+    return this.http.post(`${this.apiUrl}/sonda/extrair`, formData, { responseType: 'blob' });
+  }
+
+  extrairZeferino(empresaFile: File, acrFile: File, idUserInc?: number): Observable<Blob> {
+    const formData = new FormData();
+    formData.append('empresa_file', empresaFile);
+    formData.append('acr_file', acrFile);
+    if (idUserInc) {
+      formData.append('idUserInc', idUserInc.toString());
+    }
+    return this.http.post(`${this.apiUrl}/zeferino/extrair`, formData, { responseType: 'blob' });
+  }
+
+  conciliarProrrogacaoAdicao(empresaFile: File, acrFile: File, idUserInc?: number): Observable<Blob> {
+    const formData = new FormData();
+    formData.append('empresa_file', empresaFile);
+    formData.append('acr_file', acrFile);
+    if (idUserInc) {
+      formData.append('idUserInc', idUserInc.toString());
+    }
+    return this.http.post(`${this.apiUrl}/adicao/conciliar`, formData, { responseType: 'blob' });
+  }
+
+  conciliarProrrogacaoSonda(empresaFile: File, acrFile: File, idUserInc?: number): Observable<Blob> {
+    const formData = new FormData();
+    formData.append('empresa_file', empresaFile);
+    formData.append('acr_file', acrFile);
+    if (idUserInc) {
+      formData.append('idUserInc', idUserInc.toString());
+    }
+    return this.http.post(`${this.apiUrl}/sonda/conciliar`, formData, { responseType: 'blob' });
+  }
+
+  conciliarProrrogacaoZeferino(empresaFile: File, acrFile: File, idUserInc?: number): Observable<Blob> {
+    const formData = new FormData();
+    formData.append('empresa_file', empresaFile);
+    formData.append('acr_file', acrFile);
+    if (idUserInc) {
+      formData.append('idUserInc', idUserInc.toString());
+    }
+    return this.http.post(`${this.apiUrl}/zeferino/conciliar`, formData, { responseType: 'blob' });
   }
 
   conciliarProrrogacaoAtacadao(htmlFiles: File[], csvFile: File, idUserInc?: number): Observable<Blob> {

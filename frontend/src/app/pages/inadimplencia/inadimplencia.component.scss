@@ -487,3 +487,29 @@
     padding-bottom: 0;
   }
 }
+
+// SUPORTE AO DARK MODE GLOBAL
+:host-context([data-theme="dark"]),
+:host-context([data-bs-theme="dark"]) {
+  .custom-upload-zone {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+
+    .upload-text {
+      color: #a1a1aa !important;
+      .file-selected-name {
+        color: #e4e4e7 !important;
+      }
+    }
+
+    &:hover {
+      background-color: rgba(67, 56, 202, 0.15) !important; // primary-dark com opacidade
+      border-color: #4338CA !important; // primary-dark
+    }
+    
+    &.has-file {
+      background-color: rgba(5, 150, 105, 0.15) !important; // success-dark com opacidade
+      border-color: #059669 !important; // success-dark
+    }
+  }
+}

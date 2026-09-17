@@ -131,11 +131,11 @@ export class DespesasViagensComponent implements OnInit {
   getThemeColors() {
     const isDark = this.themeService.activeTheme() === 'dark';
     return {
-      text: isDark ? '#cbd5e1' : '#64748b',
-      title: isDark ? '#f8fafc' : '#334155',
-      border: isDark ? '#334155' : '#cbd5e1',
-      borderLight: isDark ? '#0ea5e9' : '#f1f5f9',
-      pieBorderColor: isDark ? '#014f75' : '#fff'
+      text: isDark ? '#d4d4d8' : '#64748b',
+      title: isDark ? '#f4f4f5' : '#334155',
+      border: isDark ? '#333333' : '#cbd5e1',
+      borderLight: isDark ? '#262626' : '#f1f5f9',
+      pieBorderColor: isDark ? '#1e1e1e' : '#fff'
     };
   }
 
@@ -340,7 +340,7 @@ export class DespesasViagensComponent implements OnInit {
                 realtime: false,
                 calculable: true,
                 textStyle: { color: themeColors.text },
-                inRange: { color: isDark ? ['#172554', '#3b82f6', '#60a5fa'] : ['#eff6ff', '#3b82f6', '#1e3a8a'] }
+                inRange: { color: isDark ? ['#262626', '#3b82f6', '#93c5fd'] : ['#eff6ff', '#3b82f6', '#1e3a8a'] }
               },
               series: [
                 {
@@ -1360,7 +1360,7 @@ export class DespesasViagensComponent implements OnInit {
             realtime: false,
             calculable: true,
             textStyle: { color: themeColors.text },
-            inRange: { color: isDark ? ['#172554', '#3b82f6', '#60a5fa'] : ['#eff6ff', '#3b82f6', '#1e3a8a'] }
+            inRange: { color: isDark ? ['#262626', '#3b82f6', '#93c5fd'] : ['#eff6ff', '#3b82f6', '#1e3a8a'] }
           },
           series: [{
             name: 'Despesas por Estado',

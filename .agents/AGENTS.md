@@ -1,5 +1,7 @@
 # Regras do Projeto SANTAMARIA
 
+- **Proibição de Alteração em Arquivos SQL**: O agente JAMAIS deve modificar arquivos `.sql` (como dumps na pasta `files/` ou `databse/dumps/`). Esses arquivos são apenas exemplos ou backups e toda alteração de banco de dados deve ser feita exclusivamente pelo usuário. Nunca tente atualizar views, tabelas ou scripts SQL.
+
 - **Build de Validação**: Sempre executar um build (`ng build`) ou validação de compilação similar e aguardar sua finalização para garantir que não há erros ANTES de encerrar uma macro-tarefa.
 
 - **Teste de Integração (CI)**: Após a finalização de um build válido, executar os testes de integração ( Comando: `npm run cy:run` ). Aguardar a conclusão e validar os relatórios finais antes de considerar a tarefa concluída.

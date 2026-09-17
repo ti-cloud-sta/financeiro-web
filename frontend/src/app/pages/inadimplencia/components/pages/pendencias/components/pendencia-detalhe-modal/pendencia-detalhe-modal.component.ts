@@ -53,18 +53,22 @@ export interface EventoHistorico {
 }
 
 export const STATUS_OPTIONS: string[] = [
-  'DEVOLUCAO',
-  'SEM DATA DE ENTREGA',
   'ACORDO',
+  'ANALISAR',
+  'ATRASADO',
   'COMISSAO',
+  'DES',
+  'DEVOLUCAO',
   'EXPORTACAO',
   'MARTINS',
   'MERCADINHO',
-  'CART-DES',
-  'ATRASADO',
-  'ANALISAR',
+  'OK',
+  'PERDAS',
+  'PR',
+  'PRORROGADO',
   'PROTESTADO',
-  'PERDAS'
+  'RJ',
+  'SEM DATA DE ENTREGA'
 ];
 
 // Mesmas fases usadas como colunas do Kanban de Pendências
@@ -249,23 +253,24 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     });
   }
 
-  onStatusChange(novoStatus: string) {
+  onStatusChange() {
     if (!this.card) return;
-    const statusAnterior = this.statusSelecionado;
-    if (statusAnterior === novoStatus) return;
+    const novoStatus = this.statusSelecionado;
 
-    this.statusSelecionado = novoStatus;
     this.salvandoStatus = true;
     this.importacoesService.alterarStatusPendencia(Number(this.card.id), novoStatus).subscribe({
-      next: () => {
+      next: (res) => {
         this.salvandoStatus = false;
+        if (this.card) {
+          this.card.status = res.status;
+          this.card.statusColor = this.detalhe?.fase === 'FINALIZADO' && res.status === 'OK' ? 'success' : 'warning';
+        }
         this.atualizado.emit();
         this.carregarHistorico();
       },
       error: (err) => {
         this.salvandoStatus = false;
         console.error('Erro ao alterar status da pendência:', err);
-        this.statusSelecionado = statusAnterior;
       }
     });
   }
