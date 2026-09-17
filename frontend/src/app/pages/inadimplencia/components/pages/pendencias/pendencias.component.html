@@ -46,8 +46,8 @@
             <!-- Coluna de Status -->
             <div class="filter-group">
                 <label class="filter-label mb-2">Status</label>
-                <select class="form-select form-select-sm" [(ngModel)]="statusFiltro">
-                    <option [value]="null">Todos</option>
+                <select class="form-select form-select-sm" [(ngModel)]="statusFiltro" (ngModelChange)="onStatusFiltroChange($event)">
+                    <option [value]="'null'">Todos</option>
                     <option *ngFor="let s of statusOptions" [value]="s">{{ s }}</option>
                 </select>
             </div>
@@ -110,6 +110,15 @@
                                 <label class="form-check-label small fw-medium" style="font-size: 0.7rem; cursor: pointer;">Dev...</label>
                                 <input class="form-check-input m-0 cursor-pointer switch-orange" type="checkbox" role="switch" 
                                        [(ngModel)]="filtroDevolucaoAtivo" style="transform: scale(0.85);">
+                            </div>
+                            }
+                            @if (column.id === 'financeiro') {
+                            <div class="form-check form-switch mb-0 d-flex align-items-center gap-1" 
+                                 [title]="filtroProtestadoAtivo ? 'Ocultar Protestados' : 'Mostrar Protestados'" 
+                                 style="min-height: auto; margin-right: -4px;">
+                                <label class="form-check-label small fw-medium" style="font-size: 0.7rem; cursor: pointer;">Prot...</label>
+                                <input class="form-check-input m-0 cursor-pointer switch-danger" type="checkbox" role="switch" 
+                                       [(ngModel)]="filtroProtestadoAtivo" style="transform: scale(0.85);">
                             </div>
                             }
                             <span class="column-count badge">{{ column.cards.length }}</span>
@@ -176,3 +185,26 @@
     (closed)="fecharDetalhes()"
     (atualizado)="carregarPendencias()">
 </app-pendencia-detalhe-modal>
+
+<app-modal
+    [isOpen]="isDropStatusModalOpen"
+    title="Informar Novo Status"
+    size="sm"
+    (closed)="fecharStatusDrop()">
+    <div class="p-3">
+        <p class="text-muted small mb-3">
+            O título está saindo da fase <strong>Finalizado</strong>. Por favor, informe qual o status atual desta pendência para que ela possa retornar ao fluxo:
+        </p>
+        <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted mb-1">Status da Pendência</label>
+            <select class="form-select form-select-sm" [(ngModel)]="dropStatusSelecionado">
+                <option value="" disabled selected>Selecione um status...</option>
+                <option *ngFor="let s of todasOpcoesStatus" [value]="s">{{ s }}</option>
+            </select>
+        </div>
+    </div>
+    <div modal-footer class="modal-footer border-top-0 pt-0 pb-3 px-3 d-flex justify-content-end gap-2">
+        <button class="btn btn-sm btn-light border" (click)="fecharStatusDrop()">Cancelar</button>
+        <button class="btn btn-sm btn-primary" [disabled]="!dropStatusSelecionado" (click)="confirmarStatusDrop()">Confirmar Retorno</button>
+    </div>
+</app-modal>

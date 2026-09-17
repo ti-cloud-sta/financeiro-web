@@ -388,3 +388,8 @@
   background-color: #f97316 !important;
   border-color: #f97316 !important;
 }
+
+.switch-danger:checked {
+  background-color: var(--bs-danger) !important;
+  border-color: var(--bs-danger) !important;
+}

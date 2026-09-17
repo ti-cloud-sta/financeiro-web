@@ -63,7 +63,13 @@
       </div>
       <div class="detail-field">
         <label>Status</label>
-        <span class="badge bg-{{card?.statusColor}} bg-opacity-10 text-{{card?.statusColor}} px-2 py-1" style="font-size: 0.75rem; font-weight: 700;">{{ statusSelecionado }}</span>
+        <select class="form-select form-select-sm" 
+                style="height: 28px; font-size: 0.75rem; font-weight: 600; padding-top: 2px; padding-bottom: 2px;"
+                [(ngModel)]="statusSelecionado"
+                (change)="onStatusChange()"
+                [disabled]="salvandoStatus">
+            <option *ngFor="let s of statusOptions" [value]="s">{{ s }}</option>
+        </select>
       </div>
     </div>
 

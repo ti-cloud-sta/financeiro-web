@@ -1369,56 +1369,59 @@
   border-color: var(--color-border) !important;
 }
 
-:host-context([data-theme='dark']) {
+:host-context([data-theme='dark']),
+:host-context([data-bs-theme='dark']) {
   .import-table-container,
   .import-table-action-bar,
   .import-table-footer {
-    background-color: #064663 !important;
-    border-color: #064663 !important;
+    background-color: var(--color-surface) !important;
+    border-color: var(--color-border) !important;
   }
 
   ::ng-deep .import-modal-content-wrapper {
     // Override backgrounds and borders of the table
     .table-responsive {
-      border-color: #064663 !important;
+      border-color: var(--color-border) !important;
     }
 
     .saas-table {
-      border-color: #064663 !important;
+      border-color: var(--color-border) !important;
 
       thead th, th {
-        background-color: #064663 !important;
-        border-color: #064663 !important;
+        background-color: var(--color-surface-hover) !important;
+        border-color: var(--color-border) !important;
+        color: var(--color-text-primary) !important;
       }
 
       tbody td, td {
-        border-color: #064663 !important;
+        border-color: var(--color-border-light) !important;
+        color: var(--color-text-secondary) !important;
       }
 
       tr {
-        border-color: #064663 !important;
+        border-color: var(--color-border-light) !important;
       }
     }
 
     // Override ng-select dropdown container background and border
     .ng-select {
       .ng-select-container {
-        background-color: #064663 !important;
-        border-color: #0077b3 !important;
-        color: #f8fafc !important;
+        background-color: var(--color-surface) !important;
+        border-color: var(--color-border) !important;
+        color: var(--color-text-primary) !important;
       }
 
       &.ng-select-focused .ng-select-container {
-        border-color: #0077b3 !important;
-        box-shadow: none !important;
+        border-color: var(--color-primary) !important;
+        box-shadow: 0 0 0 3px var(--color-primary-light) !important;
       }
     }
 
     // Override form inputs inside the table
     input.form-control {
-      background-color: #064663 !important;
-      border-color: #0077b3 !important;
-      color: #f8fafc !important;
+      background-color: var(--color-surface) !important;
+      border-color: var(--color-border) !important;
+      color: var(--color-text-primary) !important;
     }
   }
 }

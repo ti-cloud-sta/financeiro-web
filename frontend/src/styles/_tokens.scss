@@ -29,34 +29,45 @@
   --flatpickr-day-hover: #f1f5f9;
 }
 
-[data-theme='dark'] {
-  --color-primary: #6366f1; // Indigo-500
-  --color-primary-hover: #818cf8; // Indigo-400
-  --color-primary-light: rgba(99, 102, 241, 0.15);
+[data-theme='dark'],
+[data-bs-theme='dark'] {
+  --color-primary: #3b82f6;
+  --color-primary-hover: #60a5fa;
+  --color-primary-light: rgba(59, 130, 246, 0.15);
 
-  // Corporate Identity - Cohesive Dark Mode
-  --color-bg: #151136; // Very deep, almost black indigo
-  --color-surface: #261f6b; // The corporate identity blue/purple
-  --color-surface-hover: #32298c;
-  --color-border: rgba(255, 255, 255, 0.12);
-  --color-border-light: rgba(255, 255, 255, 0.06);
+  // Modern Neutral Dark Charcoal Palette (Cinza escuro neutro, sem tons azulados)
+  --color-bg: #121212; // Fundo geral neutro dark charcoal
+  --color-surface: #1e1e1e; // Superfícies e cards em cinza escuro elegante
+  --color-surface-hover: #2a2a2a; // Hover states elevados em cinza neutro
+  --color-border: #333333; // Bordas sutis e bem definidas
+  --color-border-light: #262626; // Divisórias e bordas internas mais suaves
 
-  --color-text-primary: #f8fafc;
-  --color-text-secondary: #cbd5e1;
-  --color-text-muted: #94a3b8;
+  --color-text-primary: #f4f4f5; // Títulos e textos de destaque (branco neutro)
+  --color-text-secondary: #d4d4d8; // Texto principal de leitura (cinza claro)
+  --color-text-muted: #8e8e93; // Textos auxiliares e placeholders
 
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
   --color-info: #06b6d4;
 
-  --color-shadow: rgba(0, 0, 0, 0.3);
-  --color-shadow-lg: rgba(0, 0, 0, 0.45);
+  --color-shadow: rgba(0, 0, 0, 0.5);
+  --color-shadow-lg: rgba(0, 0, 0, 0.75);
 
-  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+  --scrollbar-thumb: #3a3a3a;
+  --scrollbar-thumb-hover: #525252;
 
-  --flatpickr-bg: #261f6b;
-  --flatpickr-border: rgba(255, 255, 255, 0.12);
-  --flatpickr-day-hover: #32298c;
+  --flatpickr-bg: #1e1e1e;
+  --flatpickr-border: #333333;
+  --flatpickr-day-hover: #2a2a2a;
+
+  // Bootstrap 5 Dark Variables Sync
+  --bs-body-bg: var(--color-bg);
+  --bs-body-color: var(--color-text-secondary);
+  --bs-border-color: var(--color-border);
+  --bs-border-color-translucent: var(--color-border-light);
+  --bs-card-bg: var(--color-surface);
+  --bs-card-border-color: var(--color-border);
+  --bs-tertiary-bg: var(--color-surface-hover);
+  --bs-secondary-bg: var(--color-surface);
 }

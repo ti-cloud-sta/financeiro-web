@@ -30,7 +30,7 @@ html, body {
 // ----------------------------------------------------
 // CARD OVERRIDES
 // ----------------------------------------------------
-.erp-card, .dash-chart-card, .health-card, .import-card-premium, .import-card, .filters-panel-card, .dash-card, .company-card, .table-card, .config-content {
+.erp-card, .dash-chart-card, .health-card, .import-card-premium, .import-card, .filters-panel-card, .dash-card, .company-card, .table-card, .config-content, .kpi-card, .metric-card {
   background-color: var(--color-surface) !important;
   border-color: var(--color-border-light) !important;
   color: var(--color-text-secondary) !important;
@@ -442,8 +442,9 @@ html, body {
   }
 }
 
-// Dark theme overrides for standard alert components and buttons
-[data-theme='dark'] {
+// Dark theme overrides for standard alert components, buttons and utilities
+[data-theme='dark'],
+[data-bs-theme='dark'] {
   .alert-secondary {
     background-color: var(--color-surface-hover) !important;
     border-color: var(--color-border) !important;
@@ -460,9 +461,45 @@ html, body {
       color: var(--color-danger) !important;
     }
   }
+
+  .border, .border-bottom, .border-top, .border-start, .border-end {
+    border-color: var(--color-border-light) !important;
+  }
+
+  .bg-light {
+    background-color: var(--color-surface-hover) !important;
+    color: var(--color-text-primary) !important;
+  }
+
+  .bg-white {
+    background-color: var(--color-surface) !important;
+  }
+
+  .text-dark {
+    color: var(--color-text-primary) !important;
+  }
+
+  .btn-light {
+    background-color: var(--color-surface-hover) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-text-primary) !important;
+
+    &:hover {
+      background-color: var(--color-surface) !important;
+      border-color: var(--color-border) !important;
+    }
+  }
+
+  .btn-ghost {
+    color: var(--color-text-secondary) !important;
+    &:hover {
+      background-color: var(--color-surface-hover) !important;
+      color: var(--color-text-primary) !important;
+    }
+  }
 }
 
-// CONFIGURATION TAB OVERRIDES
+// CONFIGURATION & MAIN SIDEBAR NAV OVERRIDES
 .config-nav-link {
   color: var(--color-text-secondary) !important;
   transition: all 0.2s ease !important;
@@ -478,9 +515,89 @@ html, body {
   }
 }
 
+.main-sidebar {
+  .sidebar-toggle {
+    color: var(--color-text-muted) !important;
+    &:hover {
+      background-color: var(--color-surface-hover) !important;
+      color: var(--color-text-primary) !important;
+    }
+  }
+
+  .main-nav-link {
+    color: var(--color-text-secondary) !important;
+
+    i {
+      color: var(--color-text-muted) !important;
+    }
+
+    &:hover {
+      background-color: var(--color-surface-hover) !important;
+      color: var(--color-text-primary) !important;
+
+      i {
+        color: var(--color-text-primary) !important;
+      }
+    }
+
+    &.active {
+      background-color: var(--color-primary-light) !important;
+      color: var(--color-primary) !important;
+
+      i {
+        color: var(--color-primary) !important;
+      }
+    }
+  }
+}
+
+// ERP-DROPDOWN OVERRIDES
+.erp-dropdown {
+  .dropdown-trigger {
+    background-color: var(--color-surface) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-text-primary) !important;
+
+    &:hover {
+      background-color: var(--color-surface-hover) !important;
+    }
+  }
+
+  .dropdown-menu {
+    background-color: var(--color-surface) !important;
+    border-color: var(--color-border) !important;
+    box-shadow: 0 10px 15px -3px var(--color-shadow-lg) !important;
+
+    ::ng-deep {
+      a, button {
+        color: var(--color-text-secondary) !important;
+
+        &:hover {
+          background-color: var(--color-surface-hover) !important;
+          color: var(--color-text-primary) !important;
+        }
+      }
+    }
+  }
+}
+
+// LAYOUT FOOTER & TOASTS OVERRIDES
+.layout-footer {
+  background-color: var(--color-surface) !important;
+  border-top-color: var(--color-border-light) !important;
+  color: var(--color-text-muted) !important;
+}
+
+.toast-item {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: 0 8px 24px var(--color-shadow-lg) !important;
+}
+
 // ERP-MODAL OVERRIDES
 .erp-modal-overlay {
-  background-color: rgba(38, 31, 107, 0.6) !important;
+  background-color: rgba(0, 0, 0, 0.75) !important;
   backdrop-filter: blur(4px) !important;
 }
 

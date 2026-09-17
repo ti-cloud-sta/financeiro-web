@@ -1,0 +1,8 @@
+#roda backend
+cd backend
+venv\Scripts\activate
+uvicorn app.main:app --reload
+
+#roda frontend
+cd frontend
+npm start

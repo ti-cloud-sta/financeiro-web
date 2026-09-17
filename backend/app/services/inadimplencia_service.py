@@ -28,7 +28,7 @@ WEEKDAY_NOMES = [
 # disponíveis no select do modal de detalhes - mantidos em sincronia com o frontend.
 FASE_OPTIONS = ["PENDENCIAS", "LOGISTICA", "FISCAL", "COMERCIAL", "FINANCEIRO", "FINALIZADO"]
 STATUS_OPTIONS = [
-    "DEVOLUCAO", "SEM DATA DE ENTREGA", "ACORDO", "COMISSAO",
+    "DEVOLUCAO", "SEM DATA DE ENTREGA", "PRORROGADO", "ACORDO", "COMISSAO",
     "EXPORTACAO", "MARTINS", "MERCADINHO", "CART-DES", "ATRASADO", "ANALISAR",
     "PROTESTADO", "PERDAS"
 ]
@@ -254,9 +254,6 @@ class InadimplenciaService:
 
                 pendencia_existente = self._obter_pendencia_existente(id_unidade, serie, titulo, parcela)
                 if pendencia_existente:
-                    if getattr(pendencia_existente, 'encerrado', None) == 'S':
-                        pendencia_existente.encerrado = 'N'
-                        
                     if vencimento is not None:
                         venc_db = pendencia_existente.dtVencimento
                         
@@ -273,34 +270,95 @@ class InadimplenciaService:
                             venc_excel = venc_excel.date()
 
                         if venc_db is None or venc_excel > venc_db:
+                            mudancas = []
                             data_inicial_str = venc_db.strftime('%d/%m/%Y') if venc_db else "Sem Vencimento"
                             data_nova_str = venc_excel.strftime('%d/%m/%Y')
-                            
-                            pendencia_existente.dtVencimento = venc_excel
-                            if saldo is not None:
+                            mudancas.append(f"Vencimento: de {data_inicial_str} para {data_nova_str}")
+
+                            entrega_db = pendencia_existente.dtEntrega
+                            if isinstance(entrega_db, datetime.datetime):
+                                entrega_db = entrega_db.date()
+                            elif isinstance(entrega_db, str):
+                                try:
+                                    entrega_db = datetime.datetime.strptime(entrega_db.split('T')[0].split(' ')[0], '%Y-%m-%d').date()
+                                except:
+                                    entrega_db = None
+
+                            if data_entrega is not None and data_entrega != entrega_db:
+                                entrega_ant_str = entrega_db.strftime('%d/%m/%Y') if entrega_db else "Sem Data"
+                                entrega_nova_str = data_entrega.strftime('%d/%m/%Y')
+                                mudancas.append(f"Data de Entrega: de {entrega_ant_str} para {entrega_nova_str}")
+                                pendencia_existente.dtEntrega = data_entrega
+
+                            saldo_db = pendencia_existente.valorSaldo
+                            if saldo is not None and (saldo_db is None or round(float(saldo), 2) != round(float(saldo_db), 2)):
+                                saldo_ant_str = f"R$ {float(saldo_db):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if saldo_db is not None else "R$ 0,00"
+                                saldo_novo_str = f"R$ {float(saldo):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                                mudancas.append(f"Saldo: de {saldo_ant_str} para {saldo_novo_str}")
                                 pendencia_existente.valorSaldo = saldo
-                            
-                            foi_encerrado_agora = False
-                            if getattr(pendencia_existente, 'encerrado', 'N') != 'S':
-                                pendencia_existente.encerrado = 'S'
-                                foi_encerrado_agora = True
+
+                            val_orig_db = pendencia_existente.valorOriginal
+                            if valor_original is not None and (val_orig_db is None or round(float(valor_original), 2) != round(float(val_orig_db), 2)):
+                                orig_ant_str = f"R$ {float(val_orig_db):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if val_orig_db is not None else "R$ 0,00"
+                                orig_novo_str = f"R$ {float(valor_original):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                                mudancas.append(f"Valor Original: de {orig_ant_str} para {orig_novo_str}")
+                                pendencia_existente.valorOriginal = valor_original
+
+                            if carteira and carteira != pendencia_existente.carteira:
+                                mudancas.append(f"Carteira: de {pendencia_existente.carteira or '-'} para {carteira}")
+                                pendencia_existente.carteira = carteira
+
+                            if tipo_pedido and tipo_pedido != pendencia_existente.tipoPedido:
+                                mudancas.append(f"Tipo Pedido: de {pendencia_existente.tipoPedido or '-'} para {tipo_pedido}")
+                                pendencia_existente.tipoPedido = tipo_pedido
+
+                            portador_novo = _to_int(row.iloc[self.COL_PORTADOR])
+                            if portador_novo is not None and portador_novo != pendencia_existente.portador:
+                                mudancas.append(f"Portador: de {pendencia_existente.portador or '-'} para {portador_novo}")
+                                pendencia_existente.portador = portador_novo
+
+                            nr_ped_novo = _to_int(row.iloc[self.COL_NR_PEDIDO_CLIENTE])
+                            if nr_ped_novo is not None and nr_ped_novo != pendencia_existente.nrPedidoCliente:
+                                mudancas.append(f"Nº Pedido: de {pendencia_existente.nrPedidoCliente or '-'} para {nr_ped_novo}")
+                                pendencia_existente.nrPedidoCliente = nr_ped_novo
+
+                            emissao_nova = _excel_serial_to_date(row.iloc[self.COL_EMISSAO])
+                            emissao_db = pendencia_existente.dtEmissao
+                            if isinstance(emissao_db, datetime.datetime):
+                                emissao_db = emissao_db.date()
+                            if emissao_nova is not None and emissao_nova != emissao_db:
+                                emissao_ant_str = emissao_db.strftime('%d/%m/%Y') if emissao_db else "Sem Data"
+                                emissao_nova_str = emissao_nova.strftime('%d/%m/%Y')
+                                mudancas.append(f"Emissão: de {emissao_ant_str} para {emissao_nova_str}")
+                                pendencia_existente.dtEmissao = emissao_nova
+
+                            if id_cliente is not None and id_cliente != pendencia_existente.idCliente:
+                                pendencia_existente.idCliente = id_cliente
+
+                            if id_matriz is not None and id_matriz != pendencia_existente.idClienteMatriz:
+                                pendencia_existente.idClienteMatriz = id_matriz
+
+                            # Atualiza vencimento, importação e status para encerrado='P' (PRORROGADO)
+                            pendencia_existente.dtVencimento = venc_excel
+                            pendencia_existente.idImportacoes = importacao.idImportacoes
+                            pendencia_existente.encerrado = 'P'
                             
                             self.db.flush()
+                            descricao_hist = "Título prorrogado. Alterações: " + "; ".join(mudancas)
                             self._novo_historico(
                                 pendencia_existente.idnfpendencias,
                                 "Título Prorrogado",
-                                f"Titulo {titulo} prorrogado de {data_inicial_str} para {data_nova_str}",
+                                descricao_hist,
                                 14 # system
                             )
                             
-                            if foi_encerrado_agora:
-                                self._novo_historico(
-                                    pendencia_existente.idnfpendencias,
-                                    "Resolução",
-                                    "Pendência finalizada devido à prorrogação do título.",
-                                    14 # system
-                                )
-                                
+                            self._novo_historico(
+                                pendencia_existente.idnfpendencias,
+                                "Resolução",
+                                "Pendência finalizada devido à prorrogação do título.",
+                                14 # system
+                            )
+                            
                             prorrogadas += 1
                         else:
                             ignoradas_duplicadas += 1
@@ -474,7 +532,7 @@ class InadimplenciaService:
             "diaSemanaHoje": WEEKDAY_NOMES[hoje.weekday()],
         }
 
-    def alterar_fase(self, id_nf: int, nova_fase: str, id_user: Optional[int] = None) -> dict:
+    def alterar_fase(self, id_nf: int, nova_fase: str, id_user: Optional[int] = None, novo_status: Optional[str] = None) -> dict:
         nova_fase = (nova_fase or "").strip().upper()
         if nova_fase not in FASE_OPTIONS:
             raise ValueError(
@@ -487,9 +545,24 @@ class InadimplenciaService:
 
         fase_anterior = nf.fase or "-"
         nf.fase = nova_fase
+        
+        hist_detalhes = f"Fase alterada de '{fase_anterior}' para '{nova_fase}'."
+
+        if nova_fase == "FINALIZADO":
+            nf.status = "OK"
+            nf.encerrado = "S"
+            hist_detalhes += " Status definido para 'OK' e título encerrado."
+        elif fase_anterior == "FINALIZADO" and nova_fase != "FINALIZADO":
+            nf.encerrado = "N"
+            hist_detalhes += " Título reaberto."
+            if novo_status:
+                novo_status = novo_status.strip().upper()
+                nf.status = novo_status
+                hist_detalhes += f" Novo status: '{novo_status}'."
+
         self._novo_historico(
             id_nf, "Alteração de Fase",
-            f"Fase alterada de '{fase_anterior}' para '{nova_fase}'.",
+            hist_detalhes,
             id_user,
         )
         self.db.commit()

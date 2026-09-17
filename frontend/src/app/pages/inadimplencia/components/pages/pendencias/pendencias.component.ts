@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { FlatpickrModule } from 'angularx-flatpickr';
 import { Portuguese } from 'flatpickr/dist/l10n/pt.js';
 import { ImportacoesService, PendenciaKanban, JanelaRegraDia } from '../../../../../core/services/importacoes.service';
-import { PendenciaDetalheModalComponent } from './components/pendencia-detalhe-modal/pendencia-detalhe-modal.component';
+import { PendenciaDetalheModalComponent, STATUS_OPTIONS } from './components/pendencia-detalhe-modal/pendencia-detalhe-modal.component';
+import { ModalComponent } from '../../../../../shared/components/modal/modal.component';
 
 export interface KanbanCard {
   id: string;
@@ -69,7 +70,7 @@ function saveVisibleColumnIds(ids: Set<string>) {
 @Component({
   selector: 'app-pendencias',
   standalone: true,
-  imports: [CommonModule, FormsModule, FlatpickrModule, PendenciaDetalheModalComponent],
+  imports: [CommonModule, FormsModule, FlatpickrModule, PendenciaDetalheModalComponent, ModalComponent],
   templateUrl: './pendencias.component.html',
   styleUrl: './pendencias.component.scss'
 })
@@ -84,7 +85,16 @@ export class PendenciasComponent implements OnInit {
   statusFiltro: string | null = null;
   textoFiltro: string = '';
   filtroDevolucaoAtivo = false;
+  filtroProtestadoAtivo = false;
   isLoading = false;
+
+  // Drop Status Modal state
+  isDropStatusModalOpen = false;
+  dropStatusSelecionado = '';
+  todasOpcoesStatus = STATUS_OPTIONS;
+  pendingDropCard: KanbanCard | null = null;
+  pendingDropSourceColId: string | null = null;
+  pendingDropDestColId: string | null = null;
 
   // Atalho "Regra do Dia": mesma janela de vencimento (critério de dia da semana) que antes
   // travava a importação - agora é só informativa, calculada pelo backend.
@@ -170,7 +180,7 @@ export class PendenciasComponent implements OnInit {
         id: item.idnfpendencias.toString(),
         title: item.titulo || '-',
         status: item.status || '-',
-        statusColor: item.status === 'Ok' ? 'success' : (item.status === 'DEVOLUCAO' ? 'orange' : coluna.colorClass),
+        statusColor: item.status === 'OK' ? 'success' : (item.status === 'PRORROGADO' ? 'info' : (item.status === 'DEVOLUCAO' ? 'orange' : (item.status === 'PROTESTADO' ? 'danger' : (item.status === 'ATRASADO' ? 'warning' : coluna.colorClass)))),
         clientName: this.sliceClientName(item.clienteNome),
         dtVencimento: item.dtVencimento ? new Date(item.dtVencimento + 'T00:00:00') : null,
         leadTimeDays: this.calcularDiasDesdeImportacao(item.createdAt),
@@ -220,18 +230,17 @@ export class PendenciasComponent implements OnInit {
     }
   }
 
+  onStatusFiltroChange(novoStatus: string | null) {
+    if (novoStatus === 'DEVOLUCAO') {
+      this.filtroDevolucaoAtivo = true;
+    }
+    if (novoStatus === 'PROTESTADO') {
+      this.filtroProtestadoAtivo = true;
+    }
+  }
+
   get statusOptions(): string[] {
-    const statuses = this.columns.flatMap(col => 
-      col.cards.filter(card => {
-        if (col.id === 'logistica') {
-          const isDev = card.status === 'DEVOLUCAO';
-          if (this.filtroDevolucaoAtivo && !isDev) return false;
-          if (!this.filtroDevolucaoAtivo && isDev) return false;
-        }
-        return true;
-      }).map(card => card.status)
-    );
-    return Array.from(new Set(statuses));
+    return STATUS_OPTIONS;
   }
 
   get visibleColumnsLabel(): string {
@@ -270,6 +279,11 @@ export class PendenciasComponent implements OnInit {
             if (this.filtroDevolucaoAtivo && !isDevolucao) return false;
             if (!this.filtroDevolucaoAtivo && isDevolucao) return false;
           }
+          if (column.id === 'financeiro') {
+            const isProtestado = card.status === 'PROTESTADO';
+            if (this.filtroProtestadoAtivo && !isProtestado) return false;
+            if (!this.filtroProtestadoAtivo && isProtestado) return false;
+          }
           return this.cardMatchesFilters(card);
         })
       }));
@@ -277,7 +291,7 @@ export class PendenciasComponent implements OnInit {
 
   private cardMatchesFilters(card: KanbanCard): boolean {
     // O filtro de período (data) já é aplicado pelo backend em carregarPendencias()
-    if (this.statusFiltro && card.status !== this.statusFiltro) {
+    if (this.statusFiltro && this.statusFiltro !== 'null' && card.status !== this.statusFiltro) {
       return false;
     }
     
@@ -443,33 +457,64 @@ export class PendenciasComponent implements OnInit {
       const idColunaOrigem = this.sourceColumnId;
       const idColunaDestino = targetColumn.id;
 
-      // Remove da coluna de origem
-      const sourceCol = this.columns.find(c => c.id === idColunaOrigem);
-      if (sourceCol) {
-        sourceCol.cards = sourceCol.cards.filter(c => c.id !== card.id);
+      if (idColunaOrigem === 'finalizado' && idColunaDestino !== 'finalizado') {
+        this.pendingDropCard = card;
+        this.pendingDropSourceColId = idColunaOrigem;
+        this.pendingDropDestColId = idColunaDestino;
+        this.dropStatusSelecionado = '';
+        this.isDropStatusModalOpen = true;
+        return;
       }
 
-      // Adiciona na coluna de destino (busca a coluna real, já que o template itera sobre a versão filtrada)
-      const destCol = this.columns.find(c => c.id === idColunaDestino);
-      if (destCol) {
-        card.statusColor = destCol.colorClass;
-        destCol.cards.push(card);
-      }
-
-      // Persiste a mudança de fase (id da coluna = fase em maiúsculas). Se falhar, desfaz
-      // a movimentação visual e devolve o card pra coluna de origem.
-      this.importacoesService.alterarFasePendencia(Number(card.id), idColunaDestino.toUpperCase()).subscribe({
-        error: (err) => {
-          console.error('Erro ao mover pendência entre colunas:', err);
-          if (destCol) {
-            destCol.cards = destCol.cards.filter(c => c.id !== card.id);
-          }
-          if (sourceCol) {
-            card.statusColor = sourceCol.colorClass;
-            sourceCol.cards.push(card);
-          }
-        }
-      });
+      this.executarDrop(card, idColunaOrigem, idColunaDestino);
     }
+  }
+
+  private executarDrop(card: KanbanCard, idColunaOrigem: string, idColunaDestino: string, novoStatus?: string) {
+    const sourceCol = this.columns.find(c => c.id === idColunaOrigem);
+    if (sourceCol) {
+      sourceCol.cards = sourceCol.cards.filter(c => c.id !== card.id);
+    }
+
+    const destCol = this.columns.find(c => c.id === idColunaDestino);
+    if (destCol) {
+      card.statusColor = destCol.colorClass;
+      if (idColunaDestino === 'finalizado') {
+        card.status = 'OK';
+        card.statusColor = 'success';
+      } else if (novoStatus) {
+        card.status = novoStatus;
+      }
+      destCol.cards.push(card);
+    }
+
+    this.importacoesService.alterarFasePendencia(Number(card.id), idColunaDestino.toUpperCase(), novoStatus).subscribe({
+      error: (err) => {
+        console.error('Erro ao mover pendência entre colunas:', err);
+        if (destCol) {
+          destCol.cards = destCol.cards.filter(c => c.id !== card.id);
+        }
+        if (sourceCol) {
+          card.statusColor = sourceCol.colorClass;
+          sourceCol.cards.push(card);
+        }
+      }
+    });
+  }
+
+  confirmarStatusDrop() {
+    if (!this.dropStatusSelecionado) return;
+    if (this.pendingDropCard && this.pendingDropSourceColId && this.pendingDropDestColId) {
+      this.executarDrop(this.pendingDropCard, this.pendingDropSourceColId, this.pendingDropDestColId, this.dropStatusSelecionado);
+    }
+    this.fecharStatusDrop();
+  }
+
+  fecharStatusDrop() {
+    this.isDropStatusModalOpen = false;
+    this.pendingDropCard = null;
+    this.pendingDropSourceColId = null;
+    this.pendingDropDestColId = null;
+    this.dropStatusSelecionado = '';
   }
 }

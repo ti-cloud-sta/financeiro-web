@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     DATABASE_USER: str = "root"
     DATABASE_PASSWORD: str = ""
     
-    JWT_KEY: str
+    JWT_KEY: str = "stamaria_default_jwt_secret_key_dev"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
 

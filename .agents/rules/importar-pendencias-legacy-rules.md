@@ -41,7 +41,9 @@ Durante a importação, cada nota era classificada (designada a uma **Fase** e *
 - Fase `PENDENCIAS` / Status `EXPORTACAO`: Espécie "DP", Tipo de Pedido "PX", sem data de entrega.
 - Fase `PENDENCIAS` / Status `MARTINS`: Espécie "DP", Tipo de Pedido "ER", sem data de entrega.
 - Fase `PENDENCIAS` / Status `MERCADINHO`: Espécie "DP", Tipo de Pedido "E1", sem data de entrega.
-- Fase `PENDENCIAS` / Status `CART-DES`: Espécie "DP", Tipo de Pedido "PV", Carteira "DES", com data de entrega preenchida.
+- Fase `PENDENCIAS` / Status `DES`: Espécie "DP", Tipo de Pedido "PV", Carteira "DES", com data de entrega preenchida.
+- Fase `PENDENCIAS` / Status `PR`: Espécie "PR".
+- Fase `PENDENCIAS` / Status `RJ`: Espécie "RJ".
 
 **Triagem Manual (Fallback)**
 - Fase `PENDENCIAS` / Status `ANALISAR`: Caso a linha importada passasse nas validações mas não atingisse nenhuma das condicionais acima, ela assumia este status para que o usuário resolvesse na tela.
