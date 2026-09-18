@@ -3085,13 +3085,24 @@ def _parse_banco_do_brasil(texto: str) -> list:
     return entradas
 
 
+import re
+
+def _normalize_filename_for_match(filename: str) -> str:
+    """Remove espaços (normais e non-breaking), traços e underscores para match flexível."""
+    if not filename:
+        return ''
+    # Remove todos os caracteres não-alfanuméricos para não falhar por espaços ou typos de 1/l
+    nome_limpo = re.sub(r'[^a-z0-9]', '', filename.lower())
+    # Trata caso comum de typo: 'Brasi1' no lugar de 'Brasil'
+    return nome_limpo.replace('brasi1', 'brasil')
+
 # Registro de parsers de extrato por banco. Identificação por nome do arquivo
 # (ex: "Banco do Brasil-1.pdf", "Banco do Brasil-2.pdf"). Novos bancos/critérios
 # são adicionados aqui, sem alterar o restante do endpoint.
 BANK_PARSERS = [
     {
         'nome': 'Banco do Brasil',
-        'match': lambda filename: 'banco do brasil' in (filename or '').lower(),
+        'match': lambda filename: 'bancodobrasil' in _normalize_filename_for_match(filename),
         'parse': _parse_banco_do_brasil,
         'codigos': {'PENDENTE': 'BB-LIB', 'REJEITADO': 'ERRO'}
     }
@@ -3102,7 +3113,7 @@ def _parse_bb_pendencias_pix(texto: str) -> list:
     """
     Extrai os valores das linhas 'Confirmação de Pagamento Instantâneo-PIX' do
     relatório 'Central de Pendências' do Banco do Brasil. A descrição de cada
-    lançamento quebra em várias linhas no PDF (ex: '...PIX CEF\\nMATRIZ'), então
+    lançamento quebra em várias linhas no PDF (ex: '...PIX CEF\nMATRIZ'), então
     a extração varre o texto inteiro (DOTALL) para juntar cada bloco antes do valor.
     """
     padrao = re.compile(
@@ -3154,7 +3165,7 @@ def _parse_itau_salarios_rh(texto: str) -> list:
 AGGREGATE_PARSERS = [
     {
         'nome': 'Banco do Brasil - Pendências PIX (FGTS)',
-        'match': lambda filename: 'bb-pendencias' in (filename or '').lower(),
+        'match': lambda filename: 'bbpendencias' in _normalize_filename_for_match(filename),
         'extrair_valores': _parse_bb_pendencias_pix,
         'modo_alvo': 'exato',
         'alvo': ['FGTS FOLHA', 'FGTS - FOLHA DE PAGAMENTO'],
@@ -3163,7 +3174,7 @@ AGGREGATE_PARSERS = [
     },
     {
         'nome': 'Banco do Brasil - Pendências (VITRU)',
-        'match': lambda filename: 'bb-pendencias' in (filename or '').lower(),
+        'match': lambda filename: 'bbpendencias' in _normalize_filename_for_match(filename),
         'extrair_valores': _parse_bb_pendencias_vitru,
         'modo_alvo': 'contem',
         'alvo': ['VITRU BRASIL'],
@@ -3172,7 +3183,7 @@ AGGREGATE_PARSERS = [
     },
     {
         'nome': 'Itaú - Salários e RH',
-        'match': lambda filename: 'itau-salarios' in (filename or '').lower(),
+        'match': lambda filename: 'itausalarios' in _normalize_filename_for_match(filename),
         'extrair_valores': _parse_itau_salarios_rh,
         'modo_alvo': 'contem',
         'alvo': ['RESCISAO', 'RESCICAO', 'FOLHA PAGTO', 'FERIAS'],
@@ -3311,8 +3322,11 @@ async def conciliar_bancos(
         arquivos_extratos.append({"filename": arquivo.filename, "content": arq_content})
 
     async def generate():
+        import asyncio
         try:
             yield json.dumps({"step": 1, "message": "Carregando a planilha principal..."}) + "\n"
+            await asyncio.sleep(0.1) # Força o envio do chunk para o frontend
+
             import io
             import pandas as pd
             import pypdf
@@ -3320,7 +3334,11 @@ async def conciliar_bancos(
             from urllib.parse import quote
 
             # Usamos pandas para carregar a planilha muito mais rápido do que openpyxl.load_workbook
-            df_todas = pd.read_excel(io.BytesIO(conteudo_planilha), sheet_name=None, header=None)
+            def carregar_planilha():
+                return pd.read_excel(io.BytesIO(conteudo_planilha), sheet_name=None, header=None)
+            
+            df_todas = await asyncio.to_thread(carregar_planilha)
+            
             sheet_name = next(
                 (s for s in df_todas.keys() if str(s).strip().startswith("Relatorio Geral")),
                 None
@@ -3366,6 +3384,7 @@ async def conciliar_bancos(
                 })
 
             yield json.dumps({"step": 2, "message": "Extraindo lançamentos dos extratos..."}) + "\n"
+            await asyncio.sleep(0.1)
 
             lancamentos = []
             agregados_por_parser = {}
@@ -3387,8 +3406,15 @@ async def conciliar_bancos(
                     continue
                 hashes_vistos[hash_conteudo] = fname
 
-                leitor = pypdf.PdfReader(io.BytesIO(conteudo))
-                texto = "\n".join(pagina.extract_text(extraction_mode="layout") or "" for pagina in leitor.pages)
+                def extrair_pdf():
+                    leitor = pypdf.PdfReader(io.BytesIO(conteudo))
+                    # Fallback para plain se layout travar
+                    try:
+                        return "\n".join(pagina.extract_text(extraction_mode="layout") or "" for pagina in leitor.pages)
+                    except Exception:
+                        return "\n".join(pagina.extract_text() or "" for pagina in leitor.pages)
+
+                texto = await asyncio.to_thread(extrair_pdf)
 
                 if parser_lote:
                     for entrada in parser_lote['parse'](texto):
@@ -3409,6 +3435,7 @@ async def conciliar_bancos(
                     grupo['valores'].extend(parser_agregado['extrair_valores'](texto))
 
             yield json.dumps({"step": 3, "message": "Cruzamento com a planilha e geração do arquivo..."}) + "\n"
+            await asyncio.sleep(0.1)
 
             TOLERANCIA = 0.01
             matched_1a1 = 0

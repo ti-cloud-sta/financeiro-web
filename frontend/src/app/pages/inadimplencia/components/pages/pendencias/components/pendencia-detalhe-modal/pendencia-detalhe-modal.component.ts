@@ -158,9 +158,7 @@ export class PendenciaDetalheModalComponent implements OnChanges {
       this.carregarHistorico();
       if (this.activeTab === 'mensagens') {
         this.googleAuthService.verificarStatus().subscribe();
-        if (!this.composeAssunto) {
-          this.composeAssunto = `Cobrança - Título ${this.card.title} - ${this.card.clientName}`;
-        }
+        this.carregarMensagensThread();
       }
     }
     if (changes['isOpen'] && this.isOpen) {
@@ -177,11 +175,74 @@ export class PendenciaDetalheModalComponent implements OnChanges {
       if (!this.composeAssunto && this.card) {
         this.composeAssunto = `Cobrança - Título ${this.card.title} - ${this.card.clientName}`;
       }
+      setTimeout(() => this.inserirAssinatura(), 100);
     } else if (tab === 'historico') {
       this.carregarHistorico();
     } else if (tab === 'tratativa') {
       this.carregarTratativas();
     }
+  }
+
+  private inserirAssinatura() {
+    if (this.composeBodyRef && this.card) {
+      const el = this.composeBodyRef.nativeElement;
+      const htmlAtual = el.innerHTML.trim();
+      const assinaturaHtml = `<br><br><img src="${window.location.origin}/assets/images/assinatura.png" alt="Assinatura" style="max-width: 100%; height: auto;">`;
+      
+      if (!htmlAtual || htmlAtual === '<br>' || htmlAtual === '<div><br></div>') {
+        el.innerHTML = assinaturaHtml;
+      } else if (!htmlAtual.includes('assinatura.png')) {
+        el.innerHTML = htmlAtual + assinaturaHtml;
+      }
+    }
+  }
+
+  aplicarTemplate(tipo: 'cobranca' | 'recobranca' | 'protesto' | 'sem_data' | 'devolucao') {
+    if (!this.composeBodyRef || !this.card) return;
+
+    const el = this.composeBodyRef.nativeElement;
+    const valorFormatado = (this.card.valorSaldo || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const dataVenc = this.card.dtVencimento ? new Date(this.card.dtVencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-';
+    const parcela = this.card.parccela || '-';
+    const assinaturaHtml = `<br><br><img src="${window.location.origin}/assets/images/assinatura.png" alt="Assinatura" style="max-width: 100%; height: auto;">`;
+    
+    let textoHtml = '';
+
+    switch (tipo) {
+      case 'cobranca':
+        textoHtml = `Prezado(a) cliente <b>${this.card.clientName}</b>,<br><br>
+Consta em nosso sistema o título <b>${this.card.title}</b> (Parcela: ${parcela}) no valor de <b>${valorFormatado}</b>, com vencimento original em <b>${dataVenc}</b>, que se encontra pendente de regularização.<br><br>
+Caso o pagamento já tenha sido efetuado, por favor, desconsidere esta mensagem e nos envie o comprovante para que possamos baixar no sistema. Se houve algum contratempo ou dificuldade para emissão do boleto, estamos à disposição para ajudar.<br><br>
+Atenciosamente,${assinaturaHtml}`;
+        break;
+      case 'recobranca':
+        textoHtml = `Prezado(a) cliente <b>${this.card.clientName}</b>,<br><br>
+Até o momento, não identificamos o pagamento referente ao título <b>${this.card.title}</b> (Parcela: ${parcela}) no valor de <b>${valorFormatado}</b>, vencido no dia <b>${dataVenc}</b>.<br><br>
+Pedimos a gentileza de nos enviar o comprovante caso o pagamento já tenha ocorrido. Caso contrário, solicitamos uma previsão para a regularização desta pendência ou que entre em contato conosco para verificarmos uma possível negociação.<br><br>
+No aguardo de um retorno,<br>Atenciosamente,${assinaturaHtml}`;
+        break;
+      case 'protesto':
+        textoHtml = `Prezado(a) cliente <b>${this.card.clientName}</b>,<br><br>
+Informamos que o título <b>${this.card.title}</b> (Parcela: ${parcela}), no valor de <b>${valorFormatado}</b> e vencido em <b>${dataVenc}</b>, continua pendente de pagamento em nosso sistema.<br><br>
+Como não obtivemos retorno nas tentativas de contato anteriores, comunicamos que, caso a pendência não seja regularizada (ou não nos seja enviado o comprovante) nos próximos 2 dias úteis, o título será automaticamente encaminhado ao cartório para <b>protesto</b> e inclusão nos órgãos de proteção ao crédito.<br><br>
+Para evitar os transtornos e custas cartoriais, solicitamos a regularização imediata.<br><br>
+Atenciosamente,${assinaturaHtml}`;
+        break;
+      case 'sem_data':
+        textoHtml = `Prezados do setor Logística,<br><br>
+Estamos realizando um acompanhamento de nossa carteira e verificamos que a mercadoria referente ao título <b>${this.card.title}</b> (Valor: <b>${valorFormatado}</b>) ainda não possui a confirmação e data exata de entrega registrada em nosso sistema.<br><br>
+Poderia, por gentileza, nos confirmar quando será entregue? Essa informação é muito importante para nosso controle de qualidade e faturamento.<br><br>
+Agradecemos a colaboração.<br>Atenciosamente,${assinaturaHtml}`;
+        break;
+      case 'devolucao':
+        textoHtml = `Prezados do setor Logística,<br><br>
+Identificamos em nosso sistema que houve uma ocorrência de devolução envolvendo a nota fiscal/título <b>${this.card.title}</b> no valor de <b>${valorFormatado}</b>.<br><br>
+Para que possamos dar andamento correto aos trâmites financeiros internamente, solicitamos que nos informe brevemente a posição referente a essa nota.<br><br>
+Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml}`;
+        break;
+    }
+
+    el.innerHTML = textoHtml;
   }
 
   mostrarAlerta(titulo: string, mensagem: string, variant: 'primary' | 'danger' | 'success' = 'primary') {
@@ -220,11 +281,18 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     });
   }
 
+  private mensagensSub?: any;
+
   carregarMensagensThread() {
     if (!this.card) return;
     const idNf = Number(this.card.id);
     this.isLoadingMensagens = true;
-    this.importacoesService.listarMensagensPendencia(idNf).subscribe({
+    
+    if (this.mensagensSub) {
+      this.mensagensSub.unsubscribe();
+    }
+    
+    this.mensagensSub = this.importacoesService.listarMensagensPendencia(idNf).subscribe({
       next: (msgs: MensagemThreadApi[]) => {
         this.isLoadingMensagens = false;
         this.mensagens = msgs.map(m => this.mapearMensagemApi(m));
@@ -395,8 +463,15 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     this.novaTratativa = '';
     this.editingTratativaIndex = null;
 
-    // TODO: Mensagens do chat podem vir da API futuramente
+    // Reset de Mensagens e Compose
     this.mensagens = [];
+    this.composeAssunto = `Cobrança - Título ${card.title} - ${card.clientName}`;
+    this.composeDestinatarios = '';
+    this.composeCopia = '';
+    this.arquivosSelecionados = [];
+    if (this.composeBodyRef) {
+      this.composeBodyRef.nativeElement.innerHTML = '';
+    }
 
     // Histórico vem da API (ver carregarHistorico) - permanece mocado só até lá ser chamado.
   }
@@ -575,6 +650,7 @@ export class PendenciaDetalheModalComponent implements OnChanges {
         this.arquivosSelecionados = [];
         if (this.composeBodyRef) {
           this.composeBodyRef.nativeElement.innerHTML = '';
+          this.inserirAssinatura();
         }
 
         // Recarrega o thread completo (inclui a mensagem recém enviada)
