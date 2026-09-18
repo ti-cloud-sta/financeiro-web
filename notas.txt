@@ -8,6 +8,8 @@ cd frontend
 npm start
 
 #reiniciar e subir projeto na vps
+cd projects/financeiro-web
+git pull
 docker compose up -d --build
 
 #ou isolado
