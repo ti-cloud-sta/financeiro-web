@@ -270,6 +270,14 @@
               [(ngModel)]="composeDestinatarios">
             <input type="text" class="form-control form-control-sm" placeholder="Cc (cópia opcional)" [(ngModel)]="composeCopia">
           </div>
+          <div class="compose-templates">
+            <span class="template-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Modelos Rápidos:</span>
+            <button type="button" class="template-chip" (click)="aplicarTemplate('cobranca')">Cobrança</button>
+            <button type="button" class="template-chip" (click)="aplicarTemplate('recobranca')">Recobrança</button>
+            <button type="button" class="template-chip" (click)="aplicarTemplate('protesto')">Protesto</button>
+            <button type="button" class="template-chip" (click)="aplicarTemplate('sem_data')">Sem Data Entrega</button>
+            <button type="button" class="template-chip" (click)="aplicarTemplate('devolucao')">Devolução</button>
+          </div>
 
           <div class="compose-toolbar">
             <button type="button" class="toolbar-btn" title="Negrito" (mousedown)="$event.preventDefault()" (click)="aplicarFormatacao('bold')">
