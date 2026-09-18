@@ -583,3 +583,22 @@ A interface do Kanban possui *toggles* no cabeçalho das colunas para alternar a
 - **Coluna Financeiro**: Possui um toggle vermelho (`switch-danger`) para mostrar/ocultar os status de `PROTESTADO` (cor `danger`).
 - **Atrasados**: Cards com status `ATRASADO` assumem a cor `warning` (laranja claro/amarelo escuro) para se destacarem.
 - **Auto-Ativação**: O evento `onStatusFiltroChange` monitora o filtro global do Kanban. Ao selecionar explicitamente a opção "DEVOLUCAO" ou "PROTESTADO" no select, o sistema **liga** (true) automaticamente o *toggle* respectivo na coluna correspondente, permitindo que os cards se tornem visíveis.
+
+### 6.4 Regras de Importação de Planilha (InadimplenciaService)
+- **Leitura Exclusiva da Aba Resumo**: O método `importar_pendencias` deve ler rigorosamente a aba denominada `Resumo` (`sheet_name="Resumo"`), ignorando e não verificando qualquer outra aba do arquivo.
+- **Identificação e Chave de Unicidade**:
+  - A pendência é identificada combinando `(idUnidade, serie, titulo, parcela, especie, carteira)` através do método `_obter_pendencia_existente`.
+  - O mesmo número de título e parcela pode conter linhas diferentes com espécies distintas (ex: `DP` e `AD`) ou carteiras distintas. Essas linhas coexistem como registros autônomos no banco de dados, sem colisão ou sobrescrita mútua.
+- **Atualizações em Reimportações**:
+  - **Saldo (`valorSaldo`)**: Quando o saldo de uma pendência existente difere na nova planilha (ex: amortizações e pagamentos parciais), ele é atualizado imediatamente (independente de mudanças de vencimento) e gera o histórico de *"Atualização de Saldo"*.
+  - **Carteira (`carteira`)**: Caso a carteira seja alterada (coluna M), o campo é atualizado, os campos manuais `fase` e `status` são limpos (`None`) para que a view `vw_nfpendencias_fase` reclassifique o título automaticamente, e são gerados os históricos de *"Atualização de Carteira"* e *"Classificação"*.
+  - **Prorrogação de Vencimento**: Se a nova data de vencimento for maior que a anterior (`venc_excel > venc_db`), marca como prorrogado (`encerrado = 'P'`) e gera os históricos *"Título Prorrogado"* e *"Resolução"*.
+  - **Ajustes de Vencimento**: Se a data for diferente sem prorrogação (`venc_excel != venc_db`), a data é atualizada com histórico cadastral.
+  - **Status Reaberto**: Se uma pendência constava como `encerrado = 'S'` por ausência em importação prévia e retorna na planilha atual, seu status é revertido para `encerrado = 'N'`.
+- **Rastreamento por ID e Baixa Automática por Ausência**:
+  - O processamento acumula os IDs de banco (`idnfpendencias`) de todos os títulos processados em `ids_processados_planilha`.
+  - Ao final do lote, todas as pendências ativas no banco (`encerrado = 'N'`) cujos IDs não estiverem no conjunto são marcadas como `encerrado = 'S'` gerando o histórico *"Pendência finalizada"*. Essa checagem por ID impede baixas indevidas cruzadas entre diferentes espécies do mesmo título.
+
+### 6.5 Opções Padronizadas de Status
+Todos os dropdowns de status no frontend e backend (`STATUS_OPTIONS`) contêm as 19 opções ordenadas alfabeticamente:
+`["ACORDO", "AD", "AN", "ANALISAR", "ATRASADO", "CART-DES", "COMISSAO", "DES", "DEVOLUCAO", "EXPORTACAO", "MARTINS", "MERCADINHO", "OK", "PERDAS", "PR", "PRORROGADO", "PROTESTADO", "RJ", "SEM DATA DE ENTREGA"]`.

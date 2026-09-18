@@ -11,3 +11,4 @@ class User(Base):
     password = Column(String(1000), nullable=False)
     active = Column(String(1), nullable=True, default='S')
     createdAt = Column(DateTime, nullable=True, default=func.now())
+    refresh_token_google = Column(String(1000), nullable=True)

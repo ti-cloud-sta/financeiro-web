@@ -330,23 +330,33 @@ class DespesasViagensParserService:
 
     def _parse_onfly_pdf(self, file_content: bytes, db) -> List[Dict]:
         from app.repositories.colaborador_repository import ColaboradorRepository
+        from app.repositories.colaborador_alias_repository import ColaboradorAliasRepository
         from app.models.categoria import Categoria
         from app.models.categoria_alias import CategoriaAlias
+        from sqlalchemy import func
 
         reader = pypdf.PdfReader(io.BytesIO(file_content))
         full_text = ""
-        for page in reader.pages:
-            full_text += (page.extract_text() or "") + "\n"
+        num_pages = len(reader.pages)
+        pages_to_check = min(12, num_pages)
+        for i in range(pages_to_check):
+            full_text += (reader.pages[i].extract_text() or "") + "\n"
+            if "Categorias de despesa" in full_text and ("Total despesas" in full_text or "Total custo da viagem" in full_text) and "Colaborador:" in full_text:
+                break
+
+        if "Categorias de despesa" not in full_text:
+            for i in range(pages_to_check, num_pages):
+                full_text += (reader.pages[i].extract_text() or "") + "\n"
 
         # Extrair CPF e Nome
         cpf_match = re.search(r'CPF:\s*([\d\.\-]+)', full_text)
         cpf_norm = ""
         if cpf_match:
-            from app.repositories.colaborador_repository import ColaboradorRepository
             cpf_norm = ColaboradorRepository._normaliza_cpf(cpf_match.group(1))
 
         nome_match = re.search(r'Colaborador:\s*([^\n]+)', full_text)
         colaborador_nome = nome_match.group(1).strip() if nome_match else "Não Identificado"
+        colaborador_original = colaborador_nome
 
         rdv_match = re.search(r'(RDV\s*-\s*#\d+)', full_text)
         codigo_rdv = rdv_match.group(1).strip() if rdv_match else None
@@ -354,13 +364,39 @@ class DespesasViagensParserService:
         # Resolução de Colaborador via BD
         colaborador_id = None
         pessoa_encontrada = False
-        if db and cpf_norm:
+        if db:
             colab_repo = ColaboradorRepository(db)
-            colab = colab_repo.get_by_documento(cpf_norm)
-            if colab:
-                colaborador_id = colab.idColaborador
-                colaborador_nome = colab.nome
-                pessoa_encontrada = True
+            if cpf_norm:
+                colab = colab_repo.get_by_documento(cpf_norm)
+                if colab:
+                    colaborador_id = colab.idColaborador
+                    colaborador_nome = colab.nome
+                    pessoa_encontrada = True
+
+            if not pessoa_encontrada and colaborador_nome != "Não Identificado":
+                colab = colab_repo.get_by_nome_normalizado(colaborador_nome)
+                if not colab:
+                    alias_repo = ColaboradorAliasRepository(db)
+                    colab_alias = alias_repo.get_by_nome_divergente(colaborador_nome)
+                    if colab_alias:
+                        colab = colab_repo.get_by_id(colab_alias.idColaborador)
+                if colab:
+                    colaborador_id = colab.idColaborador
+                    colaborador_nome = colab.nome
+                    pessoa_encontrada = True
+
+        all_cats = db.query(Categoria).all() if db else []
+        cat_by_name = {c.nome.lower(): c for c in all_cats}
+        cat_heuristics = {
+            'refeição': ['almoço', 'almoco', 'jantar', 'refeição', 'refeicao', 'lanche', 'alimentação', 'alimentacao'],
+            'pedágio/estacionamento': ['pedágio', 'pedagio', 'estacionamento'],
+            'combustível': ['combustível', 'combustivel', 'gasolina', 'etanol', 'diesel'],
+            'outros': ['extras', 'outros', 'diversos'],
+            'hotel': ['hotel', 'hospedagem'],
+            'aéreo': ['aéreo', 'aereo', 'passagem'],
+            'reembolso km/uber': ['uber', 'táxi', 'taxi', 'km', 'quilometragem'],
+            'locação de veículo': ['locação', 'locacao', 'aluguel']
+        }
 
         # Resumo de custos
         despesas = []
@@ -373,31 +409,51 @@ class DespesasViagensParserService:
                 # Match linha: "Combustível R$ 320,09" ou similar
                 match_val = re.search(r'(.*?)\s+R\$\s*([\d\.,]+)', linha)
                 if match_val:
-                    cat_name = match_val.group(1).strip()
+                    cat_name_orig = match_val.group(1).strip()
                     val_str = match_val.group(2).replace('.', '').replace(',', '.')
                     
                     cat_id = None
                     categoria_encontrada = False
+                    cat_name = cat_name_orig
+
                     if db:
                         # 1. Exact match
-                        cat = db.query(Categoria).filter(Categoria.nome == cat_name).first()
-                        if not cat:
-                            # 2. Alias match
-                            alias = db.query(CategoriaAlias).filter(CategoriaAlias.alias == cat_name).first()
-                            if alias:
-                                cat = db.query(Categoria).filter(Categoria.idCategorias == alias.idCategoria).first()
-                        
-                        if cat:
-                            cat_id = cat.idCategorias
-                            cat_name = cat.nome
+                        if cat_name_orig.lower() in cat_by_name:
+                            c = cat_by_name[cat_name_orig.lower()]
+                            cat_id = c.idCategorias
+                            cat_name = c.nome
                             categoria_encontrada = True
+
+                        # 2. Alias match
+                        if not categoria_encontrada:
+                            alias = db.query(CategoriaAlias).filter(func.lower(CategoriaAlias.alias) == cat_name_orig.lower()).first()
+                            if alias:
+                                c = db.query(Categoria).filter(Categoria.idCategorias == alias.idCategoria).first()
+                                if c:
+                                    cat_id = c.idCategorias
+                                    cat_name = c.nome
+                                    categoria_encontrada = True
+
+                        # 3. Heuristics match
+                        if not categoria_encontrada:
+                            norm_orig = cat_name_orig.lower()
+                            for target_cat, syns in cat_heuristics.items():
+                                if any(s in norm_orig for s in syns):
+                                    if target_cat in cat_by_name:
+                                        c = cat_by_name[target_cat]
+                                        cat_id = c.idCategorias
+                                        cat_name = c.nome
+                                        categoria_encontrada = True
+                                        break
 
                     despesas.append({
                         "colaborador": colaborador_nome,
+                        "colaborador_original": colaborador_original,
                         "idColaborador": colaborador_id,
                         "cpf": cpf_norm,
                         "pessoa_encontrada": pessoa_encontrada,
                         "categoria": cat_name,
+                        "categoria_original": cat_name_orig,
                         "idCategoria": cat_id,
                         "categoria_encontrada": categoria_encontrada,
                         "valor": float(val_str),

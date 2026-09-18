@@ -235,7 +235,7 @@
 
   <!-- Hidden Inputs for unified Composicao modal -->
   <input type="file" #composicaoEmpresaFileInput style="display: none;"
-    [accept]="composicaoExtSelecionado?.id === 'ext-pdf-ia' ? '.html, .htm' : '.xlsx, .xls, .htm, .html'"
+    [accept]="composicaoExtSelecionado?.id === 'ext-pdf-ia' ? '.html, .htm' : '.xlsx, .xls, .htm, .html, .csv'"
     (change)="onComposicaoEmpresaFileSelected($event)">
   <input type="file" #composicaoAcrFileInput style="display: none;" accept=".xlsx, .xls"
     (change)="onComposicaoAcrFileSelected($event)">
@@ -288,7 +288,7 @@
             <h4>Clique para selecionar</h4>
             <p class="text-muted small">
               {{ composicaoExtSelecionado?.id === 'ext-pdf-ia' ? 'Arquivo HTML (.html, .htm)' : 'Planilha Excel (.xlsx,
-              .xls)' }}
+              .xls, .csv)' }}
             </p>
             }
           </div>

@@ -13,6 +13,7 @@ from app.models.unidade import Unidade
 from app.models.nf_pendencia import NfPendencia, VwNfPendenciaFase
 from app.models.tratativa import Tratativa
 from app.models.historico_pendencia import HistoricoPendencia
+from app.models.pendencia_mensagem import PendenciaMensagem
 from app.models.user import User
 from app.services.importacao_service import ImportacaoService
 
@@ -28,9 +29,9 @@ WEEKDAY_NOMES = [
 # disponíveis no select do modal de detalhes - mantidos em sincronia com o frontend.
 FASE_OPTIONS = ["PENDENCIAS", "LOGISTICA", "FISCAL", "COMERCIAL", "FINANCEIRO", "FINALIZADO"]
 STATUS_OPTIONS = [
-    "DEVOLUCAO", "SEM DATA DE ENTREGA", "PRORROGADO", "ACORDO", "COMISSAO",
-    "EXPORTACAO", "MARTINS", "MERCADINHO", "CART-DES", "ATRASADO", "ANALISAR",
-    "PROTESTADO", "PERDAS"
+    "ACORDO", "AD", "AN", "ANALISAR", "ATRASADO", "CART-DES", "COMISSAO", "DES",
+    "DEVOLUCAO", "EXPORTACAO", "MARTINS", "MERCADINHO", "OK", "PERDAS",
+    "PR", "PRORROGADO", "PROTESTADO", "RJ", "SEM DATA DE ENTREGA"
 ]
 
 
@@ -174,6 +175,7 @@ class InadimplenciaService:
         total_com_especie = 0
         importadas = 0
         prorrogadas = 0
+        atualizadas = 0
         ignoradas_sem_cliente = 0
         ignoradas_sem_vencimento = 0
         ignoradas_duplicadas = 0
@@ -181,7 +183,7 @@ class InadimplenciaService:
         clientes_criados = 0
         matrizes_criadas = 0
 
-        chaves_presentes_planilha: set[Tuple[Optional[int], Optional[int], Optional[str], Optional[float]]] = set()
+        ids_processados_planilha: set[int] = set()
         extensao = nome_arquivo.rsplit(".", 1)[-1].lower() if "." in nome_arquivo else "xlsx"
 
         try:
@@ -216,8 +218,7 @@ class InadimplenciaService:
                 serie = _to_int(row.iloc[self.COL_SERIE])
                 titulo = _clean_titulo(row.iloc[self.COL_TITULO])
                 parcela = _to_float(row.iloc[self.COL_PARCELA])
-                if titulo is not None:
-                    chaves_presentes_planilha.add((id_unidade, serie, titulo, parcela))
+
 
                 vencimento = _excel_serial_to_date(row.iloc[self.COL_VENCIMENTO])
                 if vencimento is None:
@@ -252,116 +253,187 @@ class InadimplenciaService:
                     if criado_matriz:
                         matrizes_criadas += 1
 
-                pendencia_existente = self._obter_pendencia_existente(id_unidade, serie, titulo, parcela)
+                pendencia_existente = self._obter_pendencia_existente(
+                    id_unidade=id_unidade,
+                    serie=serie,
+                    titulo=titulo,
+                    parcela=parcela,
+                    especie=especie,
+                    carteira=carteira,
+                    ids_ja_processados=ids_processados_planilha
+                )
                 if pendencia_existente:
-                    if vencimento is not None:
-                        venc_db = pendencia_existente.dtVencimento
-                        
-                        if isinstance(venc_db, datetime.datetime):
-                            venc_db = venc_db.date()
-                        elif isinstance(venc_db, str):
-                            try:
-                                venc_db = datetime.datetime.strptime(venc_db.split('T')[0].split(' ')[0], '%Y-%m-%d').date()
-                            except:
-                                venc_db = None
-                                
-                        venc_excel = vencimento
-                        if isinstance(venc_excel, datetime.datetime):
-                            venc_excel = venc_excel.date()
+                    ids_processados_planilha.add(pendencia_existente.idnfpendencias)
+                    mudancas = []
+                    mudou_saldo = False
+                    mudou_carteira = False
 
-                        if venc_db is None or venc_excel > venc_db:
-                            mudancas = []
-                            data_inicial_str = venc_db.strftime('%d/%m/%Y') if venc_db else "Sem Vencimento"
-                            data_nova_str = venc_excel.strftime('%d/%m/%Y')
-                            mudancas.append(f"Vencimento: de {data_inicial_str} para {data_nova_str}")
-
-                            entrega_db = pendencia_existente.dtEntrega
-                            if isinstance(entrega_db, datetime.datetime):
-                                entrega_db = entrega_db.date()
-                            elif isinstance(entrega_db, str):
-                                try:
-                                    entrega_db = datetime.datetime.strptime(entrega_db.split('T')[0].split(' ')[0], '%Y-%m-%d').date()
-                                except:
-                                    entrega_db = None
-
-                            if data_entrega is not None and data_entrega != entrega_db:
-                                entrega_ant_str = entrega_db.strftime('%d/%m/%Y') if entrega_db else "Sem Data"
-                                entrega_nova_str = data_entrega.strftime('%d/%m/%Y')
-                                mudancas.append(f"Data de Entrega: de {entrega_ant_str} para {entrega_nova_str}")
-                                pendencia_existente.dtEntrega = data_entrega
-
-                            saldo_db = pendencia_existente.valorSaldo
-                            if saldo is not None and (saldo_db is None or round(float(saldo), 2) != round(float(saldo_db), 2)):
-                                saldo_ant_str = f"R$ {float(saldo_db):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if saldo_db is not None else "R$ 0,00"
-                                saldo_novo_str = f"R$ {float(saldo):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                                mudancas.append(f"Saldo: de {saldo_ant_str} para {saldo_novo_str}")
-                                pendencia_existente.valorSaldo = saldo
-
-                            val_orig_db = pendencia_existente.valorOriginal
-                            if valor_original is not None and (val_orig_db is None or round(float(valor_original), 2) != round(float(val_orig_db), 2)):
-                                orig_ant_str = f"R$ {float(val_orig_db):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if val_orig_db is not None else "R$ 0,00"
-                                orig_novo_str = f"R$ {float(valor_original):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                                mudancas.append(f"Valor Original: de {orig_ant_str} para {orig_novo_str}")
-                                pendencia_existente.valorOriginal = valor_original
-
-                            if carteira and carteira != pendencia_existente.carteira:
-                                mudancas.append(f"Carteira: de {pendencia_existente.carteira or '-'} para {carteira}")
-                                pendencia_existente.carteira = carteira
-
-                            if tipo_pedido and tipo_pedido != pendencia_existente.tipoPedido:
-                                mudancas.append(f"Tipo Pedido: de {pendencia_existente.tipoPedido or '-'} para {tipo_pedido}")
-                                pendencia_existente.tipoPedido = tipo_pedido
-
-                            portador_novo = _to_int(row.iloc[self.COL_PORTADOR])
-                            if portador_novo is not None and portador_novo != pendencia_existente.portador:
-                                mudancas.append(f"Portador: de {pendencia_existente.portador or '-'} para {portador_novo}")
-                                pendencia_existente.portador = portador_novo
-
-                            nr_ped_novo = _to_int(row.iloc[self.COL_NR_PEDIDO_CLIENTE])
-                            if nr_ped_novo is not None and nr_ped_novo != pendencia_existente.nrPedidoCliente:
-                                mudancas.append(f"Nº Pedido: de {pendencia_existente.nrPedidoCliente or '-'} para {nr_ped_novo}")
-                                pendencia_existente.nrPedidoCliente = nr_ped_novo
-
-                            emissao_nova = _excel_serial_to_date(row.iloc[self.COL_EMISSAO])
-                            emissao_db = pendencia_existente.dtEmissao
-                            if isinstance(emissao_db, datetime.datetime):
-                                emissao_db = emissao_db.date()
-                            if emissao_nova is not None and emissao_nova != emissao_db:
-                                emissao_ant_str = emissao_db.strftime('%d/%m/%Y') if emissao_db else "Sem Data"
-                                emissao_nova_str = emissao_nova.strftime('%d/%m/%Y')
-                                mudancas.append(f"Emissão: de {emissao_ant_str} para {emissao_nova_str}")
-                                pendencia_existente.dtEmissao = emissao_nova
-
-                            if id_cliente is not None and id_cliente != pendencia_existente.idCliente:
-                                pendencia_existente.idCliente = id_cliente
-
-                            if id_matriz is not None and id_matriz != pendencia_existente.idClienteMatriz:
-                                pendencia_existente.idClienteMatriz = id_matriz
-
-                            # Atualiza vencimento, importação e status para encerrado='P' (PRORROGADO)
-                            pendencia_existente.dtVencimento = venc_excel
-                            pendencia_existente.idImportacoes = importacao.idImportacoes
-                            pendencia_existente.encerrado = 'P'
+                    # 1. Verifica vencimento e prorrogação
+                    venc_db = pendencia_existente.dtVencimento
+                    if isinstance(venc_db, datetime.datetime):
+                        venc_db = venc_db.date()
+                    elif isinstance(venc_db, str):
+                        try:
+                            venc_db = datetime.datetime.strptime(venc_db.split('T')[0].split(' ')[0], '%Y-%m-%d').date()
+                        except:
+                            venc_db = None
                             
-                            self.db.flush()
-                            descricao_hist = "Título prorrogado. Alterações: " + "; ".join(mudancas)
+                    venc_excel = vencimento
+                    if isinstance(venc_excel, datetime.datetime):
+                        venc_excel = venc_excel.date()
+
+                    is_prorrogacao = (venc_db is not None and venc_excel is not None and venc_excel > venc_db)
+                    if is_prorrogacao:
+                        data_inicial_str = venc_db.strftime('%d/%m/%Y')
+                        data_nova_str = venc_excel.strftime('%d/%m/%Y')
+                        mudancas.append(f"Vencimento: de {data_inicial_str} para {data_nova_str}")
+                        pendencia_existente.dtVencimento = venc_excel
+                        pendencia_existente.encerrado = 'P'
+                    elif venc_db is not None and venc_excel is not None and venc_excel != venc_db:
+                        data_inicial_str = venc_db.strftime('%d/%m/%Y')
+                        data_nova_str = venc_excel.strftime('%d/%m/%Y')
+                        mudancas.append(f"Vencimento: de {data_inicial_str} para {data_nova_str}")
+                        pendencia_existente.dtVencimento = venc_excel
+
+                    # 2. Verifica Saldo
+                    saldo_db = pendencia_existente.valorSaldo
+                    if saldo is not None and (saldo_db is None or round(float(saldo), 2) != round(float(saldo_db), 2)):
+                        saldo_ant_str = f"R$ {float(saldo_db):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if saldo_db is not None else "R$ 0,00"
+                        saldo_novo_str = f"R$ {float(saldo):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                        mudancas.append(f"Saldo: de {saldo_ant_str} para {saldo_novo_str}")
+                        pendencia_existente.valorSaldo = saldo
+                        mudou_saldo = True
+
+                    # 3. Verifica Carteira (Coluna M)
+                    carteira_ant = pendencia_existente.carteira
+                    if carteira and carteira != carteira_ant:
+                        mudancas.append(f"Carteira: de {carteira_ant or '-'} para {carteira}")
+                        pendencia_existente.carteira = carteira
+                        mudou_carteira = True
+                        # A mudança de carteira reinicia a classificação manual para a view aplicar as novas regras
+                        pendencia_existente.fase = None
+                        pendencia_existente.status = None
+
+                    # 4. Outras atualizações cadastrais
+                    entrega_db = pendencia_existente.dtEntrega
+                    if isinstance(entrega_db, datetime.datetime):
+                        entrega_db = entrega_db.date()
+                    elif isinstance(entrega_db, str):
+                        try:
+                            entrega_db = datetime.datetime.strptime(entrega_db.split('T')[0].split(' ')[0], '%Y-%m-%d').date()
+                        except:
+                            entrega_db = None
+
+                    if data_entrega is not None and data_entrega != entrega_db:
+                        entrega_ant_str = entrega_db.strftime('%d/%m/%Y') if entrega_db else "Sem Data"
+                        entrega_nova_str = data_entrega.strftime('%d/%m/%Y')
+                        mudancas.append(f"Data de Entrega: de {entrega_ant_str} para {entrega_nova_str}")
+                        pendencia_existente.dtEntrega = data_entrega
+
+                    val_orig_db = pendencia_existente.valorOriginal
+                    if valor_original is not None and (val_orig_db is None or round(float(valor_original), 2) != round(float(val_orig_db), 2)):
+                        orig_ant_str = f"R$ {float(val_orig_db):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if val_orig_db is not None else "R$ 0,00"
+                        orig_novo_str = f"R$ {float(valor_original):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                        mudancas.append(f"Valor Original: de {orig_ant_str} para {orig_novo_str}")
+                        pendencia_existente.valorOriginal = valor_original
+
+                    if tipo_pedido and tipo_pedido != pendencia_existente.tipoPedido:
+                        mudancas.append(f"Tipo Pedido: de {pendencia_existente.tipoPedido or '-'} para {tipo_pedido}")
+                        pendencia_existente.tipoPedido = tipo_pedido
+
+                    portador_novo = _to_int(row.iloc[self.COL_PORTADOR])
+                    if portador_novo is not None and portador_novo != pendencia_existente.portador:
+                        mudancas.append(f"Portador: de {pendencia_existente.portador or '-'} para {portador_novo}")
+                        pendencia_existente.portador = portador_novo
+
+                    nr_ped_novo = _to_int(row.iloc[self.COL_NR_PEDIDO_CLIENTE])
+                    if nr_ped_novo is not None and nr_ped_novo != pendencia_existente.nrPedidoCliente:
+                        mudancas.append(f"Nº Pedido: de {pendencia_existente.nrPedidoCliente or '-'} para {nr_ped_novo}")
+                        pendencia_existente.nrPedidoCliente = nr_ped_novo
+
+                    emissao_nova = _excel_serial_to_date(row.iloc[self.COL_EMISSAO])
+                    emissao_db = pendencia_existente.dtEmissao
+                    if isinstance(emissao_db, datetime.datetime):
+                        emissao_db = emissao_db.date()
+                    if emissao_nova is not None and emissao_nova != emissao_db:
+                        emissao_ant_str = emissao_db.strftime('%d/%m/%Y') if emissao_db else "Sem Data"
+                        emissao_nova_str = emissao_nova.strftime('%d/%m/%Y')
+                        mudancas.append(f"Emissão: de {emissao_ant_str} para {emissao_nova_str}")
+                        pendencia_existente.dtEmissao = emissao_nova
+
+                    if id_cliente is not None and id_cliente != pendencia_existente.idCliente:
+                        pendencia_existente.idCliente = id_cliente
+
+                    if id_matriz is not None and id_matriz != pendencia_existente.idClienteMatriz:
+                        pendencia_existente.idClienteMatriz = id_matriz
+
+                    # Se a pendência estava marcada como encerrada por ausência anterior mas voltou na planilha
+                    if not is_prorrogacao and pendencia_existente.encerrado == 'S':
+                        pendencia_existente.encerrado = 'N'
+                        mudancas.append("Status de encerramento reaberto para ativo")
+
+                    # Efetivação e gravação de histórico
+                    if is_prorrogacao:
+                        pendencia_existente.idImportacoes = importacao.idImportacoes
+                        self.db.flush()
+                        descricao_hist = "Título prorrogado. Alterações: " + "; ".join(mudancas)
+                        self._novo_historico(
+                            pendencia_existente.idnfpendencias,
+                            "Título Prorrogado",
+                            descricao_hist,
+                            14 # system
+                        )
+                        self._novo_historico(
+                            pendencia_existente.idnfpendencias,
+                            "Resolução",
+                            "Pendência finalizada devido à prorrogação do título.",
+                            14 # system
+                        )
+                        prorrogadas += 1
+                    elif len(mudancas) > 0:
+                        pendencia_existente.idImportacoes = importacao.idImportacoes
+                        self.db.flush()
+
+                        # Histórico de Saldo se mudou
+                        if mudou_saldo:
                             self._novo_historico(
                                 pendencia_existente.idnfpendencias,
-                                "Título Prorrogado",
-                                descricao_hist,
+                                "Atualização de Saldo",
+                                f"Saldo atualizado de {saldo_ant_str} para {saldo_novo_str} na planilha '{nome_arquivo}'.",
                                 14 # system
                             )
-                            
+
+                        # Histórico de Carteira se mudou
+                        if mudou_carteira:
                             self._novo_historico(
                                 pendencia_existente.idnfpendencias,
-                                "Resolução",
-                                "Pendência finalizada devido à prorrogação do título.",
+                                "Atualização de Carteira",
+                                f"Carteira alterada de {carteira_ant or '-'} para {carteira} na planilha '{nome_arquivo}'.",
                                 14 # system
                             )
-                            
-                            prorrogadas += 1
-                        else:
-                            ignoradas_duplicadas += 1
+
+                        # Outras alterações cadastrais
+                        outras_mudancas = [m for m in mudancas if not m.startswith("Saldo:") and not m.startswith("Carteira:")]
+                        if outras_mudancas:
+                            self._novo_historico(
+                                pendencia_existente.idnfpendencias,
+                                "Atualização Cadastral",
+                                f"Dados atualizados na planilha '{nome_arquivo}': " + "; ".join(outras_mudancas),
+                                14 # system
+                            )
+
+                        # Reclassificação via View após a alteração de carteira ou saldo
+                        if mudou_carteira or mudou_saldo:
+                            vw = self.db.query(VwNfPendenciaFase).filter_by(idnfpendencias=pendencia_existente.idnfpendencias).first()
+                            if vw:
+                                self._novo_historico(
+                                    pendencia_existente.idnfpendencias,
+                                    "Classificação",
+                                    f"Titulo reclassificado como pendência {vw.fase} e status {vw.status}.",
+                                    14 # system
+                                )
+
+                        atualizadas += 1
                     else:
                         ignoradas_duplicadas += 1
                 else:
@@ -387,6 +459,7 @@ class InadimplenciaService:
                     )
                     self.db.add(nf)
                     self.db.flush()
+                    ids_processados_planilha.add(nf.idnfpendencias)
                     self._novo_historico(
                         nf.idnfpendencias,
                         "Pendencia Importada",
@@ -414,6 +487,7 @@ class InadimplenciaService:
                         "total": total_rows,
                         "importadas": importadas,
                         "prorrogadas": prorrogadas,
+                        "atualizadas": atualizadas,
                         "ignoradas_duplicadas": ignoradas_duplicadas
                     }) + "\n"
 
@@ -423,8 +497,7 @@ class InadimplenciaService:
                     (NfPendencia.encerrado == 'N') | (NfPendencia.encerrado == None)
                 ).all()
                 for p_ativa in pendencias_ativas:
-                    chave_ativa = (p_ativa.idUnidade, p_ativa.serie, p_ativa.titulo, p_ativa.parccela)
-                    if chave_ativa not in chaves_presentes_planilha:
+                    if p_ativa.idnfpendencias not in ids_processados_planilha:
                         p_ativa.encerrado = 'S'
                         self.db.flush()
                         self._novo_historico(
@@ -445,6 +518,7 @@ class InadimplenciaService:
                 "totalLinhasComEspecie": total_com_especie,
                 "importadas": importadas,
                 "prorrogadas": prorrogadas,
+                "atualizadas": atualizadas,
                 "baixadas": baixadas,
                 "ignoradasSemCliente": ignoradas_sem_cliente,
                 "ignoradasSemVencimento": ignoradas_sem_vencimento,
@@ -678,7 +752,15 @@ class InadimplenciaService:
         self.db.refresh(historico)
         return self._serializar_historico(historico)
 
-    def _novo_historico(self, id_nf: int, tipo: str, observacao: Optional[str], id_user: Optional[int]) -> HistoricoPendencia:
+    def _novo_historico(
+        self,
+        id_nf: int,
+        tipo: str,
+        observacao: Optional[str],
+        id_user: Optional[int],
+        thread_id: Optional[str] = None,
+        message_id: Optional[str] = None,
+    ) -> HistoricoPendencia:
         """Cria o registro e adiciona à sessão sem commitar - quem chama decide quando
         commitar (normalmente junto com a alteração principal, na mesma transação)."""
         historico = HistoricoPendencia(
@@ -686,6 +768,8 @@ class InadimplenciaService:
             tipo=tipo,
             observacao=(observacao or "")[:500],
             idUserCreated=id_user,
+            thread_id=thread_id,
+            message_id=message_id,
         )
         self.db.add(historico)
         return historico
@@ -698,7 +782,307 @@ class InadimplenciaService:
             "observacao": h.observacao,
             "createdAt": h.createdAt.isoformat() if h.createdAt else None,
             "autor": h.usuario.name if h.usuario else None,
+            "thread_id": h.thread_id,
+            "message_id": h.message_id,
         }
+
+    def enviar_email_pendencia(
+        self,
+        id_nf: int,
+        destinatarios: str,
+        assunto: str,
+        corpo: str,
+        copia: Optional[str] = None,
+        anexos: Optional[list] = None,
+        user: Optional[User] = None,
+    ) -> dict:
+        """
+        Envia e-mail de cobrança/aviso da pendência via Gmail API (OAuth 2.0)
+        e registra o envio no histórico da pendência.
+        """
+        from app.services.google_auth_service import GoogleAuthService
+        from app.services.gmail_service import GmailService
+
+        nf = self.db.query(NfPendencia).filter(NfPendencia.idnfpendencias == id_nf).first()
+        if not nf:
+            raise LookupError(f"Pendência {id_nf} não encontrada.")
+
+        if not user:
+            raise ValueError("Usuário não identificado.")
+
+        # 1. Obter o access_token válido junto ao Google OAuth
+        access_token = GoogleAuthService.obter_access_token_valido(user, self.db)
+
+        # 2. Enviar a mensagem utilizando o GmailService
+        resultado_envio = GmailService.enviar_email(
+            access_token=access_token,
+            destinatarios=destinatarios,
+            assunto=assunto,
+            corpo_html=corpo,
+            copia=copia,
+            anexos=anexos,
+            remetente_email=user.email if user else None,
+        )
+
+        # 3. Registrar o envio no histórico padrão
+        obs = f"E-mail enviado via Gmail para: {destinatarios}. Assunto: {assunto}."
+        if copia:
+            obs += f" Cc: {copia}."
+        if anexos:
+            nomes_anexos = ", ".join([a.filename for a in anexos if getattr(a, "filename", None)])
+            if nomes_anexos:
+                obs += f" Anexos: {nomes_anexos}."
+
+        historico = self._novo_historico(
+            id_nf=id_nf,
+            tipo="Email Enviado",
+            observacao=obs[:500],
+            id_user=user.iduser,
+            thread_id=resultado_envio.get("threadId"),
+            message_id=resultado_envio.get("messageId"),
+        )
+        
+        # 4. Gravar a mensagem na tabela dedicada de mensagens
+        lista_anexos = [{"nome": a.filename, "tamanho": 0} for a in anexos] if anexos else []
+        import json
+        nova_msg = PendenciaMensagem(
+            idNfPendencias=id_nf,
+            mensagem_id=resultado_envio.get("messageId"),
+            thread_id=resultado_envio.get("threadId"),
+            de=user.email if user else "Você",
+            para=destinatarios,
+            copia=copia,
+            assunto=assunto,
+            conteudo=corpo,
+            anexos=lista_anexos,
+            idUserCreated=user.iduser,
+            minha_mensagem="S"
+        )
+        self.db.add(nova_msg)
+        self.db.commit()
+        self.db.refresh(historico)
+
+        return {
+            "sucesso": True,
+            "messageId": resultado_envio.get("messageId"),
+            "threadId": resultado_envio.get("threadId"),
+        }
+
+    def _sincronizar_respostas(self, id_nf: int, user: "User"):
+        """Busca mensagens novas das threads vinculadas e salva na base de dados."""
+        import base64
+        import httpx
+        from app.services.google_auth_service import GoogleAuthService
+
+        if not user or not user.refresh_token_google:
+            return
+
+        threads = self.db.query(PendenciaMensagem.thread_id).filter(
+            PendenciaMensagem.idNfPendencias == id_nf,
+            PendenciaMensagem.thread_id.isnot(None)
+        ).distinct().all()
+        
+        thread_ids = [t[0] for t in threads]
+        if not thread_ids:
+            return
+            
+        try:
+            access_token = GoogleAuthService.obter_access_token_valido(user, self.db)
+        except Exception:
+            return
+            
+        headers_api = {"Authorization": f"Bearer {access_token}"}
+        
+        # Buscar message_ids já salvos no banco para não duplicar
+        msgs_existentes = self.db.query(PendenciaMensagem.mensagem_id).filter(
+            PendenciaMensagem.idNfPendencias == id_nf,
+            PendenciaMensagem.mensagem_id.isnot(None)
+        ).all()
+        existentes_set = {m[0] for m in msgs_existentes}
+        
+        def _get_header(headers_list: list, name: str) -> str:
+            for h in headers_list:
+                if h.get("name", "").lower() == name.lower():
+                    return h.get("value", "")
+            return ""
+
+        def _decodificar_base64(data: str) -> str:
+            try:
+                return base64.urlsafe_b64decode(data + "==").decode("utf-8", errors="replace")
+            except Exception:
+                return ""
+
+        def _extrair_corpo(payload: dict) -> tuple:
+            mime = payload.get("mimeType", "")
+            body_data = payload.get("body", {}).get("data", "")
+            if mime == "text/html" and body_data:
+                return _decodificar_base64(body_data), ""
+            if mime == "text/plain" and body_data:
+                return "", _decodificar_base64(body_data)
+            html_acc, plain_acc = "", ""
+            for part in payload.get("parts", []):
+                h, p = _extrair_corpo(part)
+                if h: html_acc = h
+                if p: plain_acc = p
+            return html_acc, plain_acc
+
+        def _extrair_anexos(payload: dict) -> list:
+            result = []
+            disposition = ""
+            for h in payload.get("headers", []):
+                if h.get("name", "").lower() == "content-disposition":
+                    disposition = h.get("value", "")
+            filename = payload.get("filename", "")
+            if filename and "attachment" in disposition.lower():
+                result.append({"nome": filename, "tamanho": payload.get("body", {}).get("size", 0)})
+            for part in payload.get("parts", []):
+                result.extend(_extrair_anexos(part))
+            return result
+
+        from datetime import datetime
+        novas_mensagens = []
+        
+        with httpx.Client(timeout=httpx.Timeout(connect=10.0, read=30.0, write=30.0, pool=5.0)) as client:
+            for thread_id in thread_ids:
+                try:
+                    res = client.get(
+                        f"https://gmail.googleapis.com/gmail/v1/users/me/threads/{thread_id}",
+                        params={"format": "full"},
+                        headers=headers_api,
+                    )
+                    if res.status_code != 200:
+                        continue
+                    
+                    thread_data = res.json()
+                    for msg in thread_data.get("messages", []):
+                        msg_id = msg.get("id")
+                        if not msg_id or msg_id in existentes_set:
+                            continue
+                            
+                        payload = msg.get("payload", {})
+                        hdrs = payload.get("headers", [])
+                        
+                        de = _get_header(hdrs, "From")
+                        para = _get_header(hdrs, "To")
+                        assunto = _get_header(hdrs, "Subject")
+                        
+                        corpo_html, corpo_texto = _extrair_corpo(payload)
+                        anexos = _extrair_anexos(payload)
+                        
+                        minha_mensagem = "S" if (user.email and user.email.lower() in de.lower()) else "N"
+                        internal_date = int(msg.get("internalDate", 0)) / 1000
+                        
+                        nova_msg = PendenciaMensagem(
+                            idNfPendencias=id_nf,
+                            mensagem_id=msg_id,
+                            thread_id=thread_id,
+                            de=de,
+                            para=para,
+                            copia="",
+                            assunto=assunto,
+                            conteudo=corpo_html or corpo_texto.replace("\n", "<br>"),
+                            anexos=anexos,
+                            dataEnvio=datetime.fromtimestamp(internal_date),
+                            minha_mensagem=minha_mensagem
+                        )
+                        novas_mensagens.append(nova_msg)
+                except Exception as e:
+                    logger.warning("Erro ao sincronizar thread %s: %s", thread_id, e)
+                    continue
+                    
+        if novas_mensagens:
+            self.db.add_all(novas_mensagens)
+            for m in novas_mensagens:
+                if m.minha_mensagem == "N":
+                    historico = self._novo_historico(
+                        id_nf=id_nf,
+                        tipo="Email Recebido",
+                        observacao=f"Resposta recebida de: {m.de}. Assunto: {m.assunto}",
+                        id_user=user.iduser,
+                        thread_id=m.thread_id,
+                        message_id=m.mensagem_id,
+                    )
+            self.db.commit()
+
+    def listar_mensagens_thread(self, id_nf: int, user: "User") -> list:
+        """
+        Retorna as mensagens gravadas na base.
+        Antes de ler, faz um sync com a Gmail API para buscar respostas do cliente.
+        """
+        # Sincroniza com Gmail
+        self._sincronizar_respostas(id_nf, user)
+        
+        # Busca todas as mensagens da tabela nova
+        mensagens_db = (
+            self.db.query(PendenciaMensagem)
+            .filter(PendenciaMensagem.idNfPendencias == id_nf)
+            .order_by(PendenciaMensagem.dataEnvio.asc())
+            .all()
+        )
+        
+        mensagens = []
+        for m in mensagens_db:
+            ts = m.dataEnvio.timestamp() if m.dataEnvio else 0.0
+            mensagens.append({
+                "id": m.mensagem_id or f"db-{m.idmensagem}",
+                "thread_id": m.thread_id,
+                "de": m.de,
+                "para": m.para,
+                "assunto": m.assunto,
+                "data": m.dataEnvio.strftime("%a, %d %b %Y %H:%M:%S +0000") if m.dataEnvio else "",
+                "internal_date": ts,
+                "corpo_html": m.conteudo,
+                "corpo_texto": "",
+                "anexos": m.anexos or [],
+                "minha_mensagem": m.minha_mensagem == "S",
+            })
+
+        # (Migração dos legados está sendo tratada em script de conversão isolado)
+        # 4. Fallback para e-mails legados (temporário caso a conversão não rode de imediato)
+        registros_legados = (
+            self.db.query(HistoricoPendencia)
+            .filter(
+                HistoricoPendencia.idNfPendencias == id_nf,
+                HistoricoPendencia.tipo == "Email Enviado",
+            )
+            .all()
+        )
+        # Filtra os que não tem correspondente em mensagens_db por data aproximada
+        import re as _re
+        for r in registros_legados:
+            ts_leg = r.createdAt.timestamp() if r.createdAt else 0.0
+            ja_tem = any(abs(m["internal_date"] - ts_leg) < 60 for m in mensagens)
+            if ja_tem: continue
+
+            obs = r.observacao or ""
+            assunto_match = _re.search(r"Assunto:\s*(.*?)(?:\.\s*Cc:|\.\s*Anexos:|\.\s*$|$)", obs, _re.IGNORECASE)
+            assunto_leg = assunto_match.group(1).strip() if assunto_match else "E-mail enviado"
+            para_match = _re.search(r"para:\s*(.*?)(?:\.\s*Assunto:|$)", obs, _re.IGNORECASE)
+            para_leg = para_match.group(1).strip() if para_match else ""
+            cc_match = _re.search(r"Cc:\s*(.*?)(?:\.\s*Anexos:|\.\s*$|$)", obs, _re.IGNORECASE)
+            cc_leg = cc_match.group(1).strip() if cc_match else ""
+            
+            cabecalho_html = ""
+            if para_leg: cabecalho_html += f"<strong>Para:</strong> {para_leg}"
+            if cc_leg: cabecalho_html += f" | <strong>Cc:</strong> {cc_leg}"
+            if cabecalho_html: cabecalho_html = f'<div style="font-size:0.75rem;opacity:0.8;margin-bottom:0.35rem">{cabecalho_html}</div>'
+
+            mensagens.append({
+                "id": f"legacy-{r.idhistoricopendencia}",
+                "thread_id": None,
+                "de": r.usuario.name if r.usuario else (user.email or "Você"),
+                "para": para_leg,
+                "assunto": assunto_leg,
+                "data": r.createdAt.strftime("%a, %d %b %Y %H:%M:%S +0000") if r.createdAt else "",
+                "internal_date": ts_leg,
+                "corpo_html": f"{cabecalho_html}<div><em>(Conteúdo do e-mail não disponível)</em></div>",
+                "corpo_texto": "",
+                "anexos": [],
+                "minha_mensagem": True,
+            })
+
+        mensagens.sort(key=lambda m: m["internal_date"])
+        return mensagens
 
     def _obter_ou_criar_cliente(self, codigo: int, nome: str) -> Tuple[int, bool]:
         if codigo in self._cache_clientes:
@@ -748,12 +1132,47 @@ class InadimplenciaService:
         serie: Optional[int],
         titulo: Optional[str],
         parcela: Optional[float],
+        especie: Optional[str] = None,
+        carteira: Optional[str] = None,
+        ids_ja_processados: Optional[set[int]] = None,
     ) -> Optional[NfPendencia]:
         if titulo is None:
             return None
-        return self.db.query(NfPendencia).filter(
+
+        filtros = [
             NfPendencia.idUnidade == id_unidade,
             NfPendencia.serie == serie,
             NfPendencia.titulo == titulo,
-            NfPendencia.parccela == parcela,
-        ).first()
+        ]
+        if parcela is not None:
+            filtros.append(NfPendencia.parccela == parcela)
+        else:
+            filtros.append(NfPendencia.parccela.is_(None))
+
+        base_query = self.db.query(NfPendencia).filter(*filtros)
+
+        # Filtro estrito por espécie
+        if especie:
+            query_esp = base_query.filter(NfPendencia.especie == especie)
+        else:
+            query_esp = base_query.filter((NfPendencia.especie.is_(None)) | (NfPendencia.especie == ''))
+
+        # Tentativa 1: Match exato de carteira
+        if carteira:
+            query_exata = query_esp.filter(NfPendencia.carteira == carteira)
+        else:
+            query_exata = query_esp.filter((NfPendencia.carteira.is_(None)) | (NfPendencia.carteira == ''))
+
+        candidatos_exatos = query_exata.all()
+        for cand in candidatos_exatos:
+            if ids_ja_processados is None or cand.idnfpendencias not in ids_ja_processados:
+                return cand
+
+        # Tentativa 2: Mesma espécie mas carteira mudou (para permitir a atualização de carteira)
+        # Só considera registros que ainda não foram vinculados a outra linha desta importação
+        candidatos_esp = query_esp.all()
+        for cand in candidatos_esp:
+            if ids_ja_processados is None or cand.idnfpendencias not in ids_ja_processados:
+                return cand
+
+        return None

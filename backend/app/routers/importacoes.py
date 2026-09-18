@@ -17,6 +17,9 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
 from app.routers.plano_saude_ia import router as plano_saude_ia_router
+import logging
+
+logger = logging.getLogger("santamaria")
 
 router = APIRouter()
 
@@ -167,6 +170,60 @@ def criar_historico_pendencia(
     except LookupError as le:
         raise HTTPException(status_code=404, detail=str(le))
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/inadimplencia/pendencias/{id_nf}/enviar-email")
+def enviar_email_pendencia(
+    id_nf: int,
+    destinatarios: str = Form(..., description="E-mails destinatários separados por vírgula"),
+    assunto: str = Form(..., description="Assunto do e-mail"),
+    corpo: str = Form(..., description="Corpo do e-mail formatado em HTML"),
+    copia: Optional[str] = Form(None, description="E-mails em cópia"),
+    anexos: List[UploadFile] = File(default=[]),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Envia um e-mail de cobrança/aviso referente a uma pendência utilizando a conta Gmail
+    conectada do usuário autenticado e registra no histórico.
+    """
+    try:
+        return InadimplenciaService(db).enviar_email_pendencia(
+            id_nf=id_nf,
+            destinatarios=destinatarios,
+            assunto=assunto,
+            corpo=corpo,
+            copia=copia,
+            anexos=anexos,
+            user=current_user,
+        )
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except LookupError as le:
+        raise HTTPException(status_code=404, detail=str(le))
+    except Exception as e:
+        logger.error("Erro ao enviar email da pendência %s: %s", id_nf, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/inadimplencia/pendencias/{id_nf}/mensagens")
+def listar_mensagens_pendencia(
+    id_nf: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retorna a conversa completa de e-mails associada à pendência,
+    consultando os threadIds gravados e buscando as mensagens na Gmail API.
+    Inclui tanto os e-mails enviados quanto as respostas dos clientes.
+    """
+    try:
+        return InadimplenciaService(db).listar_mensagens_thread(id_nf=id_nf, user=current_user)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Erro ao listar mensagens da pendência %s: %s", id_nf, e)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/inadimplencia/importar-pendencias")
@@ -4213,6 +4270,304 @@ async def conciliar_amazon(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/amazon/extrair")
+async def extrair_amazon(
+    file: Optional[UploadFile] = File(None),
+    empresa_file: Optional[UploadFile] = File(None),
+    acr_file: UploadFile = File(...),
+    idUserInc: Optional[int] = Form(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    actual_file = None
+    if hasattr(empresa_file, 'filename') and empresa_file.filename:
+        actual_file = empresa_file
+    elif hasattr(file, 'filename') and file.filename:
+        actual_file = file
+
+    if not actual_file or not getattr(actual_file, 'filename', None):
+        raise HTTPException(status_code=400, detail="Arquivo de pagamento da Amazon é obrigatório.")
+    if not acr_file or not getattr(acr_file, 'filename', None):
+        raise HTTPException(status_code=400, detail="Arquivo ACR é obrigatório.")
+
+    try:
+        content_bytes = await actual_file.read()
+        import io
+        import openpyxl
+        from openpyxl.styles import Font, Alignment
+        import pandas as pd
+
+        def parse_amount(val):
+            if val is None:
+                return 0.0
+            if isinstance(val, (int, float)):
+                return float(val)
+            s = str(val).replace('R$', '').strip()
+            if not s:
+                return 0.0
+            if '.' in s and ',' in s:
+                if s.find('.') < s.find(','):
+                    s = s.replace('.', '').replace(',', '.')
+                else:
+                    s = s.replace(',', '')
+            elif ',' in s:
+                s = s.replace(',', '.')
+            try:
+                return float(s)
+            except ValueError:
+                return 0.0
+
+        try:
+            wb_in = openpyxl.load_workbook(io.BytesIO(content_bytes), data_only=True)
+            ws_in = wb_in['Pagamentos'] if 'Pagamentos' in wb_in.sheetnames else wb_in.active
+            rows_data = list(ws_in.iter_rows(values_only=True))
+        except Exception:
+            try:
+                df_in = pd.read_excel(io.BytesIO(content_bytes), header=None)
+                rows_data = [list(r) for r in df_in.itertuples(index=False)]
+            except Exception:
+                text_content = content_bytes.decode('utf-8', errors='ignore')
+                sep = ';' if ';' in text_content else ','
+                df_in = pd.read_csv(io.StringIO(text_content), sep=sep, header=None)
+                rows_data = [list(r) for r in df_in.itertuples(index=False)]
+
+        col_fatura = 1   # Coluna B padrão (0-based)
+        col_desc = 3     # Coluna D padrão (0-based)
+        col_montante = 4 # Coluna E padrão (0-based)
+        header_row_idx = None
+
+        for r_idx, row in enumerate(rows_data, start=1):
+            non_empty = [c for c in row if c is not None and str(c).strip()]
+            if len(non_empty) < 4:
+                continue
+            row_lower = [str(c).strip().lower() for c in row if c is not None]
+            if any('descri' in c for c in row_lower) and any('fatura' in c for c in row_lower):
+                header_row_idx = r_idx
+                for c_idx, cell_val in enumerate(row):
+                    if cell_val is None:
+                        continue
+                    s_clean = str(cell_val).strip().lower().replace('ú', 'u').replace('ç', 'c').replace('ã', 'a').replace('í', 'i')
+                    if 'numero da fatura' in s_clean or (('fatura' in s_clean or 'documento' in s_clean) and 'numero' in s_clean and 'pagamento' not in s_clean):
+                        col_fatura = c_idx
+                    elif 'descri' in s_clean:
+                        col_desc = c_idx
+                    elif 'montante da fatura' in s_clean or s_clean == 'montante' or s_clean == 'valor':
+                        col_montante = c_idx
+                break
+
+        notas_fiscais = []
+        abatimentos = []
+        devolucoes = []
+
+        for r_idx, row in enumerate(rows_data, start=1):
+            if header_row_idx and r_idx <= header_row_idx:
+                continue
+            if len(row) <= max(col_fatura, col_montante):
+                continue
+
+            raw_fatura = row[col_fatura]
+            raw_desc = row[col_desc] if col_desc < len(row) else ''
+            raw_val = row[col_montante]
+
+            if raw_fatura is None and raw_val is None:
+                continue
+
+            val_float = parse_amount(raw_val)
+            fatura_str = str(raw_fatura or '').strip()
+            desc_str = str(raw_desc or '').strip()
+
+            digits = ''.join(c for c in fatura_str if c.isdigit())
+
+            # 1. Código de barras da nota (44 dígitos ou chave NFe >= 34 dígitos)
+            if len(digits) >= 34:
+                # Posições 25 a 33 da chave NFe (0-indexed: digits[25:34])
+                nf_part = digits[25:34]
+                try:
+                    formatted_nf = str(int(nf_part)).zfill(7)
+                except ValueError:
+                    formatted_nf = nf_part.zfill(7)
+
+                notas_fiscais.append((formatted_nf, val_float))
+            elif val_float > 0 and 0 < len(digits) <= 9 and not any(k in fatura_str.lower() for k in ('-', 'inv', 'allowance', 'co-op', 'coop', 'dfp')):
+                # Se for número de nota direto positivo
+                formatted_nf = str(int(digits)).zfill(7)
+                notas_fiscais.append((formatted_nf, val_float))
+            else:
+                # 2. Abatimento de acordo / Descontos de acordo (sem código de barra ou valor negativo)
+                label = desc_str if desc_str else fatura_str
+                if fatura_str and desc_str and fatura_str not in desc_str:
+                    label = f"{fatura_str} - {desc_str}"
+
+                # Se na descrição contiver 'DEV' ou 'DEVOLU', classifica como Devolução, senão Abatimento
+                if 'DEV' in label.upper() or 'DEVOLU' in label.upper():
+                    devolucoes.append((label, val_float))
+                else:
+                    abatimentos.append((label, val_float))
+
+        if not notas_fiscais and not abatimentos and not devolucoes:
+            raise HTTPException(
+                status_code=400,
+                detail="Nenhum dado de Nota Fiscal ou Abatimento correspondente ao padrão Amazon foi encontrado no arquivo."
+            )
+
+        wb_out = openpyxl.Workbook()
+        ws_out = wb_out.active
+        ws_out.title = "Composição Amazon"
+        ws_out.views.sheetView[0].showGridLines = True
+
+        # Layout padrão idêntico ao Sendas / Adição:
+        # Col A: Nota fiscal, Col B: Valor Total
+        # Col D: Valor Total, Col E: Devolução
+        # Col I: Abatimento, Col J: Valor Total
+        # Col L: Soma Total
+        ws_out.cell(row=1, column=1, value="Nota fiscal")
+        ws_out.cell(row=1, column=2, value="Valor Total")
+        ws_out.cell(row=1, column=4, value="Valor Total")
+        ws_out.cell(row=1, column=5, value="Devolução")
+        ws_out.cell(row=1, column=9, value="Abatimento")
+        ws_out.cell(row=1, column=10, value="Valor Total")
+        ws_out.cell(row=1, column=12, value="Soma Total")
+
+        max_rows = max(len(notas_fiscais), len(devolucoes), len(abatimentos))
+
+        for r_idx in range(max_rows):
+            row_num = r_idx + 2
+            # 1. Nota Fiscal (Col A, B)
+            if r_idx < len(notas_fiscais):
+                nf_code, nf_val = notas_fiscais[r_idx]
+                ws_out.cell(row=row_num, column=1, value=nf_code)
+                ws_out.cell(row=row_num, column=2, value=nf_val)
+
+            # 2. Devolução (Col E, D)
+            if r_idx < len(devolucoes):
+                dev_code, dev_val = devolucoes[r_idx]
+                ws_out.cell(row=row_num, column=5, value=dev_code)
+                ws_out.cell(row=row_num, column=4, value=dev_val)
+
+            # 3. Abatimento (Col I, J)
+            if r_idx < len(abatimentos):
+                ab_code, ab_val = abatimentos[r_idx]
+                ws_out.cell(row=row_num, column=9, value=ab_code)
+                ws_out.cell(row=row_num, column=10, value=ab_val)
+
+        # Soma total na Linha 2 da Coluna L
+        soma_nf = sum(v for _, v in notas_fiscais)
+        soma_dev = sum(v for _, v in devolucoes)
+        soma_abat = sum(v for _, v in abatimentos)
+        soma_total = soma_nf + soma_dev + soma_abat
+
+        ws_out.cell(row=2, column=12, value=soma_total)
+
+        # Formatação
+        font_header = Font(name='Calibri', size=11, bold=True)
+        font_body = Font(name='Calibri', size=11, bold=False)
+        align_center = Alignment(horizontal='center', vertical='center')
+        align_right = Alignment(horizontal='right', vertical='center')
+        align_left = Alignment(horizontal='left', vertical='center')
+        accounting_format = '_("R$"* #,##0.00_);_("R$"* (#,##0.00);_("R$"* "-"_);_(@_)'
+
+        # Formatar Cabeçalhos
+        active_cols = [1, 2, 4, 5, 9, 10, 12]
+        for col_idx in active_cols:
+            cell = ws_out.cell(row=1, column=col_idx)
+            cell.font = font_header
+            if col_idx in [1, 5, 9]:
+                cell.alignment = align_left
+            elif col_idx in [2, 4, 10, 12]:
+                cell.alignment = align_right
+
+        # Formatar Corpo
+        for r_idx in range(2, max_rows + 2):
+            # Nota Fiscal (Col 1)
+            cell_nf = ws_out.cell(row=r_idx, column=1)
+            cell_nf.font = font_body
+            cell_nf.number_format = '@'
+            cell_nf.alignment = align_left
+
+            # NF Valor (Col 2)
+            c_nf_val = ws_out.cell(row=r_idx, column=2)
+            c_nf_val.font = font_body
+            if c_nf_val.value is not None:
+                c_nf_val.number_format = accounting_format
+                c_nf_val.alignment = align_right
+
+            # Devolução Valor (Col 4)
+            c_dev_val = ws_out.cell(row=r_idx, column=4)
+            c_dev_val.font = font_body
+            if c_dev_val.value is not None:
+                c_dev_val.number_format = accounting_format
+                c_dev_val.alignment = align_right
+
+            # Devolução Código/Descrição (Col 5)
+            cell_dev = ws_out.cell(row=r_idx, column=5)
+            cell_dev.font = font_body
+            cell_dev.number_format = '@'
+            cell_dev.alignment = align_left
+
+            # Abatimento Código/Descrição (Col 9)
+            cell_ab = ws_out.cell(row=r_idx, column=9)
+            cell_ab.font = font_body
+            cell_ab.number_format = '@'
+            cell_ab.alignment = align_left
+
+            # Abatimento Valor (Col 10)
+            c_ab_val = ws_out.cell(row=r_idx, column=10)
+            c_ab_val.font = font_body
+            if c_ab_val.value is not None:
+                c_ab_val.number_format = accounting_format
+                c_ab_val.alignment = align_right
+
+        # Formatar Soma total (Col 12, Linha 2)
+        c_soma = ws_out.cell(row=2, column=12)
+        c_soma.font = font_body
+        c_soma.number_format = accounting_format
+        c_soma.alignment = align_right
+
+        # Larguras das colunas
+        ws_out.column_dimensions['A'].width = 16
+        ws_out.column_dimensions['B'].width = 16
+        ws_out.column_dimensions['C'].width = 5
+        ws_out.column_dimensions['D'].width = 16
+        ws_out.column_dimensions['E'].width = 45
+        ws_out.column_dimensions['F'].width = 5
+        ws_out.column_dimensions['G'].width = 5
+        ws_out.column_dimensions['H'].width = 5
+        ws_out.column_dimensions['I'].width = 45
+        ws_out.column_dimensions['J'].width = 16
+        ws_out.column_dimensions['K'].width = 5
+        ws_out.column_dimensions['L'].width = 20
+
+        # Aba 2: Conciliação com ACR
+        all_items = [{"Nota Fiscal": nf[0], "Parcela": "01", "Valor Liquido": nf[1]} for nf in notas_fiscais]
+        await conciliar_composicao_ws(wb_out, acr_file, all_items, font_header, font_body, align_center, align_left, align_right)
+
+        output = io.BytesIO()
+        wb_out.save(output)
+        output.seek(0)
+
+        filename = actual_file.filename.rsplit('.', 1)[0] + "_extraido.xlsx"
+
+        ImportacaoService(db).registrar_importacao(
+            filename, "xlsx", "Composição - Amazon", id_user_inc=current_user.iduser
+        )
+
+        headers_response = {
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Access-Control-Expose-Headers': 'Content-Disposition'
+        }
+
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers_response
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 # =========================================================================
 # ROTAS: ADIÇÃO E SONDA
 # =========================================================================
@@ -4507,7 +4862,8 @@ async def extrair_adicao(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/sonda/extrair")
-async def extrair_sonda(
+@router.post("/atakarejo/extrair")
+async def extrair_atakarejo(
     empresa_file: UploadFile = File(...),
     acr_file: UploadFile = File(...),
     idUserInc: Optional[int] = Form(None),
@@ -4516,7 +4872,7 @@ async def extrair_sonda(
 ):
     raise HTTPException(
         status_code=400,
-        detail="Aguardando envio dos critérios de extração da empresa Sonda para configuração das regras."
+        detail="Aguardando envio dos critérios de extração da empresa Atakarejo para configuração das regras."
     )
 
 @router.post("/zeferino/extrair")
@@ -4960,17 +5316,328 @@ async def conciliar_adicao(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/sonda/conciliar")
-async def conciliar_sonda(
-    empresa_file: UploadFile = File(...),
+@router.post("/atakarejo/conciliar")
+async def conciliar_atakarejo(
+    empresa_file: Optional[UploadFile] = File(None),
+    file: Optional[UploadFile] = File(None),
     acr_file: UploadFile = File(...),
     idUserInc: Optional[int] = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    raise HTTPException(
-        status_code=400,
-        detail="Aguardando envio dos critérios de prorrogação da empresa Sonda para configuração das regras."
-    )
+    actual_file = None
+    if hasattr(empresa_file, 'filename') and empresa_file.filename:
+        actual_file = empresa_file
+    elif hasattr(file, 'filename') and file.filename:
+        actual_file = file
+
+    if not actual_file or not getattr(actual_file, 'filename', None):
+        raise HTTPException(status_code=400, detail="Arquivo da empresa Atakarejo é obrigatório.")
+    if not acr_file or not getattr(acr_file, 'filename', None):
+        raise HTTPException(status_code=400, detail="Arquivo ACR é obrigatório.")
+
+    try:
+        import io
+        import pandas as pd
+        import openpyxl
+        from openpyxl.styles import Font, Alignment, PatternFill
+        import datetime
+
+        # 1. Parse Atakarejo File
+        content_bytes = await actual_file.read()
+        try:
+            wb_in = openpyxl.load_workbook(io.BytesIO(content_bytes), data_only=True)
+            sheet_name = None
+            for s in wb_in.sheetnames:
+                if 'relatorio' in s.lower() or 'nota' in s.lower():
+                    sheet_name = s
+                    break
+            ws_in = wb_in[sheet_name] if sheet_name else wb_in.active
+            rows_data = list(ws_in.iter_rows(values_only=True))
+        except Exception:
+            try:
+                df_in = pd.read_excel(io.BytesIO(content_bytes), header=None)
+                rows_data = [list(r) for r in df_in.itertuples(index=False)]
+            except Exception:
+                text_content = content_bytes.decode('utf-8', errors='ignore')
+                sep = ';' if ';' in text_content else ','
+                df_in = pd.read_csv(io.StringIO(text_content), sep=sep, header=None)
+                rows_data = [list(r) for r in df_in.itertuples(index=False)]
+
+        def parse_date(date_val):
+            if not date_val:
+                return None
+            if isinstance(date_val, datetime.datetime):
+                return date_val.date()
+            if isinstance(date_val, datetime.date):
+                return date_val
+            date_str = str(date_val).strip()
+            if hasattr(pd, 'Timestamp') and isinstance(date_val, pd.Timestamp):
+                return date_val.date()
+            for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%d/%m/%y', '%Y/%m/%d %H:%M:%S', '%d/%m/%Y %H:%M:%S'):
+                try:
+                    return datetime.datetime.strptime(date_str.split()[0] if ' ' in date_str else date_str, fmt).date()
+                except ValueError:
+                    continue
+            return None
+
+        def format_date_to_br(d):
+            if isinstance(d, (datetime.date, datetime.datetime)):
+                return d.strftime('%d/%m/%Y')
+            return str(d) if d else ""
+
+        # Colunas padrão conforme regra: Col A = Tipo (0), Col L = Nº NF (11), Col N = Data Vencimento (13)
+        col_tipo_idx = 0
+        col_nf_idx = 11
+        col_venc_idx = 13
+        header_row_idx = 0
+
+        for r_idx, row in enumerate(rows_data[:5]):
+            if not row:
+                continue
+            row_clean = [str(c).strip().lower().replace('ã', 'a').replace('ç', 'c').replace('ú', 'u') for c in row if c is not None]
+            if any('tipo da nota' in c for c in row_clean) and any('nf' in c for c in row_clean):
+                header_row_idx = r_idx
+                for c_idx, cell_val in enumerate(row):
+                    if cell_val is None:
+                        continue
+                    s = str(cell_val).strip().lower().replace('ã', 'a').replace('ç', 'c').replace('ú', 'u')
+                    if 'tipo da nota' in s:
+                        col_tipo_idx = c_idx
+                    elif ('nf' in s and 'descri' not in s and 'abatimento' not in s) or s in ('n° nf', 'nº nf', 'no nf', 'numero nf'):
+                        col_nf_idx = c_idx
+                    elif 'data vencimento' in s and 'original' not in s:
+                        col_venc_idx = c_idx
+                break
+
+        invoices = []
+        for r_idx, row in enumerate(rows_data):
+            if header_row_idx is not None and r_idx <= header_row_idx:
+                continue
+            if len(row) <= max(col_tipo_idx, col_nf_idx, col_venc_idx):
+                continue
+
+            val_tipo = row[col_tipo_idx]
+            val_nf = row[col_nf_idx]
+            val_venc = row[col_venc_idx]
+
+            if val_tipo is None or val_nf is None:
+                continue
+
+            tipo_clean = str(val_tipo).strip().lower().replace('ã', 'a').replace('ç', 'c')
+            if 'antecipa' not in tipo_clean:
+                continue
+
+            nf_raw = str(val_nf).strip().split('.')[0]
+            digits = ''.join(c for c in nf_raw if c.isdigit())
+            if not digits:
+                continue
+
+            formatted_nf = str(int(digits)).zfill(7)
+            d_parsed = parse_date(val_venc)
+
+            invoices.append({
+                'raw_nf': val_nf,
+                'nf': formatted_nf,
+                'vencimento': d_parsed or val_venc
+            })
+
+        if not invoices:
+            raise HTTPException(
+                status_code=400,
+                detail="Nenhuma nota fiscal com tipo 'Antecipação' foi encontrada no arquivo do Atakarejo."
+            )
+
+        # 2. Parse ACR File
+        acr_bytes = await acr_file.read()
+        try:
+            df_acr = pd.read_excel(io.BytesIO(acr_bytes), header=None)
+        except Exception:
+            acr_text = acr_bytes.decode('utf-8', errors='ignore')
+            sep = ';' if ';' in acr_text else ','
+            df_acr = pd.read_csv(io.StringIO(acr_text), sep=sep, header=None)
+
+        col_acr_titulo = 3  # Coluna D padrão (0-based)
+        col_acr_venc = 15   # Coluna P padrão (0-based)
+
+        for idx, row in df_acr.head(15).iterrows():
+            row_strs = [str(x).strip().lower() for x in row.values if not pd.isna(x)]
+            if any('titulo' in x or 'título' in x for x in row_strs):
+                for c_idx, val in enumerate(row.values):
+                    if pd.isna(val):
+                        continue
+                    v_str = str(val).strip().lower()
+                    if 'titulo' in v_str or 'título' in v_str:
+                        col_acr_titulo = c_idx
+                    elif 'vencimento' in v_str or 'vcto' in v_str:
+                        col_acr_venc = c_idx
+                break
+
+        acr_data_by_int = {}
+        for idx, row in df_acr.iterrows():
+            if len(row) <= max(col_acr_titulo, col_acr_venc):
+                continue
+
+            val_titulo_raw = row[col_acr_titulo]
+            if pd.isna(val_titulo_raw):
+                continue
+
+            val_titulo_str = str(val_titulo_raw).strip().split('.')[0]
+            if not any(c.isdigit() for c in val_titulo_str):
+                continue
+
+            val_venc_raw = row[col_acr_venc]
+            if pd.isna(val_venc_raw):
+                continue
+
+            val_venc_str = str(val_venc_raw).strip()
+            if ' ' in val_venc_str:
+                val_venc_str = val_venc_str.split()[0]
+
+            try:
+                digits_t = ''.join(c for c in val_titulo_str if c.isdigit())
+                if digits_t:
+                    acr_data_by_int[int(digits_t)] = parse_date(val_venc_str) or val_venc_str
+            except ValueError:
+                continue
+
+        # 3. Create Excel with 2 Tabs
+        wb = openpyxl.Workbook()
+
+        # Tab 1: Prorrogações Atakarejo
+        ws1 = wb.active
+        ws1.title = "Prorrogações Atakarejo"
+        ws1.views.sheetView[0].showGridLines = True
+
+        ws1.cell(row=1, column=1, value="Nota Fiscal")
+        ws1.cell(row=1, column=2, value="Data de Prorrogação")
+
+        for i, inv in enumerate(invoices):
+            ws1.cell(row=i+2, column=1, value=inv['nf'])
+            ws1.cell(row=i+2, column=2, value=format_date_to_br(inv['vencimento']))
+
+        # Tab 2: Conciliação
+        ws2 = wb.create_sheet(title="Conciliação")
+        ws2.views.sheetView[0].showGridLines = True
+        ws2.cell(row=1, column=1, value="Nota Fiscal")
+        ws2.cell(row=1, column=2, value="Data Atakarejo (Prorrogação)")
+        ws2.cell(row=1, column=3, value="Data ACR (Vencimento)")
+        ws2.cell(row=1, column=4, value="Status")
+
+        font_header = Font(name='Calibri', size=11, bold=True)
+        font_body = Font(name='Calibri', size=11, bold=False)
+        align_left = Alignment(horizontal='left', vertical='center')
+        align_center = Alignment(horizontal='center', vertical='center')
+
+        fill_ok = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
+        fill_div = PatternFill(start_color="FCE4D6", end_color="FCE4D6", fill_type="solid")
+
+        # Format Tab 1 Headers & Body
+        for col_idx in [1, 2]:
+            cell = ws1.cell(row=1, column=col_idx)
+            cell.font = font_header
+            cell.alignment = align_left
+
+        for r_idx in range(2, len(invoices) + 2):
+            ws1.cell(row=r_idx, column=1).font = font_body
+            ws1.cell(row=r_idx, column=1).number_format = '@'
+            ws1.cell(row=r_idx, column=1).alignment = align_left
+            ws1.cell(row=r_idx, column=2).font = font_body
+            ws1.cell(row=r_idx, column=2).alignment = align_center
+
+        ws1.column_dimensions['A'].width = 16
+        ws1.column_dimensions['B'].width = 24
+
+        # Conciliate in Tab 2
+        for i, inv in enumerate(invoices):
+            row_num = i + 2
+            nf_str = inv['nf']
+            d_ata = inv['vencimento']
+
+            try:
+                nf_int = int(nf_str)
+            except ValueError:
+                nf_int = None
+
+            d_acr = None
+            status = "Não encontrado no ACR"
+            status_fill = None
+
+            if nf_int is not None and nf_int in acr_data_by_int:
+                d_acr = acr_data_by_int[nf_int]
+
+                if isinstance(d_ata, datetime.date) and isinstance(d_acr, datetime.date):
+                    if d_ata == d_acr:
+                        status = "OK"
+                        status_fill = fill_ok
+                    else:
+                        status = "Divergente"
+                        status_fill = fill_div
+                else:
+                    d_ata_str = format_date_to_br(d_ata)
+                    d_acr_str = format_date_to_br(d_acr)
+                    if d_ata_str and d_ata_str == d_acr_str:
+                        status = "OK"
+                        status_fill = fill_ok
+                    else:
+                        status = "Divergente"
+                        status_fill = fill_div
+
+            ws2.cell(row=row_num, column=1, value=nf_str).number_format = '@'
+            ws2.cell(row=row_num, column=1).font = font_body
+            ws2.cell(row=row_num, column=1).alignment = align_left
+
+            ws2.cell(row=row_num, column=2, value=format_date_to_br(d_ata))
+            ws2.cell(row=row_num, column=2).font = font_body
+            ws2.cell(row=row_num, column=2).alignment = align_center
+
+            ws2.cell(row=row_num, column=3, value=format_date_to_br(d_acr))
+            ws2.cell(row=row_num, column=3).font = font_body
+            ws2.cell(row=row_num, column=3).alignment = align_center
+
+            cell_status = ws2.cell(row=row_num, column=4, value=status)
+            cell_status.font = font_body
+            cell_status.alignment = align_left
+            if status_fill:
+                cell_status.fill = status_fill
+
+        # Format Tab 2 Headers
+        for col_idx in range(1, 5):
+            cell = ws2.cell(row=1, column=col_idx)
+            cell.font = font_header
+            cell.alignment = align_left
+
+        ws2.column_dimensions['A'].width = 16
+        ws2.column_dimensions['B'].width = 28
+        ws2.column_dimensions['C'].width = 24
+        ws2.column_dimensions['D'].width = 24
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        filename = actual_file.filename.rsplit('.', 1)[0] + "_conciliado.xlsx"
+
+        ImportacaoService(db).registrar_importacao(
+            filename, "xlsx", "Prorrogação - Atakarejo", id_user_inc=current_user.iduser
+        )
+
+        headers_response = {
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Access-Control-Expose-Headers': 'Content-Disposition'
+        }
+
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers_response
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/zeferino/conciliar")
 async def conciliar_zeferino(

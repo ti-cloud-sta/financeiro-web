@@ -6,3 +6,10 @@ uvicorn app.main:app --reload
 #roda frontend
 cd frontend
 npm start
+
+#reiniciar e subir projeto na vps
+docker compose up -d --build
+
+#ou isolado
+docker compose up -d --build frontend
+docker compose up -d --build backend

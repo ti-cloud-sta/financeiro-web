@@ -163,61 +163,129 @@
       @else if (activeTab === 'mensagens') {
       <div class="chat-panel animate-fade-in">
 
-        <div class="chat-thread">
-          @for (msg of mensagens; track msg.id) {
-          <div class="chat-message" [class.chat-message--mine]="msg.minhaMensagem">
-            <app-avatar [initials]="msg.iniciais" size="sm"></app-avatar>
-            <div class="chat-bubble">
-              <div class="chat-bubble-header">
-                <span class="chat-author">{{ msg.autor }}</span>
-                <span class="chat-time">{{ msg.data | date:'dd/MM HH:mm' }}</span>
-              </div>
-              @if (msg.assunto) {
-              <div class="chat-subject"><i class="fa-solid fa-tag me-1"></i>{{ msg.assunto }}</div>
-              }
-              <div class="chat-body" [innerHTML]="msg.corpo"></div>
-              @if (msg.anexos.length > 0) {
-              <div class="chat-attachments">
-                @for (anexo of msg.anexos; track anexo) {
-                <span class="attachment-chip"><i class="fa-solid fa-paperclip"></i>{{ anexo }}</span>
-                }
-              </div>
-              }
+        <!-- Banner de Conexão com Google OAuth -->
+        @if (!googleAuthService.isConectado()) {
+        <div class="google-auth-banner google-auth-banner--disconnected">
+          <div class="google-auth-info">
+            <div class="google-icon-wrapper">
+              <svg viewBox="0 0 24 24" width="22" height="22">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+              </svg>
+            </div>
+            <div class="google-auth-text">
+              <span class="google-auth-title">Conectar conta do Gmail</span>
+              <span class="google-auth-subtitle">Autorize sua conta para enviar e-mails de cobrança diretamente pelo seu remetente.</span>
             </div>
           </div>
-          }
-          @if (mensagens.length === 0) {
-          <div class="text-center text-muted py-4">Nenhuma mensagem ainda.</div>
+          <button type="button" class="btn-google-connect" (click)="conectarGoogle()" [disabled]="googleAuthService.isCarregando()">
+            @if (googleAuthService.isCarregando()) {
+              <i class="fa-solid fa-spinner fa-spin me-1"></i> Conectando...
+            } @else {
+              <i class="fa-brands fa-google me-1"></i> Conectar com Google
+            }
+          </button>
+        </div>
+        } @else {
+        <div class="google-auth-banner google-auth-banner--connected">
+          <div class="google-auth-info">
+            <span class="connected-badge">
+              <i class="fa-solid fa-circle-check text-success me-1"></i> Conectado ao Gmail
+            </span>
+            @if (googleAuthService.emailConectado()) {
+            <span class="connected-email">{{ googleAuthService.emailConectado() }}</span>
+            }
+          </div>
+          <button type="button" class="btn-google-disconnect" (click)="abrirConfirmarDesconexao()" title="Desconectar conta Google">
+            <i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Desconectar
+          </button>
+        </div>
+        }
+
+        <div class="chat-thread">
+          @if (isLoadingMensagens) {
+          <div class="chat-skeleton">
+            <div class="chat-skeleton-row chat-skeleton-row--right">
+              <div class="skeleton-bubble skeleton-bubble--right">
+                <div class="skel skel-line" style="width:120px;"></div>
+                <div class="skel skel-line" style="width:80%;"></div>
+                <div class="skel skel-line" style="width:60%;"></div>
+              </div>
+              <div class="skel skel-avatar"></div>
+            </div>
+            <div class="chat-skeleton-row chat-skeleton-row--left">
+              <div class="skel skel-avatar"></div>
+              <div class="skeleton-bubble skeleton-bubble--left">
+                <div class="skel skel-line" style="width:100px;"></div>
+                <div class="skel skel-line" style="width:70%;"></div>
+              </div>
+            </div>
+          </div>
+          } @else {
+            @for (msg of mensagens; track msg.id) {
+            <div class="chat-message" [class.chat-message--mine]="msg.minhaMensagem" [class.chat-message--reply]="!msg.minhaMensagem">
+              @if (!msg.minhaMensagem) {
+              <div class="reply-avatar" title="{{ msg.autor }}">{{ msg.iniciais }}</div>
+              }
+              <div class="chat-bubble">
+                <div class="chat-bubble-header">
+                  <span class="chat-author">{{ msg.autor }}</span>
+                  <span class="chat-time">{{ msg.data | date:'dd/MM HH:mm' }}</span>
+                </div>
+                @if (msg.assunto) {
+                <div class="chat-subject"><i class="fa-solid fa-tag me-1"></i>{{ msg.assunto }}</div>
+                }
+                <div class="chat-body" [innerHTML]="msg.corpo"></div>
+                @if (msg.anexos.length > 0) {
+                <div class="chat-attachments">
+                  @for (anexo of msg.anexos; track anexo) {
+                  <span class="attachment-chip"><i class="fa-solid fa-paperclip"></i>{{ anexo }}</span>
+                  }
+                </div>
+                }
+              </div>
+              @if (msg.minhaMensagem) {
+              <app-avatar [initials]="msg.iniciais" size="sm"></app-avatar>
+              }
+            </div>
+            }
+            @if (mensagens.length === 0) {
+            <div class="chat-empty-state">
+              <i class="fa-regular fa-envelope chat-empty-icon"></i>
+              <span>Nenhum e-mail nesta conversa ainda.<br>Preencha os campos abaixo para disparar uma mensagem.</span>
+            </div>
+            }
           }
         </div>
 
         <div class="compose-panel">
           <div class="compose-row">
-            <input type="text" class="form-control form-control-sm" placeholder="Assunto"
+            <input type="text" class="form-control form-control-sm" placeholder="Assunto do e-mail"
               [(ngModel)]="composeAssunto">
           </div>
           <div class="compose-row compose-row--split">
-            <input type="text" class="form-control form-control-sm" placeholder="Para (destinatários)"
+            <input type="text" class="form-control form-control-sm" placeholder="Para (destinatários separados por vírgula)"
               [(ngModel)]="composeDestinatarios">
-            <input type="text" class="form-control form-control-sm" placeholder="Cc" [(ngModel)]="composeCopia">
+            <input type="text" class="form-control form-control-sm" placeholder="Cc (cópia opcional)" [(ngModel)]="composeCopia">
           </div>
 
           <div class="compose-toolbar">
-            <button type="button" class="toolbar-btn" title="Negrito" (click)="aplicarFormatacao('bold')">
+            <button type="button" class="toolbar-btn" title="Negrito" (mousedown)="$event.preventDefault()" (click)="aplicarFormatacao('bold')">
               <i class="fa-solid fa-bold"></i>
             </button>
-            <button type="button" class="toolbar-btn" title="Itálico" (click)="aplicarFormatacao('italic')">
+            <button type="button" class="toolbar-btn" title="Itálico" (mousedown)="$event.preventDefault()" (click)="aplicarFormatacao('italic')">
               <i class="fa-solid fa-italic"></i>
             </button>
-            <button type="button" class="toolbar-btn" title="Sublinhado" (click)="aplicarFormatacao('underline')">
+            <button type="button" class="toolbar-btn" title="Sublinhado" (mousedown)="$event.preventDefault()" (click)="aplicarFormatacao('underline')">
               <i class="fa-solid fa-underline"></i>
             </button>
-            <button type="button" class="toolbar-btn" title="Lista"
-              (click)="aplicarFormatacao('insertUnorderedList')">
+            <button type="button" class="toolbar-btn" title="Lista" (mousedown)="$event.preventDefault()" (click)="aplicarFormatacao('insertUnorderedList')">
               <i class="fa-solid fa-list-ul"></i>
             </button>
             <span class="toolbar-divider"></span>
-            <button type="button" class="toolbar-btn" title="Anexar arquivo" (click)="triggerAnexo()">
+            <button type="button" class="toolbar-btn" title="Anexar arquivo" (mousedown)="$event.preventDefault()" (click)="triggerAnexo()">
               <i class="fa-solid fa-paperclip"></i>
             </button>
           </div>
@@ -225,20 +293,22 @@
           <div #composeBody class="compose-body" contenteditable="true"
             data-placeholder="Escreva sua mensagem..."></div>
 
-          @if (composeAnexos.length > 0) {
+          @if (arquivosSelecionados.length > 0) {
           <div class="compose-attachments">
-            @for (anexo of composeAnexos; track $index) {
+            @for (file of arquivosSelecionados; track $index) {
             <span class="attachment-chip">
-              <i class="fa-solid fa-paperclip"></i>{{ anexo }}
-              <button type="button" (click)="removerAnexo($index)"><i class="fa-solid fa-xmark"></i></button>
+              <i class="fa-solid fa-paperclip"></i>
+              <span class="attachment-name">{{ file.name }}</span>
+              <span class="attachment-size">({{ formatarTamanhoArquivo(file.size) }})</span>
+              <button type="button" (click)="removerArquivo($index)" title="Remover anexo"><i class="fa-solid fa-xmark"></i></button>
             </span>
             }
           </div>
           }
 
           <div class="compose-footer">
-            <app-button variant="primary" icon="fa-solid fa-paper-plane" (clicked)="enviarMensagem()">
-              Enviar
+            <app-button variant="primary" icon="fa-solid fa-paper-plane" [loading]="isEnviandoEmail" [disabled]="isEnviandoEmail" (clicked)="enviarMensagem()">
+              {{ googleAuthService.isConectado() ? 'Enviar Mensagem' : 'Conectar e Enviar' }}
             </app-button>
           </div>
         </div>
@@ -281,4 +351,28 @@
 
     </div>
   </div>
+
+  <!-- Modais de Notificação e Confirmação -->
+  <app-confirm-modal
+    [isOpen]="alertaModalOpen"
+    [title]="alertaTitulo"
+    [message]="alertaMensagem"
+    [variant]="alertaVariant"
+    [showCancel]="false"
+    confirmText="Entendido"
+    (confirmed)="alertaModalOpen = false"
+    (canceled)="alertaModalOpen = false">
+  </app-confirm-modal>
+
+  <app-confirm-modal
+    [isOpen]="confirmarDesconectarOpen"
+    title="Desconectar Conta Google"
+    message="Tem certeza que deseja desconectar sua conta do Gmail? Você precisará autorizar novamente para enviar novos e-mails."
+    variant="danger"
+    [showCancel]="true"
+    confirmText="Sim, desconectar"
+    cancelText="Cancelar"
+    (confirmed)="desconectarGoogle()"
+    (canceled)="confirmarDesconectarOpen = false">
+  </app-confirm-modal>
 </app-modal>
