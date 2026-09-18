@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="pt-br">
+
 <head>
   <!-- Codificação e compatibilidade -->
   <meta charset="utf-8">
@@ -9,7 +10,8 @@
 
   <!-- Identificação do documento -->
   <title>Sistemas Integrados - Santa Maria</title>
-  <meta name="description" content="Sistema interno de gestão da Santa Maria: controle financeiro, plano de saúde, despesas de viagem, colaboradores e conciliação de dados.">
+  <meta name="description"
+    content="Sistema interno de gestão da Santa Maria: controle financeiro, plano de saúde, despesas de viagem, colaboradores e conciliação de dados.">
   <meta name="author" content="Santa Maria">
   <meta name="application-name" content="Sistemas Integrados - Santa Maria">
 
@@ -34,7 +36,8 @@
 
   <!-- Compartilhamento (Open Graph / Twitter Card) -->
   <meta property="og:title" content="Sistemas Integrados - Santa Maria">
-  <meta property="og:description" content="Sistema interno de gestão da Santa Maria: controle financeiro, plano de saúde, despesas de viagem, colaboradores e conciliação de dados.">
+  <meta property="og:description"
+    content="Sistema interno de gestão da Santa Maria: controle financeiro, plano de saúde, despesas de viagem, colaboradores e conciliação de dados.">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="pt_BR">
   <meta property="og:image" content="images/logo-nobg.png">
@@ -51,11 +54,13 @@
         const theme = saved === 'light' || saved === 'dark' ? saved : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         document.documentElement.setAttribute('data-theme', theme);
         document.documentElement.setAttribute('data-bs-theme', theme);
-      } catch (e) {}
+      } catch (e) { }
     })();
   </script>
 </head>
+
 <body>
   <app-root></app-root>
 </body>
+
 </html>
