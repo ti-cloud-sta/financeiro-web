@@ -4,7 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { ModalComponent } from '../../../../../../../shared/components/modal/modal.component';
 import { ButtonComponent } from '../../../../../../../shared/components/button/button.component';
 import { AvatarComponent } from '../../../../../../../shared/components/avatar/avatar.component';
-import { ImportacoesService, TratativaApi, HistoricoApi } from '../../../../../../../core/services/importacoes.service';
+import { ConfirmModalComponent } from '../../../../../../../shared/components/confirm-modal/confirm-modal.component';
+import { ImportacoesService, TratativaApi, HistoricoApi, MensagemThreadApi } from '../../../../../../../core/services/importacoes.service';
+import { GoogleAuthService } from '../../../../../../../core/services/google-auth.service';
 import { KanbanCard } from '../../pendencias.component';
 
 export type PendenciaTab = 'tratativa' | 'mensagens' | 'historico';
@@ -54,6 +56,8 @@ export interface EventoHistorico {
 
 export const STATUS_OPTIONS: string[] = [
   'ACORDO',
+  'AD',
+  'AN',
   'ANALISAR',
   'ATRASADO',
   'COMISSAO',
@@ -84,12 +88,13 @@ export const FASE_OPTIONS: string[] = [
 @Component({
   selector: 'app-pendencia-detalhe-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent, ButtonComponent, AvatarComponent],
+  imports: [CommonModule, FormsModule, ModalComponent, ButtonComponent, AvatarComponent, ConfirmModalComponent],
   templateUrl: './pendencia-detalhe-modal.component.html',
   styleUrl: './pendencia-detalhe-modal.component.scss'
 })
 export class PendenciaDetalheModalComponent implements OnChanges {
   private importacoesService = inject(ImportacoesService);
+  readonly googleAuthService = inject(GoogleAuthService);
 
   @Input() isOpen = false;
   @Input() card: KanbanCard | null = null;
@@ -117,15 +122,23 @@ export class PendenciaDetalheModalComponent implements OnChanges {
   isSalvandoTratativa = false;
 
   // ------------------------------------------------------------
-  // Aba Mensagens (chat + composição de e-mail)
+  // Aba Mensagens (chat + composição de e-mail com Gmail OAuth)
   // ------------------------------------------------------------
   mensagens: MensagemChat[] = [];
   composeAssunto = '';
   composeDestinatarios = '';
   composeCopia = '';
-  composeAnexos: string[] = [];
+  arquivosSelecionados: File[] = [];
+  isEnviandoEmail = false;
   @ViewChild('composeBody') composeBodyRef?: ElementRef<HTMLDivElement>;
   @ViewChild('anexoInput') anexoInputRef?: ElementRef<HTMLInputElement>;
+
+  // Modais de confirmação/alerta (Design System / No native alert/confirm)
+  alertaModalOpen = false;
+  alertaTitulo = '';
+  alertaMensagem = '';
+  alertaVariant: 'primary' | 'danger' | 'success' = 'primary';
+  confirmarDesconectarOpen = false;
 
   // ------------------------------------------------------------
   // Aba Histórico
@@ -133,15 +146,49 @@ export class PendenciaDetalheModalComponent implements OnChanges {
   historico: EventoHistorico[] = [];
   isLoadingHistorico = false;
 
+  // ------------------------------------------------------------
+  // Thread de mensagens (Gmail API)
+  // ------------------------------------------------------------
+  isLoadingMensagens = false;
+
   ngOnChanges(changes: SimpleChanges) {
     if (changes['card'] && this.card) {
       this.preencherDados(this.card);
       this.carregarTratativas();
       this.carregarHistorico();
+      if (this.activeTab === 'mensagens') {
+        this.googleAuthService.verificarStatus().subscribe();
+        if (!this.composeAssunto) {
+          this.composeAssunto = `Cobrança - Título ${this.card.title} - ${this.card.clientName}`;
+        }
+      }
     }
     if (changes['isOpen'] && this.isOpen) {
       this.activeTab = 'tratativa';
+      this.googleAuthService.verificarStatus().subscribe();
     }
+  }
+
+  setTab(tab: PendenciaTab) {
+    this.activeTab = tab;
+    if (tab === 'mensagens') {
+      this.googleAuthService.verificarStatus().subscribe();
+      this.carregarMensagensThread();
+      if (!this.composeAssunto && this.card) {
+        this.composeAssunto = `Cobrança - Título ${this.card.title} - ${this.card.clientName}`;
+      }
+    } else if (tab === 'historico') {
+      this.carregarHistorico();
+    } else if (tab === 'tratativa') {
+      this.carregarTratativas();
+    }
+  }
+
+  mostrarAlerta(titulo: string, mensagem: string, variant: 'primary' | 'danger' | 'success' = 'primary') {
+    this.alertaTitulo = titulo;
+    this.alertaMensagem = mensagem;
+    this.alertaVariant = variant;
+    this.alertaModalOpen = true;
   }
 
   get faseColor(): string {
@@ -173,6 +220,51 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     });
   }
 
+  carregarMensagensThread() {
+    if (!this.card) return;
+    const idNf = Number(this.card.id);
+    this.isLoadingMensagens = true;
+    this.importacoesService.listarMensagensPendencia(idNf).subscribe({
+      next: (msgs: MensagemThreadApi[]) => {
+        this.isLoadingMensagens = false;
+        this.mensagens = msgs.map(m => this.mapearMensagemApi(m));
+      },
+      error: (err) => {
+        this.isLoadingMensagens = false;
+        console.error('Erro ao carregar mensagens:', err);
+      }
+    });
+  }
+
+  private mapearMensagemApi(m: MensagemThreadApi): MensagemChat {
+    const autor = this.extrairNomeEmail(m.de);
+    return {
+      id: m.internal_date,
+      autor,
+      iniciais: this.obterIniciais(autor),
+      minhaMensagem: m.minha_mensagem,
+      data: new Date(m.internal_date * 1000),
+      assunto: m.assunto,
+      corpo: m.corpo_html || m.corpo_texto.replace(/\n/g, '<br>'),
+      anexos: m.anexos.map(a => a.nome)
+    };
+  }
+
+  private extrairNomeEmail(de: string): string {
+    if (!de) return 'Desconhecido';
+    // "Nome Sobrenome <email@domain.com>" → "Nome Sobrenome"
+    const match = de.match(/^([^<]+)</);
+    if (match) return match[1].trim();
+    return de.trim();
+  }
+
+  private obterIniciais(nome: string): string {
+    if (!nome) return 'EU';
+    const partes = nome.trim().split(/\s+/);
+    if (partes.length === 1) return partes[0].substring(0, 2).toUpperCase();
+    return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+  }
+
   private mapearHistoricoApi(h: HistoricoApi): EventoHistorico {
     const { icone, cor } = this.iconeCorPorTipo(h.tipo);
     return {
@@ -188,6 +280,9 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     const t = (tipo || '').toLowerCase();
     if (t.includes('finaliza') || t.includes('resolu')) {
       return { icone: 'fa-solid fa-check-circle', cor: 'success' };
+    }
+    if (t.includes('email') || t.includes('e-mail') || t.includes('mensagem')) {
+      return { icone: 'fa-solid fa-envelope', cor: 'primary' };
     }
     if (t.includes('prorrogad')) return { icone: 'fa-regular fa-calendar-plus', cor: 'warning' };
     if (t.includes('importada')) return { icone: 'fa-solid fa-file-circle-plus', cor: 'primary' };
@@ -221,10 +316,6 @@ export class PendenciaDetalheModalComponent implements OnChanges {
       autor: t.autor || 'Usuário',
       texto: t.conteudo
     };
-  }
-
-  setTab(tab: PendenciaTab) {
-    this.activeTab = tab;
   }
 
   close() {
@@ -359,11 +450,16 @@ export class PendenciaDetalheModalComponent implements OnChanges {
   }
 
   // ------------------------------------------------------------
-  // Ações da aba Mensagens
+  // Ações da aba Mensagens (Google OAuth e Envio de E-mail)
   // ------------------------------------------------------------
   aplicarFormatacao(comando: 'bold' | 'italic' | 'underline' | 'insertUnorderedList') {
-    this.composeBodyRef?.nativeElement.focus();
-    document.execCommand(comando, false);
+    if (this.composeBodyRef) {
+      const el = this.composeBodyRef.nativeElement;
+      if (document.activeElement !== el && !el.contains(document.activeElement)) {
+        el.focus();
+      }
+      document.execCommand(comando, false);
+    }
   }
 
   triggerAnexo() {
@@ -372,37 +468,127 @@ export class PendenciaDetalheModalComponent implements OnChanges {
 
   onAnexoSelecionado(event: Event) {
     const input = event.target as HTMLInputElement;
-    if (input.files) {
-      Array.from(input.files).forEach(f => this.composeAnexos.push(f.name));
+    if (input.files && input.files.length > 0) {
+      Array.from(input.files).forEach(f => {
+        if (!this.arquivosSelecionados.some(existente => existente.name === f.name && existente.size === f.size)) {
+          this.arquivosSelecionados.push(f);
+        }
+      });
       input.value = '';
     }
   }
 
-  removerAnexo(index: number) {
-    this.composeAnexos.splice(index, 1);
+  removerArquivo(index: number) {
+    this.arquivosSelecionados.splice(index, 1);
   }
 
-  enviarMensagem() {
-    const corpo = this.composeBodyRef?.nativeElement.innerHTML?.trim() || '';
-    if (!corpo || corpo === '<br>') return;
+  formatarTamanhoArquivo(bytes: number): string {
+    if (!bytes || bytes <= 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
 
-    this.mensagens.push({
-      id: this.mensagens.length + 1,
-      autor: 'Você',
-      iniciais: 'EU',
-      minhaMensagem: true,
-      data: new Date(),
-      assunto: this.composeAssunto || undefined,
-      corpo,
-      anexos: [...this.composeAnexos]
-    });
-
-    this.composeAssunto = '';
-    this.composeDestinatarios = '';
-    this.composeCopia = '';
-    this.composeAnexos = [];
-    if (this.composeBodyRef) {
-      this.composeBodyRef.nativeElement.innerHTML = '';
+  async conectarGoogle() {
+    try {
+      await this.googleAuthService.iniciarAutorizacaoPopup();
+      this.mostrarAlerta(
+        'Google Conectado',
+        'Sua conta do Gmail foi autorizada com sucesso! Agora você já pode enviar mensagens diretamente.',
+        'success'
+      );
+    } catch (err: any) {
+      console.error('Erro ao conectar Google:', err);
+      this.mostrarAlerta('Falha na Autorização', err.message || 'Não foi possível autorizar o Gmail.', 'danger');
     }
+  }
+
+  abrirConfirmarDesconexao() {
+    this.confirmarDesconectarOpen = true;
+  }
+
+  desconectarGoogle() {
+    this.confirmarDesconectarOpen = false;
+    this.googleAuthService.desconectar().subscribe({
+      next: () => {
+        this.mostrarAlerta('Conta Desconectada', 'Sua conta do Gmail foi desconectada com sucesso.', 'primary');
+      },
+      error: (err) => {
+        const msg = err.error?.detail || err.message || 'Erro ao desconectar conta Google.';
+        this.mostrarAlerta('Erro ao Desconectar', msg, 'danger');
+      }
+    });
+  }
+
+  async enviarMensagem() {
+    if (!this.card || this.isEnviandoEmail) return;
+
+    const corpo = this.composeBodyRef?.nativeElement.innerHTML?.trim() || '';
+    if (!corpo || corpo === '<br>' || corpo === '<div><br></div>') {
+      this.mostrarAlerta('Mensagem Vazia', 'Por favor, escreva o conteúdo da mensagem antes de enviar.', 'primary');
+      return;
+    }
+
+    if (!this.composeDestinatarios.trim()) {
+      this.mostrarAlerta('Destinatário Ausente', 'Por favor, informe ao menos um e-mail no campo "Para (destinatários)".', 'primary');
+      return;
+    }
+
+    if (!this.composeAssunto.trim()) {
+      this.mostrarAlerta('Assunto Obrigatório', 'Por favor, preencha o assunto do e-mail.', 'primary');
+      return;
+    }
+
+    // Se o usuário ainda não autorizou o Gmail, abre o popup primeiro
+    if (!this.googleAuthService.isConectado()) {
+      try {
+        await this.googleAuthService.iniciarAutorizacaoPopup();
+      } catch (err: any) {
+        this.mostrarAlerta('Autorização Necessária', 'É obrigatório conectar sua conta do Google antes de enviar e-mails.', 'danger');
+        return;
+      }
+    }
+
+    this.isEnviandoEmail = true;
+
+    const formData = new FormData();
+    formData.append('destinatarios', this.composeDestinatarios.trim());
+    formData.append('assunto', this.composeAssunto.trim());
+    formData.append('corpo', corpo);
+    if (this.composeCopia.trim()) {
+      formData.append('copia', this.composeCopia.trim());
+    }
+    for (const file of this.arquivosSelecionados) {
+      formData.append('anexos', file, file.name);
+    }
+
+    const idNf = Number(this.card.id);
+    this.importacoesService.enviarEmailPendencia(idNf, formData).subscribe({
+      next: () => {
+        this.isEnviandoEmail = false;
+
+        // Limpa os campos do formulário
+        this.composeAssunto = '';
+        this.composeDestinatarios = '';
+        this.composeCopia = '';
+        this.arquivosSelecionados = [];
+        if (this.composeBodyRef) {
+          this.composeBodyRef.nativeElement.innerHTML = '';
+        }
+
+        // Recarrega o thread completo (inclui a mensagem recém enviada)
+        this.carregarMensagensThread();
+        this.carregarHistorico();
+
+        this.mostrarAlerta('E-mail Enviado!', 'A mensagem foi enviada com sucesso utilizando sua conta do Gmail.', 'success');
+      },
+      error: (err) => {
+        this.isEnviandoEmail = false;
+        console.error('Erro ao enviar e-mail:', err);
+        const detalhe = err.error?.detail || err.message || 'Falha ao enviar e-mail pelo Gmail.';
+        this.mostrarAlerta('Falha no Envio', detalhe, 'danger');
+      }
+    });
   }
 }

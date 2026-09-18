@@ -11,6 +11,11 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
 
+    # Google OAuth e Gmail API
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
+
     # "development" habilita Swagger/ReDoc (/docs, /redoc, /openapi.json).
     # Qualquer outro valor (padrão "production") os desativa — a API implantada
     # não deve expor documentação pública.

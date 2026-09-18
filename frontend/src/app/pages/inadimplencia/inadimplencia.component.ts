@@ -104,7 +104,8 @@ export class InadimplenciaComponent implements OnInit {
         if (res && res.sucesso) {
           lastRes = res;
         } else if (res && res.progresso !== undefined) {
-          this.importacaoProgressMsg.set(`Processando linha ${res.progresso} de ${res.total}... Prorrogadas: ${res.prorrogadas}`);
+          const progMsg = `Processando linha ${res.progresso} de ${res.total}... Prorrogadas: ${res.prorrogadas || 0}` + (res.atualizadas ? ` | Atualizadas: ${res.atualizadas}` : '');
+          this.importacaoProgressMsg.set(progMsg);
           if (res.total > 0) {
             this.importacaoProgressPercent.set(Math.round((res.progresso / res.total) * 100));
           }
@@ -141,9 +142,10 @@ export class InadimplenciaComponent implements OnInit {
     const linhas = [
       `Linhas com título: ${res.totalLinhasComEspecie}`,
       `Importadas (Novas): ${res.importadas}`,
-      `Prorrogadas (Atualizadas): ${res.prorrogadas || 0}`,
+      `Prorrogadas (Vencimento): ${res.prorrogadas || 0}`,
+      `Atualizadas (Saldo / Carteira): ${res.atualizadas || 0}`,
       `Títulos Baixados (Encerrados): ${res.baixadas || 0}`,
-      `Ignoradas (Duplicadas): ${res.ignoradasDuplicadas}`,
+      `Ignoradas (Sem alterações): ${res.ignoradasDuplicadas}`,
       `Ignoradas (Sem vencimento): ${res.ignoradasSemVencimento}`,
       `Clientes criados: ${res.clientesCriados}`,
       `Matrizes criadas: ${res.matrizesCriadas}`

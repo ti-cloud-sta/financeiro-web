@@ -242,12 +242,12 @@ export class ExtratoresComponent implements OnInit {
       statusVariant: 'success'
     },
     {
-      id: 'ext-sonda-composicao',
-      name: 'Sonda',
+      id: 'ext-atakarejo-composicao',
+      name: 'Atakarejo',
       description: 'Importação de dados da composição de pagamento',
       icon: 'fa-solid fa-file-excel',
-      logo: 'images/sonda-logo.png',
-      colorClass: 'text-danger bg-danger-subtle',
+      logo: 'images/atakarejo-logo.png',
+      colorClass: 'text-warning bg-warning-subtle',
       status: 'active',
       statusText: 'Ativo',
       statusVariant: 'success'
@@ -374,12 +374,12 @@ export class ExtratoresComponent implements OnInit {
       statusVariant: 'success'
     },
     {
-      id: 'ext-sonda-prorrogacao',
-      name: 'Sonda',
+      id: 'ext-atakarejo-prorrogacao',
+      name: 'Atakarejo',
       description: 'Importação de dados de prorrogação',
       icon: 'fa-solid fa-clock-rotate-left',
-      logo: 'images/sonda-logo.png',
-      colorClass: 'text-danger bg-danger-subtle',
+      logo: 'images/atakarejo-logo.png',
+      colorClass: 'text-warning bg-warning-subtle',
       status: 'active',
       statusText: 'Ativo',
       statusVariant: 'success'
@@ -542,8 +542,8 @@ export class ExtratoresComponent implements OnInit {
       this._processGPAProrrogacao(empresaFile, acrFile);
     } else if (extId === 'ext-adicao-prorrogacao') {
       this._processAdicaoProrrogacao(empresaFile, acrFile);
-    } else if (extId === 'ext-sonda-prorrogacao') {
-      this._processSondaProrrogacao(empresaFile, acrFile);
+    } else if (extId === 'ext-atakarejo-prorrogacao' || extId === 'ext-sonda-prorrogacao') {
+      this._processAtakarejoProrrogacao(empresaFile, acrFile);
     } else if (extId === 'ext-zeferino-prorrogacao') {
       this._processZeferinoProrrogacao(empresaFile, acrFile);
     }
@@ -594,8 +594,8 @@ export class ExtratoresComponent implements OnInit {
     });
   }
 
-  private _processSondaProrrogacao(empresa: File, acr: File) {
-    this.importacoesService.conciliarProrrogacaoSonda(empresa, acr, this.authService.currentUser()?.iduser).subscribe({
+  private _processAtakarejoProrrogacao(empresa: File, acr: File) {
+    this.importacoesService.conciliarProrrogacaoAtakarejo(empresa, acr, this.authService.currentUser()?.iduser).subscribe({
       next: (blob) => {
         this.carregarHistorico();
         this.isProrrogacaoUnifiedProcessing.set(false);
@@ -605,7 +605,7 @@ export class ExtratoresComponent implements OnInit {
       },
       error: (err) => {
         this.isProrrogacaoUnifiedProcessing.set(false);
-        this.prorrogacaoUnifiedError.set(err.error?.detail || 'Erro ao processar arquivo do Sonda.');
+        this.prorrogacaoUnifiedError.set(err.error?.detail || 'Erro ao processar arquivo do Atakarejo.');
       }
     });
   }
@@ -852,8 +852,9 @@ export class ExtratoresComponent implements OnInit {
       case 'ext-adicao-composicao':
         requestObservable = this.importacoesService.extrairAdicao(empresaFile, acrFile, this.authService.currentUser()?.iduser);
         break;
+      case 'ext-atakarejo-composicao':
       case 'ext-sonda-composicao':
-        requestObservable = this.importacoesService.extrairSonda(empresaFile, acrFile, this.authService.currentUser()?.iduser);
+        requestObservable = this.importacoesService.extrairAtakarejo(empresaFile, acrFile, this.authService.currentUser()?.iduser);
         break;
       case 'ext-zeferino-composicao':
         requestObservable = this.importacoesService.extrairZeferino(empresaFile, acrFile, this.authService.currentUser()?.iduser);
