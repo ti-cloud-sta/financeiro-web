@@ -69,15 +69,22 @@
               </ul>
             </div>
             <main class="dashboard-content px-2 pb-3 pt-0 px-md-4 pb-md-4 pt-md-1" style="flex-grow: 1;">
-              <p class="text-muted mb-3 mt-0" style="font-size: 0.95rem;">nsolidada de pagamentos em atraso, evolução de
-                protestos e ranking de pendências.</p>
+
 
               <!-- SKELETON LOADING -->
               <div *ngIf="isDashboardLoading()">
                 <!-- SKELETON: VISÃO GERAL -->
                 <div *ngIf="dashboardTab() === 'visao-geral'">
                   <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
-                    <h5 class="fw-bold text-secondary mb-3 ms-1">Financeiro</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3 ms-1">
+                      <h5 class="fw-bold text-secondary mb-0">Financeiro</h5>
+                      <div class="bg-light border px-3 py-2 rounded-3 d-flex align-items-center gap-3">
+                        <app-skeleton type="text" width="100px" height="16px"></app-skeleton>
+                        <div class="vr text-secondary opacity-25 mx-1" style="height: 16px;"></div>
+                        <app-skeleton type="text" width="120px" height="16px"></app-skeleton>
+                        <app-skeleton type="text" width="120px" height="16px"></app-skeleton>
+                      </div>
+                    </div>
                     <div class="row g-4">
                       <div class="col-12 col-xl-4">
                         <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm"><app-skeleton type="text"
@@ -97,7 +104,15 @@
                     </div>
                   </div>
                   <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
-                    <h5 class="fw-bold text-secondary mb-3 ms-1">Logística</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3 ms-1">
+                      <h5 class="fw-bold text-secondary mb-0">Logística</h5>
+                      <div class="bg-light border px-3 py-2 rounded-3 d-flex align-items-center gap-3">
+                        <app-skeleton type="text" width="100px" height="16px"></app-skeleton>
+                        <div class="vr text-secondary opacity-25 mx-1" style="height: 16px;"></div>
+                        <app-skeleton type="text" width="120px" height="16px"></app-skeleton>
+                        <app-skeleton type="text" width="120px" height="16px"></app-skeleton>
+                      </div>
+                    </div>
                     <div class="row g-4">
                       <div class="col-12 col-xl-6">
                         <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm"><app-skeleton type="text"
@@ -112,7 +127,14 @@
                     </div>
                   </div>
                   <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
-                    <h5 class="fw-bold text-secondary mb-3 ms-1">Comercial</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3 ms-1">
+                      <h5 class="fw-bold text-secondary mb-0">Comercial</h5>
+                      <div class="bg-light border px-3 py-2 rounded-3 d-flex align-items-center gap-3">
+                        <app-skeleton type="text" width="100px" height="16px"></app-skeleton>
+                        <div class="vr text-secondary opacity-25 mx-1" style="height: 16px;"></div>
+                        <app-skeleton type="text" width="150px" height="16px"></app-skeleton>
+                      </div>
+                    </div>
                     <div class="row g-4">
                       <div class="col-12 col-xl-6">
                         <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm"><app-skeleton type="text"
@@ -132,7 +154,8 @@
                             <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm" style="height: 140px;">
                               <app-skeleton type="text" width="40%" height="18px"
                                 class="mb-3"></app-skeleton><app-skeleton type="rect" width="100%"
-                                height="80px"></app-skeleton></div>
+                                height="80px"></app-skeleton>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -143,23 +166,13 @@
                 <!-- SKELETON: FINANCEIRO -->
                 <div *ngIf="dashboardTab() === 'financeiro'">
                   <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
-                    <h5 class="fw-bold text-secondary mb-3 ms-1">Atual</h5>
-                    <div class="row g-4">
-                      <div class="col-12 col-md-6">
-                        <div
-                          class="dash-chart-card p-4 bg-white border rounded-3 shadow-sm d-flex flex-column justify-content-center">
-                          <app-skeleton type="text" width="40%" height="14px" class="mb-2"></app-skeleton>
-                          <app-skeleton type="rect" width="50%" height="32px"
-                            [style.border-radius]="'8px'"></app-skeleton>
-                        </div>
-                      </div>
-                      <div class="col-12 col-md-6">
-                        <div
-                          class="dash-chart-card p-4 bg-white border rounded-3 shadow-sm d-flex flex-column justify-content-center">
-                          <app-skeleton type="text" width="40%" height="14px" class="mb-2"></app-skeleton>
-                          <app-skeleton type="rect" width="50%" height="32px"
-                            [style.border-radius]="'8px'"></app-skeleton>
-                        </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3 ms-1">
+                      <h5 class="fw-bold text-secondary mb-0">Atual</h5>
+                      <div class="bg-light border px-3 py-2 rounded-3 d-flex align-items-center gap-3">
+                        <app-skeleton type="text" width="100px" height="16px"></app-skeleton>
+                        <div class="vr text-secondary opacity-25 mx-1" style="height: 16px;"></div>
+                        <app-skeleton type="text" width="180px" height="16px"></app-skeleton>
+                        <app-skeleton type="text" width="180px" height="16px"></app-skeleton>
                       </div>
                     </div>
                     <div class="row g-4 mt-4 pt-4 border-top">
@@ -321,7 +334,19 @@
 
                   <!-- GRUPO 1: Financeiro -->
                   <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
-                    <h5 class="fw-bold text-secondary mb-3 ms-1">Financeiro</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3 ms-1">
+                      <h5 class="fw-bold text-secondary mb-0">Financeiro</h5>
+                      <div class="d-flex gap-3 text-secondary align-items-center bg-light border px-3 py-2 rounded-3"
+                        style="font-size: 0.85rem;">
+                        <span class="text-muted"><i class="fa-regular fa-calendar me-2"></i>Hoje, {{ dataHoje |
+                          date:'dd/MM/yyyy' }}</span>
+                        <div class="vr text-secondary opacity-25 mx-1"></div>
+                        <span><span class="text-muted me-1">Total em atraso:</span> <strong class="text-danger">R$
+                            1.250.000,00</strong></span>
+                        <span><span class="text-muted me-1">Total protestado:</span> <strong class="text-warning"
+                            style="color: #f59e0b !important;">R$ 450.000,00</strong></span>
+                      </div>
+                    </div>
                     <div class="row g-4">
                       <div class="col-12 col-xl-4">
                         <div
@@ -355,7 +380,19 @@
 
                   <!-- GRUPO 2: Logística -->
                   <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
-                    <h5 class="fw-bold text-secondary mb-3 ms-1">Logística</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3 ms-1">
+                      <h5 class="fw-bold text-secondary mb-0">Logística</h5>
+                      <div class="d-flex gap-3 text-secondary align-items-center bg-light border px-3 py-2 rounded-3"
+                        style="font-size: 0.85rem;">
+                        <span class="text-muted"><i class="fa-regular fa-calendar me-2"></i>Hoje, {{ dataHoje |
+                          date:'dd/MM/yyyy' }}</span>
+                        <div class="vr text-secondary opacity-25 mx-1"></div>
+                        <span><span class="text-muted me-1">Sem entrega:</span> <strong class="text-warning"
+                            style="color: #f59e0b !important;">R$ 320.000,00</strong></span>
+                        <span><span class="text-muted me-1">Em devolução:</span> <strong class="text-danger">R$
+                            180.000,00</strong></span>
+                      </div>
+                    </div>
                     <div class="row g-4">
                       <div class="col-12 col-xl-6">
                         <div
@@ -385,7 +422,17 @@
 
                   <!-- GRUPO 3: Comercial -->
                   <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
-                    <h5 class="fw-bold text-secondary mb-3 ms-1">Comercial</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3 ms-1">
+                      <h5 class="fw-bold text-secondary mb-0">Comercial</h5>
+                      <div class="d-flex gap-3 text-secondary align-items-center bg-light border px-3 py-2 rounded-3"
+                        style="font-size: 0.85rem;">
+                        <span class="text-muted"><i class="fa-regular fa-calendar me-2"></i>Hoje, {{ dataHoje |
+                          date:'dd/MM/yyyy' }}</span>
+                        <div class="vr text-secondary opacity-25 mx-1"></div>
+                        <span><span class="text-muted me-1">Total em acordo:</span> <strong class="text-primary">R$
+                            850.000,00</strong></span>
+                      </div>
+                    </div>
                     <div class="row g-4">
                       <div class="col-12 col-xl-6">
                         <div class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm d-flex flex-column">
@@ -396,16 +443,7 @@
                       </div>
                       <div class="col-12 col-xl-6">
                         <div class="row g-4 h-100">
-                          <div class="col-12">
-                            <div
-                              class="dash-chart-card p-4 bg-white border rounded-3 shadow-sm d-flex flex-column align-items-center justify-content-center"
-                              style="height: 120px;">
-                              <p class="text-muted text-uppercase mb-1"
-                                style="font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em;">Total em Acordo
-                                Comercial</p>
-                              <h3 class="fw-bold mb-0 text-primary">{{ kpiTotalAcordos | currency:'BRL' }}</h3>
-                            </div>
-                          </div>
+
                           <div class="col-12 flex-grow-1">
                             <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm h-100">
                               <h6 class="mb-3 fw-semibold text-secondary">Ranking 5 Maiores Acordos</h6>
@@ -452,52 +490,34 @@
 
                     <!-- Painel: Atual -->
                     <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
-                      <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold text-secondary mb-0 ms-1">Atual</h5>
-                        <span
-                          class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle px-3 py-2"
+                      <div class="d-flex justify-content-between align-items-center mb-3 ms-1">
+                        <h5 class="fw-bold text-secondary mb-0">Atual</h5>
+                        <div class="d-flex gap-3 text-secondary align-items-center bg-light border px-3 py-2 rounded-3"
                           style="font-size: 0.85rem;">
-                          <i class="fa-regular fa-calendar me-2"></i>{{ dataHoje | date:'dd/MM/yyyy' }}
-                        </span>
-                      </div>
-                      <div class="row g-4">
-                        <div class="col-12 col-md-6">
-                          <div
-                            class="dash-chart-card p-4 bg-white border rounded-3 shadow-sm d-flex justify-content-between align-items-center h-100">
-                            <div>
-                              <p class="text-muted text-uppercase mb-1"
-                                style="font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em;">Total Vencido</p>
-                              <h3 class="fw-bold mb-0 text-danger">{{ kpiTotalVencidoAtual | currency:'BRL' }}</h3>
-                            </div>
-                            <div class="text-end">
-                              <span class="badge"
-                                [ngClass]="evolucaoVencido >= 0 ? 'bg-danger bg-opacity-10 text-danger' : 'bg-success bg-opacity-10 text-success'">
-                                <i class="fa-solid me-1"
-                                  [ngClass]="evolucaoVencido >= 0 ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'"></i>
-                                {{ evolucaoVencido > 0 ? '+' : '' }}{{ evolucaoVencido }}% vs ontem
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="col-12 col-md-6">
-                          <div
-                            class="dash-chart-card p-4 bg-white border rounded-3 shadow-sm d-flex justify-content-between align-items-center h-100">
-                            <div>
-                              <p class="text-muted text-uppercase mb-1"
-                                style="font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em;">Total Protestado
-                              </p>
-                              <h3 class="fw-bold mb-0 text-warning" style="color: #f59e0b !important;">{{
-                                kpiTotalProtestadoAtual | currency:'BRL' }}</h3>
-                            </div>
-                            <div class="text-end">
-                              <span class="badge"
-                                [ngClass]="evolucaoProtestado > 0 ? 'bg-danger bg-opacity-10 text-danger' : (evolucaoProtestado < 0 ? 'bg-success bg-opacity-10 text-success' : 'bg-secondary bg-opacity-10 text-secondary')">
-                                <i class="fa-solid me-1"
-                                  [ngClass]="evolucaoProtestado > 0 ? 'fa-arrow-trend-up' : (evolucaoProtestado < 0 ? 'fa-arrow-trend-down' : 'fa-minus')"></i>
-                                {{ evolucaoProtestado > 0 ? '+' : '' }}{{ evolucaoProtestado }}% vs ontem
-                              </span>
-                            </div>
-                          </div>
+                          <span class="text-muted"><i class="fa-regular fa-calendar me-2"></i>Hoje, {{ dataHoje |
+                            date:'dd/MM/yyyy' }}</span>
+                          <div class="vr text-secondary opacity-25 mx-1"></div>
+                          <span>
+                            <span class="text-muted me-1">Total Vencido:</span>
+                            <strong class="text-danger">{{ kpiTotalVencidoAtual | currency:'BRL' }}</strong>
+                            <span class="ms-1 fw-medium"
+                              [ngClass]="evolucaoVencido >= 0 ? 'text-danger' : 'text-success'">
+                              <i class="fa-solid"
+                                [ngClass]="evolucaoVencido >= 0 ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'"></i> {{
+                              evolucaoVencido > 0 ? '+' : '' }}{{ evolucaoVencido }}%
+                            </span>
+                          </span>
+                          <span>
+                            <span class="text-muted me-1">Total Protestado:</span>
+                            <strong class="text-warning" style="color: #f59e0b !important;">{{ kpiTotalProtestadoAtual |
+                              currency:'BRL' }}</strong>
+                            <span class="ms-1 fw-medium"
+                              [ngClass]="evolucaoProtestado > 0 ? 'text-danger' : (evolucaoProtestado < 0 ? 'text-success' : 'text-secondary')">
+                              <i class="fa-solid"
+                                [ngClass]="evolucaoProtestado > 0 ? 'fa-arrow-trend-up' : (evolucaoProtestado < 0 ? 'fa-arrow-trend-down' : 'fa-minus')"></i>
+                              {{ evolucaoProtestado > 0 ? '+' : '' }}{{ evolucaoProtestado }}%
+                            </span>
+                          </span>
                         </div>
                       </div>
                       <!-- Grid: Títulos com Maiores Valores em Atraso (Movido para cima) -->
@@ -612,15 +632,50 @@
                               <thead>
                                 <tr>
                                   <th style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">Cliente</th>
-                                  <th class="text-center" style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">Atraso</th>
-                                  <th class="text-end" style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">Valor</th>
+                                  <th class="text-center"
+                                    style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">Qtd</th>
+                                  <th class="text-end"
+                                    style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">Valor</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                <tr *ngFor="let item of kpiConcentracaoClientes | slice:0:10">
-                                  <td>{{ item.cliente }}</td>
-                                  <td class="text-center"><span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border fw-normal">{{ item.diasAtraso }}d</span></td>
-                                  <td class="text-end fw-semibold">{{ item.valor | currency:'BRL' }}</td>
+                                <tr *ngFor="let c of rankingClientes">
+                                  <td>{{ c.nome }}</td>
+                                  <td class="text-center"><span
+                                      class="badge rounded-pill bg-light text-secondary border px-2 py-1">{{ c.qtd
+                                      }}</span></td>
+                                  <td class="text-end"><span
+                                      class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1">{{
+                                      c.valor | currency:'BRL' }}</span></td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-12 col-xl-4">
+                        <div class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm">
+                          <h6 class="mb-3 fw-semibold text-secondary">Concentração de Atrasos por Gerente/Rep.</h6>
+                          <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                            <table class="saas-table w-100 mt-2">
+                              <thead>
+                                <tr>
+                                  <th style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">Nome</th>
+                                  <th class="text-center"
+                                    style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">Qtd</th>
+                                  <th class="text-end"
+                                    style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">Valor</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr *ngFor="let r of rankingGerentes">
+                                  <td>{{ r.nome }}</td>
+                                  <td class="text-center"><span
+                                      class="badge rounded-pill bg-light text-secondary border px-2 py-1">{{ r.qtd
+                                      }}</span></td>
+                                  <td class="text-end"><span
+                                      class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1">{{
+                                      r.valor | currency:'BRL' }}</span></td>
                                 </tr>
                               </tbody>
                             </table>
@@ -629,56 +684,738 @@
                       </div>
                     </div>
                   </div>
-                </div> <!-- END SKELETON: COMERCIAL -->
-              </div> <!-- END isDashboardLoading -->
+
+                  <!-- Aba: Gerente/Representante -->
+                  <div *ngIf="financeiroTab() === 'gerente'">
+                    <!-- Painel: Atual -->
+                    <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
+                      <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center gap-3">
+                          <h5 class="fw-bold text-secondary mb-0 ms-1">Visão por Carteira</h5>
+                          <div class="config-toolbar mb-0 ms-3">
+                            <select class="form-select form-select-sm" style="width: 250px;">
+                              <option value="">Selecione o Gerente...</option>
+                              <option *ngFor="let g of rankingGerentes" [value]="g.nome">{{ g.nome }}</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div class="d-flex gap-3 text-secondary align-items-center bg-light border px-3 py-2 rounded-3"
+                          style="font-size: 0.85rem;">
+                          <span class="text-muted"><i class="fa-regular fa-calendar me-2"></i>Hoje, {{ dataHoje |
+                            date:'dd/MM/yyyy' }}</span>
+                          <div class="vr text-secondary opacity-25 mx-1"></div>
+                          <span>
+                            <span class="text-muted me-1">Total Vencido:</span>
+                            <strong class="text-danger">{{ kpiTotalVencidoAtual * 0.35 | currency:'BRL' }}</strong>
+                          </span>
+                          <span>
+                            <span class="text-muted me-1">Total Protestado:</span>
+                            <strong class="text-warning" style="color: #f59e0b !important;">{{ kpiTotalProtestadoAtual *
+                              0.42 | currency:'BRL' }}</strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="row g-4 mt-4 pt-4 border-top">
+                        <div class="col-12">
+                          <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                              <h6 class="mb-0 fw-semibold text-secondary">Títulos em Atraso</h6>
+                              <div class="config-toolbar mb-0">
+                                <div class="search-box">
+                                  <i class="fa-solid fa-search text-muted position-absolute"
+                                    style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+                                  <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
+                                    [(ngModel)]="searchFinanceiro" (ngModelChange)="pageFinanceiro = 1"
+                                    style="padding-left: 28px;">
+                                </div>
+                              </div>
+                            </div>
+                            <table class="saas-table w-100 mt-2">
+                              <thead>
+                                <tr>
+                                  <th>Título</th>
+                                  <th>Cliente</th>
+                                  <th>Fase</th>
+                                  <th>Vencimento</th>
+                                  <th>Status</th>
+                                  <th class="text-center">Qtd Títulos</th>
+                                  <th class="text-end">Valor</th>
+                                  <th class="text-center">Tratativas/Histórico</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr *ngFor="let t of paginatedFinanceiro">
+                                  <td>{{ t.titulo }}</td>
+                                  <td>{{ t.cliente }}</td>
+                                  <td><span class="badge rounded-pill bg-light text-secondary border fw-normal">{{
+                                      t.fase }}</span></td>
+                                  <td>{{ t.vencimento | date:'dd/MM/yyyy' }}</td>
+                                  <td><span
+                                      class="badge status-badge bg-{{t.statusColor}} bg-opacity-10 text-{{t.statusColor}} border border-{{t.statusColor}}-subtle fw-normal px-2 py-1">{{
+                                      t.status }}</span></td>
+                                  <td class="text-center"><span
+                                      class="badge rounded-pill bg-light text-secondary border px-2 py-1">{{ t.qtd
+                                      }}</span></td>
+                                  <td class="text-end"><span
+                                      class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1">{{
+                                      t.valor | currency:'BRL' }}</span></td>
+                                  <td class="text-center">
+                                    <button class="btn btn-sm btn-light text-secondary border-0 p-1 me-1"
+                                      title="Visualizar tratativas" (click)="abrirTratativas(t)">
+                                      <i class="fa-regular fa-comments" style="font-size: 1.1rem;"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-light text-secondary border-0 p-1"
+                                      title="Visualizar Histórico" (click)="abrirHistorico(t)">
+                                      <i class="fa-solid fa-clock-rotate-left" style="font-size: 1.1rem;"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                            <nav aria-label="Page navigation" class="mt-3" *ngIf="totalPagesFinanceiro > 1">
+                              <ul class="pagination pagination-sm justify-content-end mb-0">
+                                <li class="page-item" [class.disabled]="pageFinanceiro === 1">
+                                  <button class="page-link"
+                                    (click)="pageFinanceiro = pageFinanceiro - 1">Anterior</button>
+                                </li>
+                                <li class="page-item disabled"><span class="page-link">Pág {{pageFinanceiro}} de
+                                    {{totalPagesFinanceiro}}</span></li>
+                                <li class="page-item" [class.disabled]="pageFinanceiro === totalPagesFinanceiro">
+                                  <button class="page-link"
+                                    (click)="pageFinanceiro = pageFinanceiro + 1">Próxima</button>
+                                </li>
+                              </ul>
+                            </nav>
+                          </div>
+                        </div>
+                      </div>
+                    </div> <!-- Fechamento do Painel Atual -->
+                  </div>
+
+                </div>
+
+                <!-- DASHBOARD: LOGISTICA -->
+                <div *ngIf="dashboardTab() === 'logistica'">
+
+                  <!-- Painel: Atual -->
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h5 class="fw-bold text-secondary mb-0 ms-1">Atual</h5>
+                      <span
+                        class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle px-3 py-2"
+                        style="font-size: 0.85rem;">
+                        <i class="fa-regular fa-calendar me-2"></i>{{ dataHoje | date:'dd/MM/yyyy' }}
+                      </span>
+                    </div>
+                    <div class="row g-4">
+                      <div class="col-12 col-md-6">
+                        <div
+                          class="dash-chart-card p-4 bg-white border rounded-3 shadow-sm d-flex justify-content-between align-items-center h-100">
+                          <div>
+                            <p class="text-muted text-uppercase mb-1"
+                              style="font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em;">Sem Data de Entrega
+                            </p>
+                            <h3 class="fw-bold mb-0 text-warning">{{ kpiSemEntregaAtual | currency:'BRL' }}</h3>
+                          </div>
+                          <div class="text-end">
+                            <span class="badge"
+                              [ngClass]="evolucaoSemEntrega > 0 ? 'bg-danger bg-opacity-10 text-danger' : 'bg-success bg-opacity-10 text-success'">
+                              <i class="fa-solid me-1"
+                                [ngClass]="evolucaoSemEntrega > 0 ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'"></i>
+                              {{ evolucaoSemEntrega > 0 ? '+' : '' }}{{ evolucaoSemEntrega }}% vs ontem
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <div
+                          class="dash-chart-card p-4 bg-white border rounded-3 shadow-sm d-flex justify-content-between align-items-center h-100">
+                          <div>
+                            <p class="text-muted text-uppercase mb-1"
+                              style="font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em;">Devolução</p>
+                            <h3 class="fw-bold mb-0 text-danger">{{ kpiDevolucaoAtual | currency:'BRL' }}</h3>
+                          </div>
+                          <div class="text-end">
+                            <span class="badge"
+                              [ngClass]="evolucaoDevolucao > 0 ? 'bg-danger bg-opacity-10 text-danger' : 'bg-success bg-opacity-10 text-success'">
+                              <i class="fa-solid me-1"
+                                [ngClass]="evolucaoDevolucao > 0 ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'"></i>
+                              {{ evolucaoDevolucao > 0 ? '+' : '' }}{{ evolucaoDevolucao }}% vs ontem
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="mt-4 border-top pt-4">
+                      <div class="row g-4 mb-4">
+                        <div class="col-12 col-xl-6">
+                          <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                              <h6 class="mb-0 fw-semibold text-secondary">Títulos Sem Entrega</h6>
+                              <div class="config-toolbar mb-0">
+                                <div class="search-box">
+                                  <i class="fa-solid fa-search text-muted position-absolute"
+                                    style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+                                  <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
+                                    [(ngModel)]="searchSemEntrega" (ngModelChange)="pageSemEntrega = 1"
+                                    style="padding-left: 28px;">
+                                </div>
+                              </div>
+                            </div>
+                            <table class="saas-table w-100 mt-2">
+                              <thead>
+                                <tr>
+                                  <th>Título</th>
+                                  <th>Cliente</th>
+                                  <th>Vencimento</th>
+                                  <th class="text-end">Valor</th>
+                                  <th class="text-center">Tratativas/Histórico</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr *ngFor="let g of paginatedSemEntrega">
+                                  <td>{{ g.titulo }}</td>
+                                  <td>{{ g.cliente }}</td>
+                                  <td>{{ g.vencimento | date:'dd/MM/yyyy' }}</td>
+                                  <td class="text-end"><span
+                                      class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning-subtle px-2 py-1">{{
+                                      g.valor | currency:'BRL' }}</span></td>
+                                  <td class="text-center">
+                                    <button class="btn btn-sm btn-light text-secondary border-0 p-1 me-1"
+                                      title="Visualizar tratativas" (click)="abrirTratativas(g)">
+                                      <i class="fa-regular fa-comments" style="font-size: 1.1rem;"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-light text-secondary border-0 p-1"
+                                      title="Visualizar Histórico" (click)="abrirHistorico(g)">
+                                      <i class="fa-solid fa-clock-rotate-left" style="font-size: 1.1rem;"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                                <tr *ngIf="paginatedSemEntrega.length === 0">
+                                  <td colspan="5" class="text-center text-muted py-3">Nenhum título encontrado.</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                            <nav aria-label="Page navigation" class="mt-3" *ngIf="totalPagesSemEntrega > 1">
+                              <ul class="pagination pagination-sm justify-content-end mb-0">
+                                <li class="page-item" [class.disabled]="pageSemEntrega === 1">
+                                  <button class="page-link"
+                                    (click)="pageSemEntrega = pageSemEntrega - 1">Anterior</button>
+                                </li>
+                                <li class="page-item disabled"><span class="page-link">Pág {{pageSemEntrega}} de
+                                    {{totalPagesSemEntrega}}</span></li>
+                                <li class="page-item" [class.disabled]="pageSemEntrega === totalPagesSemEntrega">
+                                  <button class="page-link"
+                                    (click)="pageSemEntrega = pageSemEntrega + 1">Próxima</button>
+                                </li>
+                              </ul>
+                            </nav>
+                          </div>
+                        </div>
+                        <div class="col-12 col-xl-6">
+                          <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                              <h6 class="mb-0 fw-semibold text-secondary">Títulos em Devolução</h6>
+                              <div class="config-toolbar mb-0">
+                                <div class="search-box">
+                                  <i class="fa-solid fa-search text-muted position-absolute"
+                                    style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+                                  <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
+                                    [(ngModel)]="searchDevolucao" (ngModelChange)="pageDevolucao = 1"
+                                    style="padding-left: 28px;">
+                                </div>
+                              </div>
+                            </div>
+                            <table class="saas-table w-100 mt-2">
+                              <thead>
+                                <tr>
+                                  <th>Título</th>
+                                  <th>Cliente</th>
+                                  <th>Vencimento</th>
+                                  <th class="text-end">Valor</th>
+                                  <th class="text-center">Tratativas/Histórico</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr *ngFor="let g of paginatedDevolucao">
+                                  <td>{{ g.titulo }}</td>
+                                  <td>{{ g.cliente }}</td>
+                                  <td>{{ g.vencimento | date:'dd/MM/yyyy' }}</td>
+                                  <td class="text-end"><span
+                                      class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1">{{
+                                      g.valor | currency:'BRL' }}</span></td>
+                                  <td class="text-center">
+                                    <button class="btn btn-sm btn-light text-secondary border-0 p-1 me-1"
+                                      title="Visualizar tratativas" (click)="abrirTratativas(g)">
+                                      <i class="fa-regular fa-comments" style="font-size: 1.1rem;"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-light text-secondary border-0 p-1"
+                                      title="Visualizar Histórico" (click)="abrirHistorico(g)">
+                                      <i class="fa-solid fa-clock-rotate-left" style="font-size: 1.1rem;"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                                <tr *ngIf="paginatedDevolucao.length === 0">
+                                  <td colspan="5" class="text-center text-muted py-3">Nenhum título encontrado.</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                            <nav aria-label="Page navigation" class="mt-3" *ngIf="totalPagesDevolucao > 1">
+                              <ul class="pagination pagination-sm justify-content-end mb-0">
+                                <li class="page-item" [class.disabled]="pageDevolucao === 1">
+                                  <button class="page-link"
+                                    (click)="pageDevolucao = pageDevolucao - 1">Anterior</button>
+                                </li>
+                                <li class="page-item disabled"><span class="page-link">Pág {{pageDevolucao}} de
+                                    {{totalPagesDevolucao}}</span></li>
+                                <li class="page-item" [class.disabled]="pageDevolucao === totalPagesDevolucao">
+                                  <button class="page-link" (click)="pageDevolucao = pageDevolucao + 1">Próxima</button>
+                                </li>
+                              </ul>
+                            </nav>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  <div class="row g-4 mb-4">
+                    <div class="col-12 col-md-6">
+                      <div
+                        class="dash-chart-card p-4 bg-white border rounded-3 shadow-sm d-flex flex-column align-items-center justify-content-center">
+                        <p class="text-muted text-uppercase mb-1"
+                          style="font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em;">Total em Títulos S/
+                          Entrega</p>
+                        <h3 class="fw-bold mb-0 text-warning">{{ kpiSemEntrega | currency:'BRL' }}</h3>
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <div
+                        class="dash-chart-card p-4 bg-white border rounded-3 shadow-sm d-flex flex-column align-items-center justify-content-center">
+                        <p class="text-muted text-uppercase mb-1"
+                          style="font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em;">Total de Títulos em
+                          Devolução</p>
+                        <h3 class="fw-bold mb-0 text-danger">{{ kpiDevolucao | currency:'BRL' }}</h3>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row g-4 mb-4">
+                    <div class="col-12 col-xl-6">
+                      <div class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm">
+                        <h6 class="mb-3 fw-semibold text-secondary">Ocorrências Sem Data de Entrega (Mês a Mês)</h6>
+                        <div echarts *ngIf="chartOptionsSemEntrega" [options]="chartOptionsSemEntrega"
+                          class="chart-container" style="min-height: 280px;"></div>
+                      </div>
+                    </div>
+                    <div class="col-12 col-xl-6">
+                      <div class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm">
+                        <h6 class="mb-3 fw-semibold text-secondary">Ocorrências de Devolução (Mês a Mês)</h6>
+                        <div echarts *ngIf="chartOptionsDevolucao" [options]="chartOptionsDevolucao"
+                          class="chart-container" style="min-height: 280px;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- DASHBOARD: COMERCIAL -->
+                <div *ngIf="dashboardTab() === 'comercial'">
+
+                  <!-- Painel: Atual -->
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
+                    <h5 class="fw-bold text-secondary mb-0 ms-1">Atual</h5>
+                    <div class="d-flex align-items-center ms-1 mb-4">
+                      <span class="badge bg-light text-secondary border fw-normal px-2 py-1">
+                        <i class="fa-regular fa-calendar me-2"></i>{{ dataHoje | date:'dd/MM/yyyy' }}
+                      </span>
+                    </div>
+
+                    <div class="row g-4">
+                      <div class="col-12">
+                        <div
+                          class="dash-chart-card p-4 bg-white border rounded-3 shadow-sm d-flex flex-column align-items-center justify-content-center">
+                          <p class="text-muted text-uppercase mb-1"
+                            style="font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em;">Total em Acordo
+                            Comercial</p>
+                          <h3 class="fw-bold mb-0 text-primary">{{ kpiTotalAcordos | currency:'BRL' }}</h3>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row g-4 mt-4 pt-4 border-top">
+                      <div class="col-12">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0 fw-semibold text-secondary">Títulos em Acordo Comercial</h6>
+                            <div class="config-toolbar mb-0">
+                              <div class="search-box">
+                                <i class="fa-solid fa-search text-muted position-absolute"
+                                  style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+                                <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
+                                  [(ngModel)]="searchAcordos" (ngModelChange)="pageAcordos = 1"
+                                  style="padding-left: 28px;">
+                              </div>
+                            </div>
+                          </div>
+                          <table class="saas-table w-100 mt-2">
+                            <thead>
+                              <tr>
+                                <th>Título</th>
+                                <th>Cliente</th>
+                                <th>Vencimento</th>
+                                <th>Status</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-center">Tratativas/Histórico</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let ga of paginatedAcordos">
+                                <td>{{ ga.titulo }}</td>
+                                <td>{{ ga.cliente }}</td>
+                                <td>{{ ga.vencimento | date:'dd/MM/yyyy' }}</td>
+                                <td><span
+                                    class="badge rounded-pill bg-{{ga.statusColor}} bg-opacity-10 text-{{ga.statusColor}} border border-{{ga.statusColor}}-subtle px-2 py-1">{{
+                                    ga.status }}</span></td>
+                                <td class="text-end"><span
+                                    class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary-subtle px-2 py-1">{{
+                                    ga.valor | currency:'BRL' }}</span></td>
+                                <td class="text-center">
+                                  <button class="btn btn-sm btn-light text-secondary border-0 p-1 me-1"
+                                    title="Visualizar tratativas" (click)="abrirTratativas(ga)">
+                                    <i class="fa-regular fa-comments" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm btn-light text-secondary border-0 p-1"
+                                    title="Visualizar Histórico" (click)="abrirHistorico(ga)">
+                                    <i class="fa-solid fa-clock-rotate-left" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                </td>
+                              </tr>
+                              <tr *ngIf="paginatedAcordos.length === 0">
+                                <td colspan="6" class="text-center text-muted py-3">Nenhum título encontrado.</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <nav aria-label="Page navigation" class="mt-3" *ngIf="totalPagesAcordos > 1">
+                            <ul class="pagination pagination-sm justify-content-end mb-0">
+                              <li class="page-item" [class.disabled]="pageAcordos === 1">
+                                <button class="page-link" (click)="pageAcordos = pageAcordos - 1">Anterior</button>
+                              </li>
+                              <li class="page-item disabled"><span class="page-link">Pág {{pageAcordos}} de
+                                  {{totalPagesAcordos}}</span></li>
+                              <li class="page-item" [class.disabled]="pageAcordos === totalPagesAcordos">
+                                <button class="page-link" (click)="pageAcordos = pageAcordos + 1">Próxima</button>
+                              </li>
+                            </ul>
+                          </nav>
+                        </div>
+                      </div>
+                    </div>
+                  </div> <!-- Fechamento do Painel Atual -->
+
+                  <div class="row g-4 mb-4">
+                    <div class="col-12 col-xl-4 h-100">
+                      <div class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm">
+                        <h6 class="mb-3 fw-semibold text-secondary">Maiores Acordos Comerciais</h6>
+                        <table class="saas-table w-100 mt-2">
+                          <thead>
+                            <tr>
+                              <th>Título</th>
+                              <th>Cliente</th>
+                              <th class="text-end">Valor</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr *ngFor="let a of rankingAcordos">
+                              <td>{{ a.titulo }}</td>
+                              <td>{{ a.cliente }}</td>
+                              <td class="text-end"><span
+                                  class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary-subtle px-2 py-1">{{
+                                  a.valor | currency:'BRL' }}</span></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div class="col-12 col-xl-8 h-100">
+                      <div class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm d-flex flex-column">
+                        <h6 class="mb-3 fw-semibold text-secondary">Ocorrência de Acordos Comerciais (Mês a Mês)</h6>
+                        <div echarts *ngIf="chartOptionsAcordos" [options]="chartOptionsAcordos"
+                          class="chart-container flex-grow-1 w-100" style="min-height: 280px;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </main>
           </div>
         </div>
-        
-        <!-- Tab Pendências -->
-        <div class="tab-pane fade" [class.show]="activeTab === 'pendencias'" [class.active]="activeTab === 'pendencias'" role="tabpanel">
-          <app-pendencias></app-pendencias>
-        </div>
-
       </div>
     </main>
   </div>
 </div>
 
+
+<!-- Tab PendÃªncias -->
+<div class="tab-pane fade" [class.show]="activeTab === 'pendencias'" [class.active]="activeTab === 'pendencias'"
+  role="tabpanel">
+  <div class="config-layout">
+    <div class="dashboard-header border-bottom">
+      <h3 class="mb-0 p-3" style="font-size: 1.5rem; font-weight: 600;">PendÃªncias</h3>
+    </div>
+    <div class="">
+      <!-- ConteÃºdo de PendÃªncias virÃ¡ aqui -->
+      <app-pendencias></app-pendencias>
+    </div>
+  </div>
+</div>
+
+<!-- Tab AtualizaÃ§Ã£o de Dados -->
+<div class="tab-pane fade" [class.show]="activeTab === 'atualizacao-dados'"
+  [class.active]="activeTab === 'atualizacao-dados'" role="tabpanel">
+  <div class="panel-container pt-0">
+
+    <!-- Upload Box Card -->
+    <div class="import-card-premium">
+      <div class="import-card-header">
+        <div class="import-card-icon">
+          <i class="fa-solid fa-database"></i>
+        </div>
+        <div class="import-card-meta">
+          <h3>AtualizaÃ§Ã£o de Dados</h3>
+          <p>Carregue a planilha correspondente para atualizar as informaÃ§Ãµes do sistema.</p>
+        </div>
+      </div>
+
+      <div class="upload-fields-row mb-3">
+        <div class="upload-field-box">
+          <label class="form-label">Planilha de AtualizaÃ§Ã£o (Excel)</label>
+          <div class="custom-upload-zone" (click)="triggerUploadAtualizacao()"
+            [class.has-file]="selectedFileAtualizacao() !== null"
+            [style.pointer-events]="isImportandoDados() ? 'none' : 'auto'"
+            [style.opacity]="isImportandoDados() ? '0.6' : '1'">
+            @if (selectedFileAtualizacao()) {
+            <i class="fa-regular fa-file-excel fs-3 text-success"></i>
+            <div class="upload-text">
+              <span class="file-selected-name text-success">{{ selectedFileAtualizacao()?.name }}</span>
+              <span class="d-block text-muted mt-1" style="font-size: 11px;">Planilha carregada! Clique em
+                "Atualizar Dados" para processar.</span>
+            </div>
+            } @else {
+            <i class="fa-regular fa-file-excel fs-3 text-success"></i>
+            <div class="upload-text">
+              <span>Carregar Planilha de AtualizaÃ§Ã£o</span>
+            </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="import-actions-row d-flex align-items-center">
+        <app-button variant="primary" icon="fa-solid fa-arrows-rotate"
+          [disabled]="!selectedFileAtualizacao() || isImportandoDados()" [loading]="isImportandoDados()"
+          (clicked)="processarAtualizacaoDados()">
+          {{ isImportandoDados() ? 'Importando...' : 'Atualizar Dados' }}
+        </app-button>
+        @if (isImportandoDados()) {
+        <div class="progress-container flex-grow-1 ms-4" style="max-width: 400px;">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="text-primary fw-semibold small" style="font-size: 0.85rem;">{{ importacaoProgressMsg()
+              }}</span>
+            <span class="text-primary fw-bold small" style="font-size: 0.85rem;">{{ importacaoProgressPercent()
+              }}%</span>
+          </div>
+          <div class="progress" style="height: 10px; border-radius: 8px; background-color: rgba(13, 110, 253, 0.1);">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar"
+              [style.width]="importacaoProgressPercent() + '%'" style="border-radius: 8px;">
+            </div>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+
+    <!-- AtualizaÃ§Ãµes History Header -->
+    <div class="section-header d-flex justify-content-between align-items-center mb-3 mt-5">
+      <div>
+        <h3>Ãšltimas AtualizaÃ§Ãµes Realizadas</h3>
+        <p>Acompanhe os arquivos de atualizaÃ§Ã£o de dados processados recentemente.</p>
+      </div>
+      <div class="search-box" style="max-width: 300px; width: 100%;">
+        <i class="fa-solid fa-search text-muted"></i>
+        <input type="text" placeholder="Buscar atualizaÃ§Ã£o..." [ngModel]="searchAtualizacao()"
+          (ngModelChange)="searchAtualizacao.set($event)">
+      </div>
+    </div>
+
+    <!-- AtualizaÃ§Ãµes History Table (SaaS Style) -->
+    <div class="table-card mb-5">
+      <div class="table-responsive">
+        <table class="saas-table">
+          <thead>
+            <tr>
+              <th style="width: 18%;">Data/Hora</th>
+              <th style="width: 52%;">Arquivo de Origem</th>
+              <th style="width: 15%;">Tipo</th>
+              <th style="width: 10%;">UsuÃ¡rio</th>
+              <th style="width: 5%; text-align: center;">AÃ§Ãµes</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (history of filteredAtualizacaoHistory(); track history.idImportacoes) {
+            <tr>
+              <td class="font-monospace small">{{ formatarData(history.createdAt) }}</td>
+              <td>
+                <div class="file-cell">
+                  <i class="fa-regular fa-file-excel text-success fs-5"
+                    *ngIf="history.nomeArquivo.endsWith('.xlsx') || history.nomeArquivo.endsWith('.xls') || history.nomeArquivo.endsWith('.csv')"></i>
+                  <i class="fa-regular fa-file text-muted fs-5"
+                    *ngIf="!history.nomeArquivo.endsWith('.xlsx') && !history.nomeArquivo.endsWith('.xls') && !history.nomeArquivo.endsWith('.csv')"></i>
+                  <span>{{ history.nomeArquivo }}</span>
+                </div>
+              </td>
+              <td class="text-muted small">{{ history.tipo }}</td>
+              <td>
+                <span class="text-muted small fw-medium text-nowrap">
+                  <i class="fa-regular fa-user me-1"></i>{{ history.autor || '-' }}
+                </span>
+              </td>
+              <td class="text-center">
+                <div class="actions-cell justify-content-center">
+                  <button class="action-btn delete-btn" title="Excluir"
+                    (click)="excluirAtualizacao(history.idImportacoes)">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            }
+            @if (filteredAtualizacaoHistory().length === 0) {
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">
+                Nenhuma atualizaÃ§Ã£o encontrada.
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Tratativas -->
 <app-modal [isOpen]="isTratativasModalOpen"
-  [title]="'Tratativas - T�tulo ' + (tituloSelecionadoTratativas?.titulo || '')" size="md"
+  [title]="'Tratativas - Título ' + (tituloSelecionadoTratativas?.titulo || '')" size="md"
   (closed)="fecharTratativas()">
 
   <div class="p-2">
     <div *ngIf="tituloSelecionadoTratativas" class="mb-4 pb-3 border-bottom">
-      <h6 class="fw-semibold text-secondary mb-2">Cliente: {{ tituloSelecionadoTratativas.cliente }}</h6>
-      <p class="text-muted mb-0" style="font-size: 0.9rem;">
-        Valor: <span class="fw-bold">{{ tituloSelecionadoTratativas.valor | currency:'BRL' }}</span> |
-        Vencimento: <span class="fw-bold">{{ tituloSelecionadoTratativas.vencimento | date:'dd/MM/yyyy' }}</span>
-      </p>
+      <div class="row text-muted" style="font-size: 0.9rem;">
+        <div class="col-6">
+          <strong class="text-dark">Cliente:</strong> {{ tituloSelecionadoTratativas.cliente }}
+        </div>
+        <div class="col-6 text-end">
+          <strong class="text-dark">Vencimento:</strong> {{ tituloSelecionadoTratativas.vencimento |
+          date:'dd/MM/yyyy' }}
+        </div>
+        <div class="col-6 mt-2">
+          <strong class="text-dark">Valor:</strong> <span class="text-danger fw-semibold">{{
+            tituloSelecionadoTratativas.valor | currency:'BRL' }}</span>
+        </div>
+        <div class="col-6 text-end mt-2">
+          <span
+            class="badge status-badge bg-{{tituloSelecionadoTratativas.statusColor}} bg-opacity-10 text-{{tituloSelecionadoTratativas.statusColor}} border border-{{tituloSelecionadoTratativas.statusColor}}-subtle fw-normal px-2 py-1">{{
+            tituloSelecionadoTratativas.status }}</span>
+        </div>
+      </div>
     </div>
-    <div class="d-flex justify-content-center py-4">
-      <p class="text-muted mb-0"><i class="fa-regular fa-comments me-2"></i>Nenhuma tratativa registrada.</p>
+
+    <!-- Timeline / Lista de Tratativas -->
+    <div class="tratativas-list">
+      <div *ngFor="let tratativa of tratativasMock; let isLast = last" class="mb-3">
+        <div class="d-flex justify-content-between mb-1">
+          <span class="fw-semibold text-dark" style="font-size: 0.9rem;">
+            <i class="fa-solid fa-user-circle text-secondary me-1"></i> {{ tratativa.autor }}
+          </span>
+          <span class="text-muted" style="font-size: 0.8rem;">
+            <i class="fa-regular fa-clock me-1"></i> {{ tratativa.data | date:'dd/MM/yyyy HH:mm' }}
+          </span>
+        </div>
+        <div class="p-3 bg-light rounded-3 text-secondary border border-1"
+          style="font-size: 0.9rem; line-height: 1.5; border-color: #f1f5f9 !important;">
+          {{ tratativa.conteudo }}
+        </div>
+      </div>
+
+      <div *ngIf="tratativasMock.length === 0" class="text-center text-muted py-4">
+        Nenhuma tratativa registrada para este título.
+      </div>
     </div>
+  </div>
+
+  <div modal-footer class="w-100 d-flex justify-content-end gap-2 pt-2 border-top">
+    <app-button variant="ghost" (clicked)="fecharTratativas()">Fechar</app-button>
+    <app-button variant="primary"><i class="fa-solid fa-plus me-2"></i>Nova Tratativa</app-button>
   </div>
 </app-modal>
 
 <!-- Modal Histórico -->
-<app-modal [isOpen]="isHistoricoModalOpen"
-  [title]="'Histórico - Título ' + (tituloSelecionadoHistorico?.titulo || '')" size="md"
-  (closed)="fecharHistorico()">
+<app-modal [isOpen]="isHistoricoModalOpen" [title]="'Histórico do Título ' + (tituloSelecionadoHistorico?.titulo || '')"
+  size="md" (closed)="fecharHistorico()">
 
   <div class="p-2">
     <div *ngIf="tituloSelecionadoHistorico" class="mb-4 pb-3 border-bottom">
-      <h6 class="fw-semibold text-secondary mb-2">Cliente: {{ tituloSelecionadoHistorico.cliente }}</h6>
-      <p class="text-muted mb-0" style="font-size: 0.9rem;">
-        Valor: <span class="fw-bold">{{ tituloSelecionadoHistorico.valor | currency:'BRL' }}</span> |
-        Vencimento: <span class="fw-bold">{{ tituloSelecionadoHistorico.vencimento | date:'dd/MM/yyyy' }}</span>
-      </p>
+      <div class="row text-muted" style="font-size: 0.9rem;">
+        <div class="col-6">
+          <strong class="text-dark">Cliente:</strong> {{ tituloSelecionadoHistorico.cliente }}
+        </div>
+        <div class="col-6 text-end">
+          <strong class="text-dark">Vencimento:</strong> {{ tituloSelecionadoHistorico.vencimento |
+          date:'dd/MM/yyyy' }}
+        </div>
+        <div class="col-6 mt-2">
+          <strong class="text-dark">Valor:</strong> <span class="text-danger fw-semibold">{{
+            tituloSelecionadoHistorico.valor | currency:'BRL' }}</span>
+        </div>
+      </div>
     </div>
-    <div class="d-flex justify-content-center py-4">
-      <p class="text-muted mb-0"><i class="fa-solid fa-clock-rotate-left me-2"></i>Nenhum histórico disponível.</p>
+
+    <!-- Timeline Vertical -->
+    <div class="position-relative ms-2 ms-md-4 mt-4" style="border-left: 2px solid #e2e8f0;">
+      <div *ngFor="let item of historicoMock; let i = index" class="position-relative mb-4"
+        style="padding-left: 1.5rem;">
+        <!-- Bullet point -->
+        <span class="position-absolute rounded-circle bg-white border border-2 border-primary"
+          style="width: 14px; height: 14px; left: -8px; top: 4px;"></span>
+
+        <div class="d-flex justify-content-between mb-1">
+          <strong class="text-dark" style="font-size: 0.95rem;">{{ item.fase }}</strong>
+          <span class="text-muted" style="font-size: 0.8rem;">
+            <i class="fa-regular fa-clock me-1"></i> {{ item.data | date:'dd/MM/yyyy HH:mm' }}
+          </span>
+        </div>
+
+        <div class="mb-1">
+          <span class="badge bg-secondary bg-opacity-10 text-secondary border px-2 py-1"
+            style="font-size: 0.75rem; font-weight: 500;">
+            {{ item.status }}
+          </span>
+        </div>
+
+        <p class="text-muted mb-0" style="font-size: 0.85rem; line-height: 1.4;">
+          {{ item.descricao }}
+        </p>
+      </div>
+
+      <div *ngIf="historicoMock.length === 0" class="text-center text-muted py-4">
+        Nenhum registro de histórico para este título.
+      </div>
     </div>
+  </div>
+
+  <div modal-footer class="w-100 d-flex justify-content-end pt-2 border-top">
+    <app-button variant="ghost" (clicked)="fecharHistorico()">Fechar</app-button>
   </div>
 </app-modal>
