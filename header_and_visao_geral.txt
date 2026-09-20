@@ -1,0 +1,166 @@
+<div class="page-container">
+  <div class="main-layout">
+
+    <!-- Sidebar -->
+    <aside class="main-sidebar" [class.collapsed]="isSidebarCollapsed">
+      <div class="sidebar-header d-flex justify-content-end mb-3 pb-2 border-bottom">
+        <button class="btn btn-sm text-muted sidebar-toggle" (click)="toggleSidebar()"
+          style="background: transparent; border: none; padding: 0.25rem 0.5rem; border-radius: 6px;">
+          <i class="fa-solid" [ngClass]="isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+        </button>
+      </div>
+
+      <ul class="main-nav">
+        <li>
+          <button class="main-nav-link" [class.active]="activeTab === 'dashboards'" (click)="setActiveTab('dashboards')"
+            title="Dashboards">
+            <i class="fa-solid fa-chart-line"></i> <span class="nav-text">Dashboards</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeTab === 'pendencias'" (click)="setActiveTab('pendencias')"
+            title="PendÃªncias">
+            <i class="fa-solid fa-triangle-exclamation"></i> <span class="nav-text">PendÃªncias</span>
+          </button>
+        </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeTab === 'atualizacao-dados'"
+            (click)="setActiveTab('atualizacao-dados')" title="AtualizaÃ§Ã£o de Dados">
+            <i class="fa-solid fa-database"></i> <span class="nav-text">AtualizaÃ§Ã£o de Dados</span>
+          </button>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="tab-content custom-tab-content">
+
+        <!-- Tab Dashboards -->
+        <div class="tab-pane fade" [class.show]="activeTab === 'dashboards'" [class.active]="activeTab === 'dashboards'"
+          role="tabpanel">
+          <div class="config-layout">
+            <div class="dashboard-header d-flex justify-content-between align-items-center border-bottom pt-2">
+              <ul class="config-nav mb-0 border-bottom-0 pb-0 px-3">
+                <li class="config-nav-item">
+                  <button class="config-nav-link" [class.active]="dashboardTab() === 'visao-geral'"
+                    (click)="setDashboardTab('visao-geral')">
+                    Visão Geral
+                  </button>
+                </li>
+                <li class="config-nav-item">
+                  <button class="config-nav-link" [class.active]="dashboardTab() === 'financeiro'"
+                    (click)="setDashboardTab('financeiro')">
+                    Financeiro
+                  </button>
+                </li>
+                <li class="config-nav-item">
+                  <button class="config-nav-link" [class.active]="dashboardTab() === 'logistica'"
+                    (click)="setDashboardTab('logistica')">
+                    Logística
+                  </button>
+                </li>
+                <li class="config-nav-item">
+                  <button class="config-nav-link" [class.active]="dashboardTab() === 'comercial'"
+                    (click)="setDashboardTab('comercial')">
+                    Comercial
+                  </button>
+                </li>
+              </ul>
+            </div>
+            <main class="dashboard-content px-2 pb-3 pt-0 px-md-4 pb-md-4 pt-md-1" style="flex-grow: 1;">
+              <p class="text-muted mb-3 mt-0" style="font-size: 0.95rem;">nsolidada de pagamentos em atraso, evolução de
+                protestos e ranking de pendências.</p>
+
+              <!-- SKELETON LOADING -->
+              <div *ngIf="isDashboardLoading()">
+                <!-- SKELETON: VISÃO GERAL -->
+                <div *ngIf="dashboardTab() === 'visao-geral'">
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
+                    <h5 class="fw-bold text-secondary mb-3 ms-1">Financeiro</h5>
+                    <div class="row g-4">
+                      <div class="col-12 col-xl-4">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm"><app-skeleton type="text"
+                            width="60%" height="18px" class="mb-3"></app-skeleton><app-skeleton type="rect" width="100%"
+                            height="250px"></app-skeleton></div>
+                      </div>
+                      <div class="col-12 col-xl-4">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm"><app-skeleton type="text"
+                            width="60%" height="18px" class="mb-3"></app-skeleton><app-skeleton type="rect" width="100%"
+                            height="250px"></app-skeleton></div>
+                      </div>
+                      <div class="col-12 col-xl-4">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm"><app-skeleton type="text"
+                            width="60%" height="18px" class="mb-3"></app-skeleton><app-skeleton type="rect" width="100%"
+                            height="250px"></app-skeleton></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
+                    <h5 class="fw-bold text-secondary mb-3 ms-1">Logística</h5>
+                    <div class="row g-4">
+                      <div class="col-12 col-xl-6">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm"><app-skeleton type="text"
+                            width="40%" height="18px" class="mb-3"></app-skeleton><app-skeleton type="rect" width="100%"
+                            height="250px"></app-skeleton></div>
+                      </div>
+                      <div class="col-12 col-xl-6">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm"><app-skeleton type="text"
+                            width="40%" height="18px" class="mb-3"></app-skeleton><app-skeleton type="rect" width="100%"
+                            height="250px"></app-skeleton></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
+                    <h5 class="fw-bold text-secondary mb-3 ms-1">Comercial</h5>
+                    <div class="row g-4">
+                      <div class="col-12 col-xl-6">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm"><app-skeleton type="text"
+                            width="50%" height="18px" class="mb-3"></app-skeleton><app-skeleton type="rect" width="100%"
+                            height="280px"></app-skeleton></div>
+                      </div>
+                      <div class="col-12 col-xl-6">
+                        <div class="row g-4">
+                          <div class="col-12">
+                            <div
+                              class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm d-flex flex-column align-items-center justify-content-center"
+                              style="height: 120px;"><app-skeleton type="text" width="60%" height="14px"
+                                class="mb-2"></app-skeleton><app-skeleton type="rect" width="40%"
+                                height="32px"></app-skeleton></div>
+                          </div>
+                          <div class="col-12">
+                            <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm" style="height: 140px;">
+                              <app-skeleton type="text" width="40%" height="18px"
+                                class="mb-3"></app-skeleton><app-skeleton type="rect" width="100%"
+                                height="80px"></app-skeleton></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- SKELETON: FINANCEIRO -->
+                <div *ngIf="dashboardTab() === 'financeiro'">
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
+                    <h5 class="fw-bold text-secondary mb-3 ms-1">Atual</h5>
+                    <div class="row g-4">
+                      <div class="col-12 col-md-6">
+                        <div
+                          class="dash-chart-card p-4 bg-white border rounded-3 shadow-sm d-flex flex-column justify-content-center">
+                          <app-skeleton type="text" width="40%" height="14px" class="mb-2"></app-skeleton>
+                          <app-skeleton type="rect" width="50%" height="32px"
+                            [style.border-radius]="'8px'"></app-skeleton>
+                        </div>
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <div
+                          class="dash-chart-card p-4 bg-white border rounded-3 shadow-sm d-flex flex-column justify-content-center">
+                          <app-skeleton type="text" width="40%" height="14px" class="mb-2"></app-skeleton>
+                          <app-skeleton type="rect" width="50%" height="32px"
+                            [style.border-radius]="'8px'"></app-skeleton>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="row g-4 mt-4 pt-4 border-top">
+                      <div class="col-12">

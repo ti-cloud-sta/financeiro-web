@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
+from app.models.cargo_colaborador import CargoColaborador # Fixes mapper resolution
 
 class Colaborador(Base):
     __tablename__ = "colaboradores"

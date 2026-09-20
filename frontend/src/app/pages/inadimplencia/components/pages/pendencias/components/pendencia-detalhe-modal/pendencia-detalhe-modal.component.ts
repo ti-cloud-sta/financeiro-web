@@ -133,6 +133,15 @@ export class PendenciaDetalheModalComponent implements OnChanges {
   @ViewChild('composeBody') composeBodyRef?: ElementRef<HTMLDivElement>;
   @ViewChild('anexoInput') anexoInputRef?: ElementRef<HTMLInputElement>;
 
+  /**
+   * URL pública da assinatura — deve ser acessível externamente para que
+   * clientes de e-mail (Gmail, Outlook, etc.) consigam carregar a imagem.
+   * Base64 é bloqueada por muitos clientes por políticas de segurança.
+   */
+  readonly ASSINATURA_URL = 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjFFw0P_XxmH9v5vpY_xD7PMIP1q2rv_5mwb3CaGqd5rnz3ie-wGL7D8PieowH1fAoQt9AhuT2ehoXRV8AAErbImaEhVWn_qKwytXXoEd5QUK4Ms_fSEOZ7cJTJXmr90qTmNbbj8AcZ7-oBBwH0OXObMEr6wg6UXfzxgf2ibk8vh6fRGNLl7RRsxA_Jm9k/s1600/Composi%C3%A7%C3%A3o-1-TANIA.gif';
+  /** Flag para avisar quando a assinatura não pôde ser carregada no editor */
+  assinaturaComErro = false;
+
   // Modais de confirmação/alerta (Design System / No native alert/confirm)
   alertaModalOpen = false;
   alertaTitulo = '';
@@ -163,6 +172,7 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     }
     if (changes['isOpen'] && this.isOpen) {
       this.activeTab = 'tratativa';
+      this.assinaturaComErro = false;
       this.googleAuthService.verificarStatus().subscribe();
     }
   }
@@ -175,7 +185,8 @@ export class PendenciaDetalheModalComponent implements OnChanges {
       if (!this.composeAssunto && this.card) {
         this.composeAssunto = `Cobrança - Título ${this.card.title} - ${this.card.clientName}`;
       }
-      setTimeout(() => this.inserirAssinatura(), 100);
+      // Aguarda o próximo ciclo para garantir que @else if já renderizou o DOM
+      setTimeout(() => this.inserirAssinatura());
     } else if (tab === 'historico') {
       this.carregarHistorico();
     } else if (tab === 'tratativa') {
@@ -183,18 +194,38 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     }
   }
 
+  /**
+   * Insere a assinatura como <img> com URL pública no editor contenteditable.
+   * Adiciona handler onerror para avisar o usuário se a imagem não carregar.
+   */
   private inserirAssinatura() {
-    if (this.composeBodyRef && this.card) {
-      const el = this.composeBodyRef.nativeElement;
-      const htmlAtual = el.innerHTML.trim();
-      const assinaturaHtml = `<br><br><img src="${window.location.origin}/assets/images/assinatura.png" alt="Assinatura" style="max-width: 100%; height: auto;">`;
-      
-      if (!htmlAtual || htmlAtual === '<br>' || htmlAtual === '<div><br></div>') {
-        el.innerHTML = assinaturaHtml;
-      } else if (!htmlAtual.includes('assinatura.png')) {
-        el.innerHTML = htmlAtual + assinaturaHtml;
-      }
+    if (!this.composeBodyRef || !this.card) return;
+    const el = this.composeBodyRef.nativeElement;
+    const htmlAtual = el.innerHTML.trim();
+
+    // Identifica se a assinatura já foi inserida pela presença da URL
+    const assinaturaJaPresente = htmlAtual.includes(this.ASSINATURA_URL);
+    if (assinaturaJaPresente) return;
+
+    const assinaturaHtml = `<br><br><img
+      src="${this.ASSINATURA_URL}"
+      alt="Assinatura"
+      style="max-width: 200px; height: auto; display: block;"
+      onerror="this.style.display='none'; document.dispatchEvent(new CustomEvent('assinatura-erro'));"
+    >`;
+
+    if (!htmlAtual || htmlAtual === '<br>' || htmlAtual === '<div><br></div>') {
+      el.innerHTML = assinaturaHtml;
+    } else {
+      el.innerHTML = htmlAtual + assinaturaHtml;
     }
+
+    // Escuta o evento de erro disparado pelo onerror inline
+    const handler = () => {
+      this.assinaturaComErro = true;
+      document.removeEventListener('assinatura-erro', handler);
+    };
+    document.addEventListener('assinatura-erro', handler, { once: true });
   }
 
   aplicarTemplate(tipo: 'cobranca' | 'recobranca' | 'protesto' | 'sem_data' | 'devolucao') {
@@ -204,8 +235,8 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     const valorFormatado = (this.card.valorSaldo || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const dataVenc = this.card.dtVencimento ? new Date(this.card.dtVencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-';
     const parcela = this.card.parccela || '-';
-    const assinaturaHtml = `<br><br><img src="${window.location.origin}/assets/images/assinatura.png" alt="Assinatura" style="max-width: 100%; height: auto;">`;
-    
+    const assinaturaHtml = `<br><br><img src="${this.ASSINATURA_URL}" alt="Assinatura" style="max-width: 200px; height: auto; display: block;">`;
+
     let textoHtml = '';
 
     switch (tipo) {
@@ -596,7 +627,7 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
     });
   }
 
-  async enviarMensagem() {
+  enviarMensagem() {
     if (!this.card || this.isEnviandoEmail) return;
 
     const corpo = this.composeBodyRef?.nativeElement.innerHTML?.trim() || '';
@@ -615,15 +646,20 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
       return;
     }
 
-    // Se o usuário ainda não autorizou o Gmail, abre o popup primeiro
+    // Se o usuário ainda não autorizou o Gmail, abre o popup de autorização
     if (!this.googleAuthService.isConectado()) {
-      try {
-        await this.googleAuthService.iniciarAutorizacaoPopup();
-      } catch (err: any) {
-        this.mostrarAlerta('Autorização Necessária', 'É obrigatório conectar sua conta do Google antes de enviar e-mails.', 'danger');
-        return;
-      }
+      this.googleAuthService.iniciarAutorizacaoPopup()
+        .then(() => this._dispararEnvio(corpo))
+        .catch(() => this.mostrarAlerta('Autorização Necessária', 'É obrigatório conectar sua conta do Google antes de enviar e-mails.', 'danger'));
+      return;
     }
+
+    this._dispararEnvio(corpo);
+  }
+
+  /** Monta o FormData e faz o POST. O corpo já contém a URL pública da assinatura — nenhuma conversão necessária. */
+  private _dispararEnvio(corpo: string) {
+    if (!this.card) return;
 
     this.isEnviandoEmail = true;
 

@@ -1,0 +1,17 @@
+Created At: 2026-09-20T15:39:57-03:00
+Completed At: 2026-09-20T15:39:58-03:00
+
+				The command exited with code 0.
+				Output:
+				Found something! Length: 8329
+Found something! Length: 6303
+Found something! Length: 24374
+Created At: 2026-09-20T14:51:36-03:00
+Completed At: 2026-09-20T14:51:36-03:00
+File Path: `file:///c:/Users/JOE/Documents/GitHub/financeiro-web/frontend/src/app/pages/inadimplencia/inadimplencia.component.html`
+Total Lines: 901
+Total Bytes: 53866
+Showing lines 500 to 900
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and le
+Found something! Length: 1595
+

@@ -323,6 +323,19 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.01);
 }
 
+/* Badge de Status — mesmo padrão do Kanban */
+.status-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 12px;
+  white-space: nowrap;
+  display: inline-block;
+  width: fit-content;
+}
+
 .saas-table {
   width: 100%;
   border-collapse: collapse;
@@ -488,6 +501,11 @@
   }
 }
 
+.dash-kpi-panel {
+  border-color: #e2e8f0 !important; 
+  background-color: rgba(248, 250, 252, 0.4);
+}
+
 // SUPORTE AO DARK MODE GLOBAL
 :host-context([data-theme="dark"]),
 :host-context([data-bs-theme="dark"]) {
@@ -510,6 +528,125 @@
     &.has-file {
       background-color: rgba(5, 150, 105, 0.15) !important; // success-dark com opacidade
       border-color: #059669 !important; // success-dark
+    }
+  }
+
+  .dash-kpi-panel {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+}
+
+// =============================================
+// Timeline Vertical - Modal Histórico
+// =============================================
+.historico-timeline {
+  padding: 0 0.5rem;
+
+  .historico-timeline-item {
+    display: flex;
+    gap: 1rem;
+    position: relative;
+    padding-bottom: 1.5rem;
+
+    // Linha vertical conectora
+    &::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 38px;
+      bottom: 0;
+      width: 2px;
+      background: #e2e8f0;
+    }
+
+    &.last::before {
+      display: none;
+    }
+
+    .historico-timeline-icon {
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      z-index: 1;
+      position: relative;
+
+      // Default (secondary)
+      background: rgba(100, 116, 139, 0.12);
+      color: #64748b;
+      border: 2px solid rgba(100, 116, 139, 0.2);
+
+      &.icon-primary {
+        background: rgba(59, 130, 246, 0.12);
+        color: #3b82f6;
+        border-color: rgba(59, 130, 246, 0.25);
+      }
+      &.icon-success {
+        background: rgba(16, 185, 129, 0.12);
+        color: #10b981;
+        border-color: rgba(16, 185, 129, 0.25);
+      }
+      &.icon-warning {
+        background: rgba(245, 158, 11, 0.12);
+        color: #f59e0b;
+        border-color: rgba(245, 158, 11, 0.25);
+      }
+      &.icon-info {
+        background: rgba(6, 182, 212, 0.12);
+        color: #06b6d4;
+        border-color: rgba(6, 182, 212, 0.25);
+      }
+      &.icon-danger {
+        background: rgba(239, 68, 68, 0.12);
+        color: #ef4444;
+        border-color: rgba(239, 68, 68, 0.25);
+      }
+    }
+
+    .historico-timeline-content {
+      flex: 1;
+      padding-top: 0.35rem;
+      min-width: 0;
+    }
+  }
+}
+
+// Dark mode overrides
+[data-bs-theme='dark'] {
+  .historico-timeline {
+    .historico-timeline-item::before {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .historico-timeline-icon {
+      background: rgba(100, 116, 139, 0.2);
+      border-color: rgba(100, 116, 139, 0.3);
+
+      &.icon-primary {
+        background: rgba(59, 130, 246, 0.2);
+        border-color: rgba(59, 130, 246, 0.3);
+      }
+      &.icon-success {
+        background: rgba(16, 185, 129, 0.2);
+        border-color: rgba(16, 185, 129, 0.3);
+      }
+      &.icon-warning {
+        background: rgba(245, 158, 11, 0.2);
+        border-color: rgba(245, 158, 11, 0.3);
+      }
+      &.icon-info {
+        background: rgba(6, 182, 212, 0.2);
+        border-color: rgba(6, 182, 212, 0.3);
+      }
+    }
+
+    .historico-timeline-content .fw-semibold {
+      color: #e2e8f0 !important;
     }
   }
 }

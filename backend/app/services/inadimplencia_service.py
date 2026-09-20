@@ -5,13 +5,15 @@ import json
 from typing import Optional, Tuple
 import pandas as pd
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, func, cast, Date, desc
 
 from app.models.cliente import Cliente
 from app.models.matriz_cliente import MatrizCliente
 from app.models.unidade import Unidade
 from app.models.nf_pendencia import NfPendencia, VwNfPendenciaFase
 from app.models.tratativa import Tratativa
+from app.models.cliente_representante import ClienteRepresentante
+from app.models.colaborador import Colaborador
 from app.models.historico_pendencia import HistoricoPendencia
 from app.models.pendencia_mensagem import PendenciaMensagem
 from app.models.user import User
@@ -373,9 +375,10 @@ class InadimplenciaService:
                         mudancas.append("Status de encerramento reaberto para ativo")
 
                     # Efetivação e gravação de histórico
+                    pendencia_existente.idImportacoes = importacao.idImportacoes
+                    self.db.flush()
+
                     if is_prorrogacao:
-                        pendencia_existente.idImportacoes = importacao.idImportacoes
-                        self.db.flush()
                         descricao_hist = "Título prorrogado. Alterações: " + "; ".join(mudancas)
                         self._novo_historico(
                             pendencia_existente.idnfpendencias,
@@ -391,8 +394,7 @@ class InadimplenciaService:
                         )
                         prorrogadas += 1
                     elif len(mudancas) > 0:
-                        pendencia_existente.idImportacoes = importacao.idImportacoes
-                        self.db.flush()
+
 
                         # Histórico de Saldo se mudou
                         if mudou_saldo:
@@ -499,6 +501,7 @@ class InadimplenciaService:
                 for p_ativa in pendencias_ativas:
                     if p_ativa.idnfpendencias not in ids_processados_planilha:
                         p_ativa.encerrado = 'S'
+                        p_ativa.idImportacoes = importacao.idImportacoes
                         self.db.flush()
                         self._novo_historico(
                             p_ativa.idnfpendencias,
@@ -763,10 +766,24 @@ class InadimplenciaService:
     ) -> HistoricoPendencia:
         """Cria o registro e adiciona à sessão sem commitar - quem chama decide quando
         commitar (normalmente junto com a alteração principal, na mesma transação)."""
+        
+        # Fazemos um flush para garantir que alterações recentes (ex: nf.fase = 'NOVA_FASE')
+        # sejam enviadas ao banco, para que a view vw_nfpendencias_fase reflita a realidade atual.
+        self.db.flush()
+        
+        # Captura o estado atual da pendência na View
+        vw = self.db.query(VwNfPendenciaFase).filter_by(idnfpendencias=id_nf).first()
+        fase_atual = vw.fase if vw else None
+        status_atual = vw.status if vw else None
+        vencimento_atual = vw.dtVencimento if vw else None
+
         historico = HistoricoPendencia(
             idNfPendencias=id_nf,
             tipo=tipo,
             observacao=(observacao or "")[:500],
+            fase=fase_atual,
+            status=status_atual,
+            dtVencimento=vencimento_atual,
             idUserCreated=id_user,
             thread_id=thread_id,
             message_id=message_id,
@@ -797,23 +814,25 @@ class InadimplenciaService:
         user: Optional[User] = None,
     ) -> dict:
         """
-        Envia e-mail de cobrança/aviso da pendência via Gmail API (OAuth 2.0)
-        e registra o envio no histórico da pendência.
+        Envia e-mail de cobranca/aviso da pendencia via Gmail API (OAuth 2.0)
+        e registra o envio no historico da pendencia.
         """
         from app.services.google_auth_service import GoogleAuthService
         from app.services.gmail_service import GmailService
 
         nf = self.db.query(NfPendencia).filter(NfPendencia.idnfpendencias == id_nf).first()
         if not nf:
-            raise LookupError(f"Pendência {id_nf} não encontrada.")
+            raise LookupError(f"Pendencia {id_nf} nao encontrada.")
 
         if not user:
-            raise ValueError("Usuário não identificado.")
+            raise ValueError("Usuario nao identificado.")
 
-        # 1. Obter o access_token válido junto ao Google OAuth
+        # 1. Obter o access_token valido junto ao Google OAuth
         access_token = GoogleAuthService.obter_access_token_valido(user, self.db)
 
         # 2. Enviar a mensagem utilizando o GmailService
+        # O corpo HTML ja contem a URL publica da assinatura (enviada pelo frontend) —
+        # nenhuma conversao de imagem e necessaria no backend.
         resultado_envio = GmailService.enviar_email(
             access_token=access_token,
             destinatarios=destinatarios,
@@ -823,6 +842,7 @@ class InadimplenciaService:
             anexos=anexos,
             remetente_email=user.email if user else None,
         )
+
 
         # 3. Registrar o envio no histórico padrão
         obs = f"E-mail enviado via Gmail para: {destinatarios}. Assunto: {assunto}."
@@ -1176,3 +1196,614 @@ class InadimplenciaService:
                 return cand
 
         return None
+
+    # ---------------- DASHBOARDS ----------------
+    def get_dashboard_visao_geral(self) -> dict:
+        from sqlalchemy import func, extract, case, text, desc
+        from app.models.nf_pendencia import NfPendencia, VwNfPendenciaFase
+        from app.models.historico_pendencia import HistoricoPendencia
+        from app.models.cliente import Cliente
+        from app.models.colaborador import Colaborador
+        from app.models.cliente_representante import ClienteRepresentante
+        import datetime
+        from dateutil.relativedelta import relativedelta
+
+        data_atual = datetime.date.today()
+        
+        # 1. Gráfico Anual de títulos pagos fora do prazo (por mês do vencimento)
+        # Usaremos encerrado='S'
+        doze_meses_atras = data_atual - relativedelta(months=11)
+        doze_meses_atras = doze_meses_atras.replace(day=1)
+        
+        pagos_fora = (
+            self.db.query(
+                extract('month', NfPendencia.dtVencimento).label('mes'),
+                func.count(NfPendencia.idnfpendencias).label('qtd')
+            )
+            .filter(
+                NfPendencia.encerrado == 'S',
+                NfPendencia.dtVencimento >= doze_meses_atras
+            )
+            .group_by(extract('month', NfPendencia.dtVencimento))
+            .all()
+        )
+        
+        pagos_fora_dict = {int(p.mes): p.qtd for p in pagos_fora}
+        
+        # Construir array de 12 meses
+        meses_nomes = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+        labels_anual = []
+        dados_anual = []
+        for i in range(12):
+            dt = doze_meses_atras + relativedelta(months=i)
+            labels_anual.append(f"{meses_nomes[dt.month-1]}/{str(dt.year)[-2:]}")
+            dados_anual.append(pagos_fora_dict.get(dt.month, 0))
+
+        # 2. Gráfico Pizza: vencidos faixas
+        pendencias_abertas = self.db.query(NfPendencia).filter(
+            NfPendencia.encerrado == 'N',
+            NfPendencia.dtVencimento < data_atual
+        ).all()
+        
+        range_5 = 0
+        range_15 = 0
+        range_30_mais = 0
+        for p in pendencias_abertas:
+            if not p.dtVencimento: continue
+            dias_atraso = (data_atual - p.dtVencimento).days
+            if dias_atraso <= 5:
+                range_5 += 1
+            elif dias_atraso <= 15:
+                range_15 += 1
+            else:
+                range_30_mais += 1
+                
+        # 3. Gráfico Semestral Títulos Protestados (fase='CARTÓRIO' ou status='PROTESTO')
+        seis_meses_atras = data_atual - relativedelta(months=5)
+        seis_meses_atras = seis_meses_atras.replace(day=1)
+        
+        protestados = (
+            self.db.query(
+                extract('month', VwNfPendenciaFase.dtVencimento).label('mes'),
+                func.count(VwNfPendenciaFase.idnfpendencias).label('qtd')
+            )
+            .filter(
+                VwNfPendenciaFase.dtVencimento >= seis_meses_atras,
+                (VwNfPendenciaFase.status == 'PROTESTO') | (VwNfPendenciaFase.carteira == 'PRO')
+            )
+            .group_by(extract('month', VwNfPendenciaFase.dtVencimento))
+            .all()
+        )
+        protestados_dict = {int(p.mes): p.qtd for p in protestados}
+        
+        labels_semestral = []
+        dados_semestral = []
+        for i in range(6):
+            dt = seis_meses_atras + relativedelta(months=i)
+            labels_semestral.append(f"{meses_nomes[dt.month-1]}")
+            dados_semestral.append(protestados_dict.get(dt.month, 0))
+            
+        # 4. Ranking Clientes Atraso
+        top_clientes = (
+            self.db.query(
+                Cliente.nome.label('nome'),
+                func.count(NfPendencia.idnfpendencias).label('qtd')
+            )
+            .join(NfPendencia, NfPendencia.idCliente == Cliente.idclientes)
+            .filter(NfPendencia.encerrado == 'N', NfPendencia.dtVencimento < data_atual)
+            .group_by(Cliente.idclientes)
+            .order_by(desc('qtd'))
+            .limit(10)
+            .all()
+        )
+        
+        # 5. Ranking Representantes Atraso
+        top_reps = (
+            self.db.query(
+                Colaborador.nome.label('nome'),
+                func.count(NfPendencia.idnfpendencias).label('qtd')
+            )
+            .join(ClienteRepresentante, ClienteRepresentante.idRepresentante == Colaborador.idColaborador)
+            .join(NfPendencia, NfPendencia.idCliente == ClienteRepresentante.idCliente)
+            .filter(NfPendencia.encerrado == 'N', NfPendencia.dtVencimento < data_atual)
+            .group_by(Colaborador.idColaborador)
+            .order_by(desc('qtd'))
+            .limit(10)
+            .all()
+        )
+        
+        # 6. Top 20 Maiores Atrasos (Grid)
+        maiores_atrasos = (
+            self.db.query(
+                NfPendencia.titulo,
+                Cliente.nome.label('cliente_nome'),
+                NfPendencia.dtVencimento,
+                NfPendencia.valorSaldo,
+                VwNfPendenciaFase.fase,
+                VwNfPendenciaFase.status
+            )
+            .outerjoin(Cliente, Cliente.idclientes == NfPendencia.idCliente)
+            .outerjoin(VwNfPendenciaFase, VwNfPendenciaFase.idnfpendencias == NfPendencia.idnfpendencias)
+            .filter(NfPendencia.encerrado == 'N', NfPendencia.dtVencimento < data_atual)
+            .order_by(desc(NfPendencia.valorSaldo))
+            .limit(20)
+            .all()
+        )
+
+        return {
+            "graficoAnualAtrasos": {
+                "labels": labels_anual,
+                "data": dados_anual
+            },
+            "graficoFaixasAtraso": [
+                {"name": "Até 5 dias", "value": range_5},
+                {"name": "Até 15 dias", "value": range_15},
+                {"name": "Acima de 30 dias", "value": range_30_mais}
+            ],
+            "graficoProtestos": {
+                "labels": labels_semestral,
+                "data": dados_semestral
+            },
+            "rankingClientes": [{"nome": c.nome, "qtd": c.qtd} for c in top_clientes],
+            "rankingGerentes": [{"nome": r.nome, "qtd": r.qtd} for r in top_reps],
+            "maioresAtrasos": [
+                {
+                    "titulo": a.titulo,
+                    "cliente": a.cliente_nome,
+                    "vencimento": a.dtVencimento.isoformat() if a.dtVencimento else None,
+                    "valor": float(a.valorSaldo or 0),
+                    "fase": a.fase,
+                    "status": a.status
+                } for a in maiores_atrasos
+            ]
+        }
+
+    def get_dashboard_logistica(self) -> dict:
+        from sqlalchemy import func, extract, case, text, desc
+        from app.models.nf_pendencia import NfPendencia, VwNfPendenciaFase
+        from app.models.cliente import Cliente
+        import datetime
+        from dateutil.relativedelta import relativedelta
+        
+        data_atual = datetime.date.today()
+        doze_meses_atras = data_atual - relativedelta(months=11)
+        doze_meses_atras = doze_meses_atras.replace(day=1)
+        meses_nomes = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+        labels_anual = []
+        for i in range(12):
+            dt = doze_meses_atras + relativedelta(months=i)
+            labels_anual.append(f"{meses_nomes[dt.month-1]}/{str(dt.year)[-2:]}")
+
+        # KPIs
+        valor_sem_entrega = self.db.query(func.sum(NfPendencia.valorSaldo)).filter(NfPendencia.encerrado == 'N', NfPendencia.dtEntrega.is_(None)).scalar() or 0
+        valor_devolucao = self.db.query(func.sum(NfPendencia.valorSaldo)).join(VwNfPendenciaFase, VwNfPendenciaFase.idnfpendencias == NfPendencia.idnfpendencias).filter(NfPendencia.encerrado == 'N', VwNfPendenciaFase.carteira == 'DEV').scalar() or 0
+
+        # Graficos
+        sem_entrega = (
+            self.db.query(
+                extract('month', NfPendencia.dtEmissao).label('mes'),
+                func.count(NfPendencia.idnfpendencias).label('qtd')
+            )
+            .filter(NfPendencia.dtEntrega.is_(None), NfPendencia.dtEmissao >= doze_meses_atras)
+            .group_by(extract('month', NfPendencia.dtEmissao))
+            .all()
+        )
+        se_dict = {int(p.mes): p.qtd for p in sem_entrega}
+        
+        devolucao = (
+            self.db.query(
+                extract('month', VwNfPendenciaFase.dtEmissao).label('mes'),
+                func.count(VwNfPendenciaFase.idnfpendencias).label('qtd')
+            )
+            .filter(VwNfPendenciaFase.carteira == 'DEV', VwNfPendenciaFase.dtEmissao >= doze_meses_atras)
+            .group_by(extract('month', VwNfPendenciaFase.dtEmissao))
+            .all()
+        )
+        dev_dict = {int(p.mes): p.qtd for p in devolucao}
+        
+        dados_se = []
+        dados_dev = []
+        for i in range(12):
+            dt = doze_meses_atras + relativedelta(months=i)
+            dados_se.append(se_dict.get(dt.month, 0))
+            dados_dev.append(dev_dict.get(dt.month, 0))
+            
+        # Grid
+        grid_data = (
+            self.db.query(
+                NfPendencia.titulo,
+                Cliente.nome.label('cliente_nome'),
+                NfPendencia.dtEmissao,
+                NfPendencia.valorSaldo,
+                VwNfPendenciaFase.carteira
+            )
+            .outerjoin(Cliente, Cliente.idclientes == NfPendencia.idCliente)
+            .outerjoin(VwNfPendenciaFase, VwNfPendenciaFase.idnfpendencias == NfPendencia.idnfpendencias)
+            .filter(NfPendencia.encerrado == 'N', (NfPendencia.dtEntrega.is_(None)) | (VwNfPendenciaFase.carteira == 'DEV'))
+            .order_by(desc(NfPendencia.valorSaldo))
+            .limit(50)
+            .all()
+        )
+
+        return {
+            "kpiSemEntrega": float(valor_sem_entrega),
+            "kpiDevolucao": float(valor_devolucao),
+            "graficoSemEntrega": {"labels": labels_anual, "data": dados_se},
+            "graficoDevolucao": {"labels": labels_anual, "data": dados_dev},
+            "gridLogs": [
+                {
+                    "titulo": g.titulo,
+                    "cliente": g.cliente_nome,
+                    "emissao": g.dtEmissao.isoformat() if g.dtEmissao else None,
+                    "valor": float(g.valorSaldo or 0),
+                    "carteira": g.carteira
+                } for g in grid_data
+            ]
+        }
+
+    def get_dashboard_comercial(self) -> dict:
+        from sqlalchemy import func, extract, case, text, desc
+        from app.models.nf_pendencia import NfPendencia, VwNfPendenciaFase
+        from app.models.cliente import Cliente
+        import datetime
+        from dateutil.relativedelta import relativedelta
+        
+        data_atual = datetime.date.today()
+        doze_meses_atras = data_atual - relativedelta(months=11)
+        doze_meses_atras = doze_meses_atras.replace(day=1)
+        meses_nomes = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+        labels_anual = []
+        for i in range(12):
+            dt = doze_meses_atras + relativedelta(months=i)
+            labels_anual.append(f"{meses_nomes[dt.month-1]}/{str(dt.year)[-2:]}")
+
+        # Acordos (fase='ACORDO' ou status='ACORDO COMERCIAL') - assumindo fase ACORDO
+        kpi_total = self.db.query(func.sum(NfPendencia.valorSaldo)).join(VwNfPendenciaFase, VwNfPendenciaFase.idnfpendencias == NfPendencia.idnfpendencias).filter(NfPendencia.encerrado == 'N', (VwNfPendenciaFase.fase == 'ACORDO') | (VwNfPendenciaFase.status == 'ACORDO')).scalar() or 0
+        
+        top_acordos = (
+            self.db.query(
+                NfPendencia.titulo,
+                Cliente.nome.label('cliente_nome'),
+                NfPendencia.valorSaldo
+            )
+            .outerjoin(Cliente, Cliente.idclientes == NfPendencia.idCliente)
+            .join(VwNfPendenciaFase, VwNfPendenciaFase.idnfpendencias == NfPendencia.idnfpendencias)
+            .filter(NfPendencia.encerrado == 'N', (VwNfPendenciaFase.fase == 'ACORDO') | (VwNfPendenciaFase.status == 'ACORDO'))
+            .order_by(desc(NfPendencia.valorSaldo))
+            .limit(5)
+            .all()
+        )
+        
+        ocorrencias = (
+            self.db.query(
+                extract('month', VwNfPendenciaFase.createdAt).label('mes'),
+                func.count(VwNfPendenciaFase.idnfpendencias).label('qtd')
+            )
+            .filter((VwNfPendenciaFase.fase == 'ACORDO') | (VwNfPendenciaFase.status == 'ACORDO'), VwNfPendenciaFase.createdAt >= doze_meses_atras)
+            .group_by(extract('month', VwNfPendenciaFase.createdAt))
+            .all()
+        )
+        oco_dict = {int(p.mes): p.qtd for p in ocorrencias}
+        dados_anual = [oco_dict.get((doze_meses_atras + relativedelta(months=i)).month, 0) for i in range(12)]
+        
+        grid_data = (
+            self.db.query(
+                NfPendencia.titulo,
+                Cliente.nome.label('cliente_nome'),
+                NfPendencia.dtVencimento,
+                NfPendencia.valorSaldo,
+                VwNfPendenciaFase.fase,
+                VwNfPendenciaFase.status
+            )
+            .outerjoin(Cliente, Cliente.idclientes == NfPendencia.idCliente)
+            .join(VwNfPendenciaFase, VwNfPendenciaFase.idnfpendencias == NfPendencia.idnfpendencias)
+            .filter(NfPendencia.encerrado == 'N', (VwNfPendenciaFase.fase == 'ACORDO') | (VwNfPendenciaFase.status == 'ACORDO'))
+            .order_by(desc(NfPendencia.valorSaldo))
+            .limit(50)
+            .all()
+        )
+        
+        return {
+            "kpiTotal": float(kpi_total),
+            "rankingAcordos": [
+                {"titulo": g.titulo, "cliente": g.cliente_nome, "valor": float(g.valorSaldo or 0)} for g in top_acordos
+            ],
+            "graficoAcordos": {"labels": labels_anual, "data": dados_anual},
+            "gridAcordos": [
+                {
+                    "titulo": g.titulo,
+                    "cliente": g.cliente_nome,
+                    "vencimento": g.dtVencimento.isoformat() if g.dtVencimento else None,
+                    "valor": float(g.valorSaldo or 0),
+                    "fase": g.fase,
+                    "status": g.status
+                } for g in grid_data
+            ]
+        }
+
+    def get_dashboard_visao_geral(self) -> dict:
+        from sqlalchemy import func, extract, desc
+        import datetime
+
+        hoje = datetime.date.today()
+        ano = hoje.year
+        mes = hoje.month - 11
+        if mes <= 0:
+            ano -= 1
+            mes += 12
+        doze_meses_atras = datetime.date(ano, mes, 1)
+        hoje_datetime = datetime.datetime(hoje.year, hoje.month, hoje.day)
+
+        # 1. KPI Vencido (Fase FINANCEIRO)
+        kpi_vencido = self.db.query(func.sum(VwNfPendenciaFase.valorSaldo)).filter(
+            VwNfPendenciaFase.fase == 'FINANCEIRO',
+            VwNfPendenciaFase.dtVencimento < hoje_datetime
+        ).scalar() or 0.0
+
+        # 2. KPI Protestado (Status PROTESTADO)
+        kpi_protestado = self.db.query(func.sum(VwNfPendenciaFase.valorSaldo)).filter(
+            VwNfPendenciaFase.status == 'PROTESTADO',
+            VwNfPendenciaFase.dtVencimento < hoje_datetime
+        ).scalar() or 0.0
+
+        # 3. KPI Total Clientes Inadimplentes (Fase FINANCEIRO)
+        kpi_clientes = self.db.query(func.count(func.distinct(VwNfPendenciaFase.idCliente))).filter(
+            VwNfPendenciaFase.fase == 'FINANCEIRO',
+            VwNfPendenciaFase.dtVencimento < hoje_datetime
+        ).scalar() or 0
+
+        # 4. Evoluções (Mockadas temporariamente até termos dados históricos fechados)
+        kpi_vencido_evolucao = 5.2
+        kpi_protestado_evolucao = -2.1
+        kpi_clientes_evolucao = 1.5
+
+        # 5. Ranking Clientes Atraso
+        top_clientes_atraso = (
+            self.db.query(
+                Cliente.nome.label('cliente'),
+                func.sum(VwNfPendenciaFase.valorSaldo).label('valor')
+            )
+            .join(VwNfPendenciaFase, VwNfPendenciaFase.idCliente == Cliente.idclientes)
+            .filter(VwNfPendenciaFase.fase == 'FINANCEIRO', VwNfPendenciaFase.dtVencimento < hoje_datetime)
+            .group_by(Cliente.nome)
+            .order_by(desc('valor'))
+            .limit(10)
+            .all()
+        )
+        ranking_clientes_atraso = [{"cliente": r.cliente, "valor": float(r.valor)} for r in top_clientes_atraso]
+
+        # 6. Ranking Clientes Protesto
+        top_clientes_protesto = (
+            self.db.query(
+                Cliente.nome.label('cliente'),
+                func.sum(VwNfPendenciaFase.valorSaldo).label('valor')
+            )
+            .join(VwNfPendenciaFase, VwNfPendenciaFase.idCliente == Cliente.idclientes)
+            .filter(VwNfPendenciaFase.status == 'PROTESTADO', VwNfPendenciaFase.dtVencimento < hoje_datetime)
+            .group_by(Cliente.nome)
+            .order_by(desc('valor'))
+            .limit(10)
+            .all()
+        )
+        ranking_clientes_protesto = [{"cliente": r.cliente, "valor": float(r.valor)} for r in top_clientes_protesto]
+
+        # 7. Rankings Gerentes e Representantes
+        ranking_gerentes_atraso = []
+        ranking_gerentes_protesto = []
+        
+        rep_atraso_db = (
+            self.db.query(Colaborador.nome, func.count(VwNfPendenciaFase.idnfpendencias).label('qtd'), func.sum(VwNfPendenciaFase.valorSaldo).label('valor'))
+            .select_from(VwNfPendenciaFase)
+            .join(ClienteRepresentante, ClienteRepresentante.idCliente == VwNfPendenciaFase.idCliente)
+            .join(Colaborador, Colaborador.idColaborador == ClienteRepresentante.idRepresentante)
+            .filter(VwNfPendenciaFase.fase == 'FINANCEIRO', VwNfPendenciaFase.dtVencimento < hoje_datetime)
+            .group_by(Colaborador.nome)
+            .order_by(desc('valor'))
+            .limit(10).all()
+        )
+        ranking_representantes_atraso = [{"nome": r.nome, "qtd": r.qtd, "valor": float(r.valor or 0)} for r in rep_atraso_db]
+
+        rep_protesto_db = (
+            self.db.query(Colaborador.nome, func.count(VwNfPendenciaFase.idnfpendencias).label('qtd'), func.sum(VwNfPendenciaFase.valorSaldo).label('valor'))
+            .select_from(VwNfPendenciaFase)
+            .join(ClienteRepresentante, ClienteRepresentante.idCliente == VwNfPendenciaFase.idCliente)
+            .join(Colaborador, Colaborador.idColaborador == ClienteRepresentante.idRepresentante)
+            .filter(VwNfPendenciaFase.status == 'PROTESTADO', VwNfPendenciaFase.dtVencimento < hoje_datetime)
+            .group_by(Colaborador.nome)
+            .order_by(desc('valor'))
+            .limit(10).all()
+        )
+        ranking_representantes_protesto = [{"nome": r.nome, "qtd": r.qtd, "valor": float(r.valor or 0)} for r in rep_protesto_db]
+
+        # 8. Dashboard Comercial - Acordos
+        kpi_total_acordos = self.db.query(func.sum(VwNfPendenciaFase.valorSaldo)).filter(
+            VwNfPendenciaFase.status == 'ACORDO',
+            VwNfPendenciaFase.dtVencimento < hoje_datetime
+        ).scalar() or 0
+
+        top_acordos_db = (
+            self.db.query(Cliente.nome.label('cliente'), func.sum(VwNfPendenciaFase.valorSaldo).label('valor'))
+            .select_from(VwNfPendenciaFase)
+            .outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente)
+            .filter(VwNfPendenciaFase.status == 'ACORDO', VwNfPendenciaFase.dtVencimento < hoje_datetime)
+            .group_by(Cliente.nome)
+            .order_by(desc('valor'))
+            .limit(5).all()
+        )
+        ranking_acordos = [{"cliente": r.cliente, "valor": float(r.valor or 0)} for r in top_acordos_db]
+
+        # 9. Grid de Títulos em Atraso (Todos os títulos da fase FINANCEIRO)
+        grid_financeiro_db = (
+            self.db.query(
+                VwNfPendenciaFase.idnfpendencias,
+                VwNfPendenciaFase.titulo,
+                Cliente.nome.label('cliente_nome'),
+                VwNfPendenciaFase.dtVencimento,
+                VwNfPendenciaFase.valorSaldo,
+                VwNfPendenciaFase.fase,
+                VwNfPendenciaFase.status
+            )
+            .outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente)
+            .filter(VwNfPendenciaFase.fase == 'FINANCEIRO', VwNfPendenciaFase.dtVencimento < hoje_datetime)
+            .order_by(desc(VwNfPendenciaFase.valorSaldo))
+            .limit(1000) # Previne payloads excessivamente gigantes
+            .all()
+        )
+        
+        faixas_atraso_count = {"ate5": 0, "ate15": 0, "ate30": 0, "acima30": 0}
+        
+        grid_financeiro = []
+        for g in grid_financeiro_db:
+            if g.dtVencimento:
+                dt_venc = g.dtVencimento
+                if isinstance(dt_venc, datetime.datetime):
+                    dt_venc = dt_venc.date()
+                elif isinstance(dt_venc, str):
+                    dt_venc = datetime.datetime.strptime(dt_venc.split('T')[0], '%Y-%m-%d').date()
+                
+                dias_atraso = (hoje - dt_venc).days
+                if dias_atraso <= 5:
+                    faixas_atraso_count["ate5"] += 1
+                elif dias_atraso <= 15:
+                    faixas_atraso_count["ate15"] += 1
+                elif dias_atraso <= 30:
+                    faixas_atraso_count["ate30"] += 1
+                else:
+                    faixas_atraso_count["acima30"] += 1
+
+            grid_financeiro.append({
+                "id": g.idnfpendencias,
+                "titulo": g.titulo,
+                "cliente": g.cliente_nome,
+                "vencimento": g.dtVencimento.isoformat() if g.dtVencimento else None,
+                "valor": float(g.valorSaldo or 0),
+                "fase": g.fase,
+                "status": g.status
+            })
+
+        grid_sem_entrega_db = self.db.query(VwNfPendenciaFase, Cliente.nome.label('cliente_nome')).outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente).filter(VwNfPendenciaFase.fase == 'LOGISTICA', VwNfPendenciaFase.status == 'SEM DATA DE ENTREGA', VwNfPendenciaFase.dtVencimento < hoje_datetime).order_by(desc(VwNfPendenciaFase.valorSaldo)).all()
+        grid_sem_entrega = [{"id": r[0].idnfpendencias, "titulo": r[0].titulo, "cliente": r.cliente_nome, "vencimento": r[0].dtVencimento.isoformat() if r[0].dtVencimento else None, "valor": float(r[0].valorSaldo or 0)} for r in grid_sem_entrega_db]
+
+        grid_devolucao_db = self.db.query(VwNfPendenciaFase, Cliente.nome.label('cliente_nome')).outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente).filter(VwNfPendenciaFase.fase == 'LOGISTICA', VwNfPendenciaFase.status == 'DEVOLUÇÃO', VwNfPendenciaFase.dtVencimento < hoje_datetime).order_by(desc(VwNfPendenciaFase.valorSaldo)).all()
+        grid_devolucao = [{"id": r[0].idnfpendencias, "titulo": r[0].titulo, "cliente": r.cliente_nome, "vencimento": r[0].dtVencimento.isoformat() if r[0].dtVencimento else None, "valor": float(r[0].valorSaldo or 0)} for r in grid_devolucao_db]
+
+        kpi_sem_entrega = sum(item['valor'] for item in grid_sem_entrega)
+        kpi_devolucao = sum(item['valor'] for item in grid_devolucao)
+        # 10. Evolução Logística (Mês a Mês)
+        meses_logistica_labels = []
+        valores_sem_entrega = []
+        valores_devolucao = []
+        
+        meses_labels = []
+        meses_valores_atraso = []
+        meses_valores_protesto = []
+        valores_acordos = []
+        
+        meses_nomes = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+        
+        for i in range(5, -1, -1):
+            m = hoje.month - i
+            y = hoje.year
+            if m <= 0:
+                m += 12
+                y -= 1
+            label_mes = f"{meses_nomes[m-1]}/{str(y)[2:]}"
+            meses_logistica_labels.append(label_mes)
+            
+            count_sem_entrega = self.db.query(func.count(func.distinct(VwNfPendenciaFase.idnfpendencias))).join(
+                HistoricoPendencia, HistoricoPendencia.idNfPendencias == VwNfPendenciaFase.idnfpendencias
+            ).filter(
+                HistoricoPendencia.fase == 'LOGISTICA',
+                HistoricoPendencia.status == 'SEM DATA DE ENTREGA',
+                HistoricoPendencia.dtVencimento < cast(HistoricoPendencia.createdAt, Date),
+                func.extract('year', HistoricoPendencia.createdAt) == y,
+                func.extract('month', HistoricoPendencia.createdAt) == m
+            ).scalar() or 0
+            
+            count_devolucao = self.db.query(func.count(func.distinct(VwNfPendenciaFase.idnfpendencias))).join(
+                HistoricoPendencia, HistoricoPendencia.idNfPendencias == VwNfPendenciaFase.idnfpendencias
+            ).filter(
+                HistoricoPendencia.fase == 'LOGISTICA',
+                HistoricoPendencia.status == 'DEVOLUÇÃO',
+                HistoricoPendencia.dtVencimento < cast(HistoricoPendencia.createdAt, Date),
+                func.extract('year', HistoricoPendencia.createdAt) == y,
+                func.extract('month', HistoricoPendencia.createdAt) == m
+            ).scalar() or 0
+            
+            valores_sem_entrega.append(count_sem_entrega)
+            valores_devolucao.append(count_devolucao)
+            
+            # Evolução Financeira / Comercial (Valores zerados pois ainda não há histórico de pagamentos)
+            count_atraso = 0
+            count_protesto = 0
+
+            count_acordo = self.db.query(func.count(func.distinct(VwNfPendenciaFase.idnfpendencias))).join(
+                HistoricoPendencia, HistoricoPendencia.idNfPendencias == VwNfPendenciaFase.idnfpendencias
+            ).filter(
+                HistoricoPendencia.status == 'ACORDO',
+                HistoricoPendencia.dtVencimento < cast(HistoricoPendencia.createdAt, Date),
+                func.extract('year', HistoricoPendencia.createdAt) == y,
+                func.extract('month', HistoricoPendencia.createdAt) == m
+            ).scalar() or 0
+
+            meses_labels.append(label_mes)
+            meses_valores_atraso.append(count_atraso)
+            meses_valores_protesto.append(count_protesto)
+            valores_acordos.append(count_acordo)
+
+        # 11. Composição da Carteira
+        composicao_db = self.db.query(VwNfPendenciaFase.status, func.count(VwNfPendenciaFase.idnfpendencias)).filter(
+            VwNfPendenciaFase.fase == 'FINANCEIRO'
+        ).group_by(VwNfPendenciaFase.status).all()
+        
+        composicao_carteira = [{"name": r[0] or 'Indefinido', "value": r[1]} for r in composicao_db]
+
+        return {
+            "kpiVencido": float(kpi_vencido),
+            "kpiVencidoEvolucao": kpi_vencido_evolucao,
+            "kpiProtestado": float(kpi_protestado),
+            "kpiProtestadoEvolucao": kpi_protestado_evolucao,
+            "kpiTotalClientes": kpi_clientes,
+            "kpiTotalClientesEvolucao": kpi_clientes_evolucao,
+            
+            "rankingClientesAtraso": ranking_clientes_atraso,
+            "rankingClientesProtesto": ranking_clientes_protesto,
+            "rankingGerentesAtraso": ranking_gerentes_atraso,
+            "rankingGerentesProtesto": ranking_gerentes_protesto,
+            "rankingRepresentantesAtraso": ranking_representantes_atraso,
+            "rankingRepresentantesProtesto": ranking_representantes_protesto,
+            
+            "evolucaoAtraso": {
+                "labels": meses_labels,
+                "values": meses_valores_atraso
+            },
+            "evolucaoProtesto": {
+                "labels": meses_labels,
+                "values": meses_valores_protesto
+            },
+            
+            "faixasAtraso": faixas_atraso_count,
+            "composicaoCarteira": composicao_carteira,
+            "gridFinanceiro": grid_financeiro,
+            
+            "evolucaoLogisticaSemEntrega": {
+                "labels": meses_logistica_labels,
+                "values": valores_sem_entrega
+            },
+            "evolucaoLogisticaDevolucao": {
+                "labels": meses_logistica_labels,
+                "values": valores_devolucao
+            },
+            
+            "kpiSemEntrega": kpi_sem_entrega,
+            "kpiDevolucao": kpi_devolucao,
+            "gridSemEntrega": grid_sem_entrega,
+            "gridDevolucao": grid_devolucao,
+
+            "kpiTotalAcordos": float(kpi_total_acordos),
+            "rankingAcordos": ranking_acordos,
+            "evolucaoAcordos": {
+                "labels": meses_logistica_labels,
+                "values": valores_acordos
+            }
+        }

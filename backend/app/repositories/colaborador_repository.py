@@ -66,10 +66,13 @@ class ColaboradorRepository:
         ).all()
         return [r[0] for r in rows]
 
-    def get_all(self, skip: int = 0, limit: int = 20, search: Optional[str] = None) -> Tuple[List[Colaborador], int]:
+    def get_all(self, skip: int = 0, limit: int = 20, search: Optional[str] = None, id_cargo: Optional[int] = None) -> Tuple[List[Colaborador], int]:
         query = self.db.query(Colaborador).outerjoin(CentroCusto).outerjoin(CargoColaborador).filter(
             or_(Colaborador.snAtivo != 'N', Colaborador.snAtivo.is_(None))
         )
+
+        if id_cargo is not None:
+            query = query.filter(Colaborador.idCargoColaborador == id_cargo)
 
         if search:
             search_term = f"%{search}%"

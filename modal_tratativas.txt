@@ -1,0 +1,21 @@
+Created At: 2026-09-20T15:09:58-03:00
+Completed At: 2026-09-20T15:09:59-03:00
+
+				The command exited with code 0.
+				Output:
+				616:           </div>
+617:         </div>
+618: 
+619:       </div>
+620:     </main>
+621:   </div>
+622: </div>
+623: 
+624: <!-- Modal Tratativas -->
+625: <app-modal [isOpen]="isTratativasModalOpen"
+626:   [title]="'Tratativas - T�tulo ' + (tituloSelecionadoTratativas?.titulo || '')" size="md"
+627:   (closed)="fecharTratativas()">
+628: 
+629:   <div class="p-2">
+630:     <div *ngIf="tituloSelecionadoTratativas" class="mb-4 pb-3 border-bottom">
+

@@ -158,6 +158,10 @@ export class ImportacoesService {
     return this.http.get<JanelaRegraDia>(`${this.apiUrl}/inadimplencia/janela-regra-dia`);
   }
 
+  obterDashboardVisaoGeral(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/inadimplencia/dashboard/visao-geral`);
+  }
+
   alterarFasePendencia(id: number, fase: string, status?: string): Observable<{ idnfpendencias: number; fase: string }> {
     const payload: any = { fase };
     if (status) {

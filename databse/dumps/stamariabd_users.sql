@@ -29,6 +29,7 @@ CREATE TABLE `users` (
   `password` varchar(1000) NOT NULL,
   `active` varchar(1) DEFAULT 'S',
   `createdAt` datetime DEFAULT CURRENT_TIMESTAMP,
+  `refresh_token_google` varchar(1000) DEFAULT NULL,
   PRIMARY KEY (`iduser`)
 ) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -39,7 +40,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (3,'Tania Canedo Blanca','tania.canedo@stamaria.ind.br','$2b$12$/Vpi.6rFqgdaxUZI6sTaIeFGjA3zTUonmOshXuUSv.FRkQRDgUfOm','S','2026-08-25 20:40:03'),(12,'Joeder Blanca','joebblanca@gmail.com','$2b$12$et1aWG.TnZQm9m1IL5QINu.Vv90uY/Z45npL0/bMFoupP9BtqxTAq','S','2026-09-04 14:32:18'),(13,'Leticia Hellen','leticia.oliveira@stamaria.ind.b','$2b$12$E3Bf1yfW.A8BmYmZfkf4jetrjt9xOGJ24j1D2OjNwcZNVn7NSkXA.','S','2026-09-11 08:27:25'),(14,'System','ti-cloud@stamaria.ind.br','$2b$12$BynqXWoyM9J.i/d2LzLa1efuzZrleuWnREr7f1pnCA0tPLxo8iPjy','S','2026-09-13 13:12:33');
+INSERT INTO `users` VALUES (3,'Tania Canedo Blanca','tania.canedo@stamaria.ind.br','$2b$12$/Vpi.6rFqgdaxUZI6sTaIeFGjA3zTUonmOshXuUSv.FRkQRDgUfOm','S','2026-08-25 20:40:03','1//0hHMtldej3RziCgYIARAAGBESNwF-L9IrixAgTFGdYPLqCWPSomQGtR1cyWp6qowTjquC6E784aGq6XeTNyUnbheplPT5m6UqhdE'),(12,'Joeder Blanca','joebblanca@gmail.com','$2b$12$et1aWG.TnZQm9m1IL5QINu.Vv90uY/Z45npL0/bMFoupP9BtqxTAq','S','2026-09-04 14:32:18',NULL),(13,'Leticia Hellen','leticia.oliveira@stamaria.ind.b','$2b$12$E3Bf1yfW.A8BmYmZfkf4jetrjt9xOGJ24j1D2OjNwcZNVn7NSkXA.','S','2026-09-11 08:27:25',NULL),(14,'System','ti-cloud@stamaria.ind.br','$2b$12$BynqXWoyM9J.i/d2LzLa1efuzZrleuWnREr7f1pnCA0tPLxo8iPjy','S','2026-09-13 13:12:33',NULL);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -52,4 +53,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-16 23:46:46
+-- Dump completed on 2026-09-19 12:18:21

@@ -30,6 +30,13 @@
   - **Cards**: Utilize bordas muito suaves (`1px solid $border-color`), border-radius moderno (`12px`), fundo branco. Evite sombras pesadas em estado de repouso; utilize sombras levíssimas (`box-shadow: 0 4px 12px rgba(0,0,0,0.03)`) atreladas a um leve levante (`transform: translateY(-1px)`) apenas no estado de `:hover`.
   - **Tabelas (SaaS Style)**: Abolição total de bordas verticais. Cabeçalhos de tabela devem ser sutis, em tamanho reduzido (12px), maiúsculas (uppercase), com letter-spacing, usando cores como `$gray-500`. As linhas (`tr`) possuem bordas inferiores super suaves (`$gray-100`) ou fundo branco com hover que escureça levemente o fundo da linha (`rgba($gray-50, 0.5)`). Valores numéricos e financeiros alinham rigidamente à direita com `font-variant-numeric: tabular-nums`.
   - **Botões e Ações**: Evite botões grandes onde uma ação sutil basta. Botões de ação em tabelas devem ser pequenos (ex: 28x28px), sem borda ou fundo preenchido no estado inativo. Cores destrutivas (`$danger`) ou de destaque (`$primary`) devem aparecer idealmente no *hover* (com `background-color` translúcido) para não pesar o visual passivo da tela.
+  
+  - **Padronização de Dashboards Departamentais (SaaS Layout)**: 
+    - **Visão Geral**: Módulos complexos devem ter uma aba 'Visão Geral' que consolida os KPIs principais. 
+    - **Painel Atual**: Dentro de abas específicas (ex: Financeiro, Comercial), utilize um painel macro (classe .dash-kpi-panel) para agrupar os KPIs do dia/mês atual e a **Tabela principal (Grid)** associada.
+    - **Gráficos e Rankings (Full-Width)**: Gráficos evolutivos (ECharts) e tabelas de ranking devem ser colocados **fora** do .dash-kpi-panel, em contêineres .row utilizando a classe .dash-chart-card.h-100 para que os cartões estiquem homogeneamente e ocupem a largura integral (edge-to-edge) do layout sem bordas duplas.
+    - **Ações da Grid**: Todas as tabelas que lidam com registros (como Pendências) devem possuir uma coluna padrão Tratativas/Histórico contendo botões minimalistas (.btn-light.text-secondary.border-0) apenas com ícones do FontAwesome.
+
   - **Layout Estrutural de Módulos (Edge-to-Edge)**: 
     - Páginas principais de módulos (como Despesas de Viagens e Plano de Saúde) DEVEM seguir a estrutura fluida de ponta a ponta sem paddings externos matando o layout.
     - **Sidebar Persistence e Padrão**: As páginas principais devem utilizar a estrutura `<aside class="main-sidebar">` e sincronizar seu estado de colapso utilizando `localStorage.getItem('sidebarCollapsed')` no componente TypeScript (`isSidebarCollapsed`), garantindo que o estado da barra lateral se mantenha consistente ao navegar entre os módulos.

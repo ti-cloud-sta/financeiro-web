@@ -88,10 +88,13 @@ export class ColaboradoresService {
     return this.apiUrl;
   }
 
-  listar(page = 1, pageSize = 10, search: string = ''): Observable<PaginatedResponse<Colaborador>> {
+  listar(page = 1, pageSize = 10, search: string = '', idCargo: number | null = null): Observable<PaginatedResponse<Colaborador>> {
     let url = `${this.apiUrl}?page=${page}&page_size=${pageSize}`;
     if (search) {
       url += `&q=${encodeURIComponent(search)}`;
+    }
+    if (idCargo !== null) {
+      url += `&id_cargo=${idCargo}`;
     }
     return this.http.get<PaginatedResponse<Colaborador>>(url);
   }

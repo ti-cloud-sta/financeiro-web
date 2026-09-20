@@ -298,6 +298,13 @@
             </button>
           </div>
 
+          @if (assinaturaComErro) {
+          <div class="compose-row" style="padding: 0.5rem 0.75rem; background: #fff8e1; border: 1px solid #f59e0b; border-radius: 8px; display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; color:#92400e;">
+            <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i>
+            <span>A imagem da assinatura não pôde ser carregada no editor, mas o e-mail será enviado com o link correto.</span>
+          </div>
+          }
+
           <div #composeBody class="compose-body" contenteditable="true"
             data-placeholder="Escreva sua mensagem..."></div>
 
