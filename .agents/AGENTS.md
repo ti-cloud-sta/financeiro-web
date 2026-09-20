@@ -4,6 +4,13 @@
 
 - **Build de Validação**: Sempre executar um build (`ng build`) ou validação de compilação similar e aguardar sua finalização para garantir que não há erros ANTES de encerrar uma macro-tarefa.
 
+- **Segurança de Edição de Código e Prevenção de Perda de Dados (NUNCA VIOLAR)**:
+  - **PROIBIDO USO DE SCRIPTS AUTOMATIZADOS (PYTHON/NODE/BASH) PARA EDITAR CÓDIGO FONTE**: O agente JAMAIS deve criar ou executar scripts externos para fatiar, concatenar, substituir via regex ou reescrever arquivos de template HTML, SCSS ou TypeScript. Toda alteração deve ser feita EXCLUSIVAMENTE via ferramentas oficiais (`replace_file_content` ou `multi_replace_file_content`).
+  - **Edições Cirúrgicas e Pontuais**: As modificações devem ser mínimas e focadas estritamente nas linhas necessárias (trechos de 5 a 15 linhas). É proibido substituir blocos massivos de centenas de linhas ou sobrescrever arquivos inteiros (`write_to_file` com `Overwrite: true`) para realizar pequenos ajustes visuais ou pontuais.
+  - **Atenção com Arquivos Longos e Truncamento**: Em arquivos com centenas ou milhares de linhas, a visualização inicial pode truncar o conteúdo. O agente NUNCA deve assumir que tem o arquivo completo na memória ou inferir o código faltante. Deve inspecionar com precisão o intervalo de linhas exato antes de qualquer toque.
+  - **Localização de Git e Histórico Local**: O Git da máquina do usuário está em `C:\Users\JOE\AppData\Local\GitHubDesktop\app-*\resources\app\git\cmd\git.exe`. O histórico local completo de salvamentos do IDE fica em `%APPDATA%\Antigravity IDE\User\History\`. Em qualquer emergência ou suspeita de perda de dados, recorrer imediatamente ao histórico local ou Git antes de qualquer alteração destrutiva.
+  - **Proibição de Deixar Arquivos Temporários/Lixo**: Todo script de teste, arquivo `.backup`, `.fixed`, `.txt`, dump ou arquivo temporário criado durante uma análise ou teste deve ser obrigatoriamente deletado antes de encerrar o turno. Nenhum arquivo lixo deve ser deixado no projeto.
+
 - **Teste de Integração (CI)**: Após a finalização de um build válido, executar os testes de integração ( Comando: `npm run cy:run` ). Aguardar a conclusão e validar os relatórios finais antes de considerar a tarefa concluída.
 
 - **Padrões de Componentes Angular**:
