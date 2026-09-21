@@ -634,6 +634,14 @@
     text-decoration: underline;
   }
 
+  // Assinatura e demais imagens no editor: exibe como miniatura
+  img {
+    max-width: 200px !important;
+    height: auto !important;
+    display: block;
+    margin-top: 0.5rem;
+  }
+
   ul {
     list-style-type: disc !important;
     padding-left: 1.4rem !important;
@@ -689,6 +697,15 @@
   p {
     margin: 0 0 0.35rem 0;
   }
+}
+
+// ::ng-deep é necessário porque o conteúdo vem de [innerHTML] e não recebe
+// o atributo _ngcontent do Angular, então o encapsulamento normal não alcança.
+::ng-deep .chat-body img {
+  max-width: 200px !important;
+  height: auto !important;
+  display: block;
+  margin-top: 0.5rem;
 }
 
 .compose-attachments {

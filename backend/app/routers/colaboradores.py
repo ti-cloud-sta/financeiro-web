@@ -41,9 +41,10 @@ def list_colaboradores(
     page: int = 1,
     page_size: int = 20,
     q: Optional[str] = None,
+    id_cargo: Optional[int] = None,
     service: ColaboradorService = Depends(get_service)
 ):
-    return service.get_colaboradores(page=page, page_size=page_size, search=q)
+    return service.get_colaboradores(page=page, page_size=page_size, search=q, id_cargo=id_cargo)
 
 @router.post("", response_model=ColaboradorResponse, status_code=status.HTTP_201_CREATED)
 def create_colaborador(

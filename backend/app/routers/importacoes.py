@@ -5939,3 +5939,21 @@ async def conciliar_zeferino(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.get("/inadimplencia/dashboard/visao-geral")
+def get_dashboard_visao_geral(db: Session = Depends(get_db)):
+    from app.services.inadimplencia_service import InadimplenciaService
+    svc = InadimplenciaService(db)
+    return svc.get_dashboard_visao_geral()
+
+@router.get("/inadimplencia/dashboard/logistica")
+def get_dashboard_logistica(db: Session = Depends(get_db)):
+    from app.services.inadimplencia_service import InadimplenciaService
+    svc = InadimplenciaService(db)
+    return svc.get_dashboard_logistica()
+
+@router.get("/inadimplencia/dashboard/comercial")
+def get_dashboard_comercial(db: Session = Depends(get_db)):
+    from app.services.inadimplencia_service import InadimplenciaService
+    svc = InadimplenciaService(db)
+    return svc.get_dashboard_comercial()

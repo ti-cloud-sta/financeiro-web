@@ -1,4 +1,4 @@
-<div class="page-container">
+﻿<div class="page-container">
   <div class="main-layout">
     <aside class="main-sidebar" [class.collapsed]="isSidebarCollapsed">
       <div class="sidebar-header d-flex justify-content-end mb-3 pb-2 border-bottom">
@@ -17,7 +17,7 @@
           </button>
         </li>
         }
-        <li class="nav-section-title mt-3 mb-2 px-3 text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Cadastros Básicos</li>
+        <li class="nav-section-title mt-3 mb-2 px-3 text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Cadastros BÃ¡sicos</li>
         <li>
           <button class="main-nav-link" [class.active]="activeConfigTab === 'colaboradores'"
             (click)="setActiveConfigTab('colaboradores')" title="Colaboradores">
@@ -48,6 +48,12 @@
             <i class="fa-solid fa-briefcase"></i> <span class="nav-text">Empresas</span>
           </button>
         </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeConfigTab === 'comercial'"
+            (click)="setActiveConfigTab('comercial')" title="Comercial">
+            <i class="fa-solid fa-chart-pie"></i> <span class="nav-text">Comercial</span>
+          </button>
+        </li>
       </ul>
     </aside>
 
@@ -55,8 +61,8 @@
       <div class="tab-content custom-tab-content">
 
          <div class="dashboard-section-header">
-              <h3>Importação de Faturas e Extratos</h3>
-              <p>Importe os relatórios em PDF dos nossos parceiros para processamento via IA.</p>
+              <h3>ImportaÃ§Ã£o de Faturas e Extratos</h3>
+              <p>Importe os relatÃ³rios em PDF dos nossos parceiros para processamento via IA.</p>
             </div>
 
               <!-- Acesso Tab Content -->
@@ -64,7 +70,7 @@
                 <div class="config-header">
                   <div>
                     <h2>Acesso</h2>
-                    <p class="text-muted">Aprove cadastros pendentes, bloqueie/desbloqueie usuários e gerencie senhas e níveis de acesso (Admin/Default).</p>
+                    <p class="text-muted">Aprove cadastros pendentes, bloqueie/desbloqueie usuÃ¡rios e gerencie senhas e nÃ­veis de acesso (Admin/Default).</p>
                   </div>
                 </div>
 
@@ -82,7 +88,7 @@
                   </div>
                   <div class="config-actions">
                     <button class="btn btn-primary" (click)="openCadastroModal()">
-                      <i class="fa-solid fa-user-plus me-2"></i> Novo Usuário
+                      <i class="fa-solid fa-user-plus me-2"></i> Novo UsuÃ¡rio
                     </button>
                   </div>
                 </div>
@@ -93,8 +99,8 @@
                       <tr>
                         <th>NOME</th>
                         <th>EMAIL</th>
-                        <th>NÍVEL DE ACESSO</th>
-                        <th class="text-end">AÇÕES</th>
+                        <th>NÃVEL DE ACESSO</th>
+                        <th class="text-end">AÃ‡Ã•ES</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -105,7 +111,7 @@
                         </td>
                         <td>{{ user.email }}</td>
                         <td>
-                          <app-badge [text]="user.role === 'admin' ? 'Administrador' : 'Padrão'"
+                          <app-badge [text]="user.role === 'admin' ? 'Administrador' : 'PadrÃ£o'"
                             [variant]="user.role === 'admin' ? 'primary' : 'secondary'">
                           </app-badge>
                         </td>
@@ -114,11 +120,11 @@
                             <button class="btn-icon" title="Alterar Senha" (click)="openPasswordModal(user)">
                               <i class="fa-solid fa-key"></i>
                             </button>
-                            <button class="btn-icon" title="Alterar Nível de Acesso" (click)="confirmGrantAdmin(user)">
+                            <button class="btn-icon" title="Alterar NÃ­vel de Acesso" (click)="confirmGrantAdmin(user)">
                               <i class="fa-solid fa-shield-halved"></i>
                             </button>
                             <button class="btn-icon" [ngClass]="{'delete': user.active !== 'N'}"
-                                    [title]="user.active === 'N' ? 'Conceder Acesso' : 'Bloquear Usuário'"
+                                    [title]="user.active === 'N' ? 'Conceder Acesso' : 'Bloquear UsuÃ¡rio'"
                                     (click)="confirmToggleBlockUser(user)">
                               <i class="fa-solid" [ngClass]="user.active === 'N' ? 'fa-lock-open text-success' : 'fa-lock'"></i>
                             </button>
@@ -126,7 +132,7 @@
                         </td>
                       </tr>
                       <tr *ngIf="filteredUsers.length === 0">
-                        <td colspan="4" class="text-center text-muted py-4">Nenhum usuário encontrado.</td>
+                        <td colspan="4" class="text-center text-muted py-4">Nenhum usuÃ¡rio encontrado.</td>
                       </tr>
                     </tbody>
                   </table>
@@ -169,7 +175,7 @@
                         <th>CENTRO DE CUSTO</th>
                         <th>CARGO</th>
                         <th>PAPEL</th>
-                        <th class="text-end">AÇÕES</th>
+                        <th class="text-end">AÃ‡Ã•ES</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -211,7 +217,7 @@
                     <button class="btn-page" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
                       <i class="fa-solid fa-chevron-left"></i>
                     </button>
-                    <span class="page-indicator">Página {{ currentPage }} de {{ totalPages }}</span>
+                    <span class="page-indicator">PÃ¡gina {{ currentPage }} de {{ totalPages }}</span>
                     <button class="btn-page" [disabled]="currentPage === totalPages"
                       (click)="goToPage(currentPage + 1)">
                       <i class="fa-solid fa-chevron-right"></i>
@@ -225,14 +231,14 @@
                 <div class="config-header">
                   <div>
                     <h2>Gerenciar Unidades</h2>
-                    <p class="text-muted">Cadastre as unidades de negócio.</p>
+                    <p class="text-muted">Cadastre as unidades de negÃ³cio.</p>
                   </div>
                 </div>
 
                 <div class="config-toolbar d-flex justify-content-between align-items-center">
                   <div class="search-box">
                     <i class="fa-solid fa-search text-muted"></i>
-                    <input type="text" placeholder="Buscar por código ou descrição..." [ngModel]="searchUnidade"
+                    <input type="text" placeholder="Buscar por cÃ³digo ou descriÃ§Ã£o..." [ngModel]="searchUnidade"
                       (ngModelChange)="onSearchUnidadeChange($event)">
                   </div>
                   <div class="config-actions">
@@ -246,9 +252,9 @@
                   <table class="saas-table w-100">
                     <thead>
                       <tr>
-                        <th>CÓDIGO</th>
-                        <th>DESCRIÇÃO</th>
-                        <th class="text-end">AÇÕES</th>
+                        <th>CÃ“DIGO</th>
+                        <th>DESCRIÃ‡ÃƒO</th>
+                        <th class="text-end">AÃ‡Ã•ES</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -279,7 +285,7 @@
                       (click)="goToUnidadePage(currentUnidadePage - 1)">
                       <i class="fa-solid fa-chevron-left"></i>
                     </button>
-                    <span class="page-indicator">Página {{ currentUnidadePage }} de {{ totalUnidadePages }}</span>
+                    <span class="page-indicator">PÃ¡gina {{ currentUnidadePage }} de {{ totalUnidadePages }}</span>
                     <button class="btn-page" [disabled]="currentUnidadePage === totalUnidadePages"
                       (click)="goToUnidadePage(currentUnidadePage + 1)">
                       <i class="fa-solid fa-chevron-right"></i>
@@ -293,7 +299,7 @@
                 <div class="config-header">
                   <div>
                     <h2>Gerenciar Categorias</h2>
-                    <p class="text-muted">Cadastre as categorias para classificação de despesas.</p>
+                    <p class="text-muted">Cadastre as categorias para classificaÃ§Ã£o de despesas.</p>
                   </div>
                 </div>
 
@@ -315,8 +321,8 @@
                     <thead>
                       <tr>
                         <th>NOME DA CATEGORIA</th>
-                        <th>DESCRIÇÃO</th>
-                        <th class="text-end">AÇÕES</th>
+                        <th>DESCRIÃ‡ÃƒO</th>
+                        <th class="text-end">AÃ‡Ã•ES</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -348,7 +354,7 @@
                       (click)="goToCategoriaPage(currentCategoriaPage - 1)">
                       <i class="fa-solid fa-chevron-left"></i>
                     </button>
-                    <span class="page-indicator">Página {{ currentCategoriaPage }} de {{ totalCategoriaPages }}</span>
+                    <span class="page-indicator">PÃ¡gina {{ currentCategoriaPage }} de {{ totalCategoriaPages }}</span>
                     <button class="btn-page" [disabled]="currentCategoriaPage === totalCategoriaPages"
                       (click)="goToCategoriaPage(currentCategoriaPage + 1)">
                       <i class="fa-solid fa-chevron-right"></i>
@@ -369,7 +375,7 @@
                 <div class="config-toolbar d-flex justify-content-between align-items-center">
                   <div class="search-box">
                     <i class="fa-solid fa-search text-muted"></i>
-                    <input type="text" placeholder="Buscar por código ou nome..." [ngModel]="searchCentroCusto"
+                    <input type="text" placeholder="Buscar por cÃ³digo ou nome..." [ngModel]="searchCentroCusto"
                       (ngModelChange)="onSearchCentroCustoChange($event)">
                   </div>
                   <div class="config-actions">
@@ -383,10 +389,10 @@
                   <table class="saas-table w-100">
                     <thead>
                       <tr>
-                        <th>CÓDIGO</th>
+                        <th>CÃ“DIGO</th>
                         <th>NOME</th>
                         <th>ESTADOS</th>
-                        <th class="text-end">AÇÕES</th>
+                        <th class="text-end">AÃ‡Ã•ES</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -420,7 +426,7 @@
                       (click)="goToCentroCustoPage(currentCentroCustoPage - 1)">
                       <i class="fa-solid fa-chevron-left"></i>
                     </button>
-                    <span class="page-indicator">Página {{ currentCentroCustoPage }} de {{ totalCentroCustoPages
+                    <span class="page-indicator">PÃ¡gina {{ currentCentroCustoPage }} de {{ totalCentroCustoPages
                       }}</span>
                     <button class="btn-page" [disabled]="currentCentroCustoPage === totalCentroCustoPages"
                       (click)="goToCentroCustoPage(currentCentroCustoPage + 1)">
@@ -435,7 +441,7 @@
                 <div class="config-header">
                   <div>
                     <h2>Gerenciar Empresas</h2>
-                    <p class="text-muted">Cadastre as empresas e cartões (Faturas/Extratos) para importação.</p>
+                    <p class="text-muted">Cadastre as empresas e cartÃµes (Faturas/Extratos) para importaÃ§Ã£o.</p>
                   </div>
                 </div>
 
@@ -457,8 +463,8 @@
                     <thead>
                       <tr>
                         <th>NOME DA EMPRESA</th>
-                        <th>DESCRIÇÃO</th>
-                        <th class="text-end">AÇÕES</th>
+                        <th>DESCRIÃ‡ÃƒO</th>
+                        <th class="text-end">AÃ‡Ã•ES</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -490,7 +496,7 @@
                       (click)="goToEmpresaConfigPage(currentEmpresaConfigPage - 1)">
                       <i class="fa-solid fa-chevron-left"></i>
                     </button>
-                    <span class="page-indicator">Página {{ currentEmpresaConfigPage }} de {{ totalEmpresaConfigPages
+                    <span class="page-indicator">PÃ¡gina {{ currentEmpresaConfigPage }} de {{ totalEmpresaConfigPages
                       }}</span>
                     <button class="btn-page" [disabled]="currentEmpresaConfigPage === totalEmpresaConfigPages"
                       (click)="goToEmpresaConfigPage(currentEmpresaConfigPage + 1)">
@@ -499,6 +505,171 @@
                   </div>
                 </div>
               </div>
+        <!-- Aba Comercial -->
+        <div class="tab-pane fade" [class.show]="activeConfigTab === 'comercial'" [class.active]="activeConfigTab === 'comercial'" role="tabpanel">
+          <div class="config-layout">
+            <div class="dashboard-header d-flex justify-content-between align-items-center border-bottom pt-2">
+              <ul class="config-nav mb-0 border-bottom-0 pb-0 px-3">
+                <li class="config-nav-item">
+                  <button class="config-nav-link" [class.active]="comercialTab() === 'gerentes'"
+                    (click)="setComercialTab('gerentes')">
+                    Gerentes
+                  </button>
+                </li>
+                <li class="config-nav-item">
+                  <button class="config-nav-link" [class.active]="comercialTab() === 'representantes'"
+                    (click)="setComercialTab('representantes')">
+                    Representantes
+                  </button>
+                </li>
+              </ul>
+            </div>
+            
+            <div class="config-content p-4">
+              @if (comercialTab() === 'gerentes') {
+                <div class="config-header mb-4">
+                  <div>
+                    <h3>Gerentes</h3>
+                    <p class="text-muted">Gerencie os perfis e configuraÃ§Ãµes dos gerentes comerciais.</p>
+                  </div>
+                </div>
+                
+                <div class="config-toolbar d-flex justify-content-between align-items-center mb-3">
+                  <div class="search-box">
+                    <i class="fa-solid fa-search text-muted"></i>
+                    <input type="text" placeholder="Buscar por nome, centro ou cargo..." [ngModel]="searchTermGerentes"
+                      (ngModelChange)="onSearchGerentesChange($event)">
+                  </div>
+                  <div class="config-actions">
+                    <!-- Buttons if necessary -->
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="saas-table w-100">
+                    <thead>
+                      <tr>
+                        <th>NOME</th>
+                        <th>CENTRO DE CUSTO</th>
+                        <th>CARGO</th>
+                        <th class="text-end">AÃ‡Ã•ES</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let colab of listaGerentes">
+                        <td class="fw-medium">{{ colab.nome }}</td>
+                        <td>
+                          <span *ngIf="colab.centro_custo">{{ colab.centro_custo.codigo }} - {{ colab.centro_custo.nome
+                            }}</span>
+                          <span *ngIf="!colab.centro_custo" class="text-muted">N/A</span>
+                        </td>
+                        <td>
+                          <span *ngIf="colab.cargo_colaborador">{{ colab.cargo_colaborador.nome }}</span>
+                          <span *ngIf="!colab.cargo_colaborador" class="text-muted">N/A</span>
+                        </td>
+                        <td class="text-end">
+                          <div class="action-buttons">
+                            <button class="btn-icon text-danger" title="Remover Cargo" (click)="confirmarRemocaoCargo(colab)"><i
+                                class="fa-solid fa-user-minus"></i></button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr *ngIf="listaGerentes.length === 0">
+                        <td colspan="5" class="text-center text-muted py-4">Nenhum gerente encontrado.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container" *ngIf="listaGerentes.length > 0">
+                  <span class="text-muted small">Total de {{ totalGerentes }} registros</span>
+                  <div class="pagination-actions">
+                    <button class="btn-page" [disabled]="currentPageGerentes === 1" (click)="goToPageGerentes(currentPageGerentes - 1)">
+                      <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span class="page-indicator">PÃ¡gina {{ currentPageGerentes }} de {{ totalPagesGerentes }}</span>
+                    <button class="btn-page" [disabled]="currentPageGerentes === totalPagesGerentes"
+                      (click)="goToPageGerentes(currentPageGerentes + 1)">
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                  </div>
+                </div>
+              } @else {
+                <div class="config-header mb-4">
+                  <div>
+                    <h3>Representantes</h3>
+                    <p class="text-muted">Gerencie os perfis e configuraÃ§Ãµes dos representantes comerciais.</p>
+                  </div>
+                </div>
+                
+                <div class="config-toolbar d-flex justify-content-between align-items-center mb-3">
+                  <div class="search-box">
+                    <i class="fa-solid fa-search text-muted"></i>
+                    <input type="text" placeholder="Buscar por nome, centro ou cargo..." [ngModel]="searchTermRepresentantes"
+                      (ngModelChange)="onSearchRepresentantesChange($event)">
+                  </div>
+                  <div class="config-actions">
+                    <!-- Buttons if necessary -->
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="saas-table w-100">
+                    <thead>
+                      <tr>
+                        <th>NOME</th>
+                        <th>CENTRO DE CUSTO</th>
+                        <th>CARGO</th>
+                        <th class="text-end">AÃ‡Ã•ES</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let colab of listaRepresentantes">
+                        <td class="fw-medium">{{ colab.nome }}</td>
+                        <td>
+                          <span *ngIf="colab.centro_custo">{{ colab.centro_custo.codigo }} - {{ colab.centro_custo.nome
+                            }}</span>
+                          <span *ngIf="!colab.centro_custo" class="text-muted">N/A</span>
+                        </td>
+                        <td>
+                          <span *ngIf="colab.cargo_colaborador">{{ colab.cargo_colaborador.nome }}</span>
+                          <span *ngIf="!colab.cargo_colaborador" class="text-muted">N/A</span>
+                        </td>
+                        <td class="text-end">
+                          <div class="action-buttons">
+                            <button class="btn-icon text-primary me-2" title="Atribuir Clientes" (click)="abrirModalClientes(colab)"><i
+                                class="fa-solid fa-users-gear"></i></button>
+                            <button class="btn-icon text-danger" title="Remover Cargo" (click)="confirmarRemocaoCargo(colab)"><i
+                                class="fa-solid fa-user-minus"></i></button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr *ngIf="listaRepresentantes.length === 0">
+                        <td colspan="5" class="text-center text-muted py-4">Nenhum representante encontrado.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container" *ngIf="listaRepresentantes.length > 0">
+                  <span class="text-muted small">Total de {{ totalRepresentantes }} registros</span>
+                  <div class="pagination-actions">
+                    <button class="btn-page" [disabled]="currentPageRepresentantes === 1" (click)="goToPageRepresentantes(currentPageRepresentantes - 1)">
+                      <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span class="page-indicator">PÃ¡gina {{ currentPageRepresentantes }} de {{ totalPagesRepresentantes }}</span>
+                    <button class="btn-page" [disabled]="currentPageRepresentantes === totalPagesRepresentantes"
+                      (click)="goToPageRepresentantes(currentPageRepresentantes + 1)">
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -516,14 +687,14 @@
   [isLoading]="isConfirmLoading"
 ></app-confirm-modal>
 
-<!-- Modal de Cadastro/Edição de Colaborador -->
+<!-- Modal de Cadastro/EdiÃ§Ã£o de Colaborador -->
 <app-modal [isOpen]="isColaboradorModalOpen"
   [title]="colaboradorModalMode === 'create' ? 'Cadastrar Colaborador' : 'Editar Colaborador'"
   (closed)="closeColaboradorModal()" size="md">
   <div class="form-container py-2">
     <div class="mb-3">
       <label class="form-label text-muted small fw-medium">NOME DO COLABORADOR</label>
-      <input type="text" class="form-control" placeholder="Ex: João da Silva" [(ngModel)]="novoColaborador.nome">
+      <input type="text" class="form-control" placeholder="Ex: JoÃ£o da Silva" [(ngModel)]="novoColaborador.nome">
     </div>
 
     <div class="mb-3">
@@ -571,7 +742,7 @@
   </div>
 </app-modal>
 
-<!-- Modal de Importação de Colaboradores -->
+<!-- Modal de ImportaÃ§Ã£o de Colaboradores -->
 <app-modal [isOpen]="isImportColabModalOpen" title="Importar Colaboradores" (closed)="closeImportColabModal()"
   [size]="importColabState === 'review' ? 'lg' : 'md'" [fixedHeight]="importColabState === 'review'">
 
@@ -591,7 +762,7 @@
   @if (importColabState === 'loading' || importColabState === 'processing') {
   <div class="processing-container text-center py-5">
     <i class="fa-solid fa-spinner fa-spin fs-1 text-primary mb-3"></i>
-    <h5>{{ importColabState === 'loading' ? 'Lendo e analisando a planilha...' : 'Processando importação...' }}</h5>
+    <h5>{{ importColabState === 'loading' ? 'Lendo e analisando a planilha...' : 'Processando importaÃ§Ã£o...' }}</h5>
   </div>
   }
 
@@ -612,7 +783,7 @@
   <div class="alert alert-success mt-2 mb-0 d-flex align-items-center">
     <i class="fa-solid fa-check-circle fs-4 me-3"></i>
     <div>
-      <strong>Importação concluída!</strong><br>
+      <strong>ImportaÃ§Ã£o concluÃ­da!</strong><br>
       <ul class="mb-0 mt-1 ps-3 small">
         <li>Cadastrados: <b>{{ importResumo.cadastrados }}</b></li>
         <li>Atualizados: <b>{{ importResumo.atualizados }}</b></li>
@@ -631,7 +802,7 @@
     @if (importPreview.erros.length > 0) {
     <div class="alert alert-warning small mb-3">
       <strong><i class="fa-solid fa-triangle-exclamation me-1"></i> {{ importPreview.erros.length }} linha(s) da
-        planilha não puderam ser lidas e foram ignoradas:</strong>
+        planilha nÃ£o puderam ser lidas e foram ignoradas:</strong>
       <ul class="mb-0 mt-1 ps-3" style="max-height: 120px; overflow-y: auto;">
         <li *ngFor="let erro of importPreview.erros">
           Aba <b>{{ erro.aba }}</b>, linha {{ erro.linha }}{{ erro.nome ? ' (' + erro.nome + ')' : '' }}:
@@ -653,7 +824,7 @@
         (click)="importMostrarDivergenciaOnly = !importMostrarDivergenciaOnly">
         <i class="fa-solid" [class.fa-toggle-on]="importMostrarDivergenciaOnly"
           [class.fa-toggle-off]="!importMostrarDivergenciaOnly"></i>
-        Mostrar divergência
+        Mostrar divergÃªncia
       </button>
     </div>
     }
@@ -681,11 +852,11 @@
                   <span class="badge bg-light text-dark" *ngIf="linha.ccEncontrado">{{ linha.centroCustoCodigo }} - {{
                     linha.centroCustoNome }}</span>
                   <div *ngIf="!linha.ccEncontrado" class="d-flex flex-column gap-1">
-                    <span class="badge bg-danger-subtle text-danger">CC {{ linha.centroCustoCodigo }} não
+                    <span class="badge bg-danger-subtle text-danger">CC {{ linha.centroCustoCodigo }} nÃ£o
                       cadastrado</span>
                     <div class="d-flex gap-1 cc-select-wrap">
                       <ng-select [items]="listaCentrosCustoGeral" bindLabel="nome" appendTo="body"
-                        [clearable]="false" [searchFn]="ccSearchFn" placeholder="Buscar por código ou nome..."
+                        [clearable]="false" [searchFn]="ccSearchFn" placeholder="Buscar por cÃ³digo ou nome..."
                         class="cc-select flex-grow-1" (change)="onCcExistenteSelecionado(linha, $event)">
                         <ng-template ng-label-tmp let-item="item">{{ item.codigo }} - {{ item.nome }}</ng-template>
                         <ng-template ng-option-tmp let-item="item">{{ item.codigo }} - {{ item.nome }}</ng-template>
@@ -707,7 +878,7 @@
 
       @if (importPreview.divergentes.length > 0) {
       <div class="import-review-section">
-        <h6><i class="fa-solid fa-arrows-rotate text-warning me-1"></i> Divergências a atualizar ({{
+        <h6><i class="fa-solid fa-arrows-rotate text-warning me-1"></i> DivergÃªncias a atualizar ({{
           importDivergentesFiltrados.length }}{{ importDivergentesFiltrados.length !==
           importPreview.divergentes.length ? ' de ' + importPreview.divergentes.length : '' }})</h6>
         <div class="table-responsive import-review-scroll">
@@ -726,7 +897,7 @@
                 <td>{{ linha.documento }}</td>
                 <td>
                   <span class="badge bg-info-subtle text-info d-block mb-1" *ngIf="linha.reativado">Estava
-                    desligado — será reativado</span>
+                    desligado â€” serÃ¡ reativado</span>
                   <span class="badge bg-warning-subtle text-warning d-block" *ngIf="linha.ccDivergente">Centro de
                     custo divergente</span>
                 </td>
@@ -736,11 +907,11 @@
                   <span class="badge bg-light text-dark" *ngIf="linha.ccEncontrado">{{ linha.centroCustoCodigo }} - {{
                     linha.centroCustoNome }}</span>
                   <div *ngIf="!linha.ccEncontrado" class="d-flex flex-column gap-1">
-                    <span class="badge bg-danger-subtle text-danger">CC {{ linha.centroCustoCodigo }} não
+                    <span class="badge bg-danger-subtle text-danger">CC {{ linha.centroCustoCodigo }} nÃ£o
                       cadastrado</span>
                     <div class="d-flex gap-1 cc-select-wrap">
                       <ng-select [items]="listaCentrosCustoGeral" bindLabel="nome" appendTo="body"
-                        [clearable]="false" [searchFn]="ccSearchFn" placeholder="Buscar por código ou nome..."
+                        [clearable]="false" [searchFn]="ccSearchFn" placeholder="Buscar por cÃ³digo ou nome..."
                         class="cc-select flex-grow-1" (change)="onCcExistenteSelecionado(linha, $event)">
                         <ng-template ng-label-tmp let-item="item">{{ item.codigo }} - {{ item.nome }}</ng-template>
                         <ng-template ng-option-tmp let-item="item">{{ item.codigo }} - {{ item.nome }}</ng-template>
@@ -791,12 +962,12 @@
     </div>
 
     @if (importPreview.novos.length === 0 && importPreview.divergentes.length === 0 && importPreview.desligados.length === 0) {
-    <div class="alert alert-info small mb-0">Nenhuma alteração identificada: a base já está de acordo com a
+    <div class="alert alert-info small mb-0">Nenhuma alteraÃ§Ã£o identificada: a base jÃ¡ estÃ¡ de acordo com a
       planilha.</div>
     }
 
     @if (importMostrarDivergenciaOnly && importPreview.divergentes.length === 0 && importPreview.desligados.length === 0 && importNovosBase.length === 0) {
-    <div class="alert alert-info small mb-0">Nenhuma divergência, desligamento ou pendência de Centro de Custo
+    <div class="alert alert-info small mb-0">Nenhuma divergÃªncia, desligamento ou pendÃªncia de Centro de Custo
       identificado.</div>
     }
 
@@ -810,14 +981,14 @@
   }
 </app-modal>
 
-<!-- Modal de Cadastro/Edição de Centro de Custo -->
+<!-- Modal de Cadastro/EdiÃ§Ã£o de Centro de Custo -->
 <app-modal [isOpen]="isCentroCustoModalOpen"
   [title]="centroCustoModalMode === 'create' ? 'Cadastrar Centro de Custo' : 'Editar Centro de Custo'"
   (closed)="closeCentroCustoModal()" size="md">
   <div class="form-container py-2">
     <div class="row">
       <div class="col-md-4 mb-3">
-        <label class="form-label text-muted small fw-medium">CÓDIGO (Numérico)</label>
+        <label class="form-label text-muted small fw-medium">CÃ“DIGO (NumÃ©rico)</label>
         <input type="number" class="form-control" placeholder="Ex: 102" [(ngModel)]="novoCentroCusto.codigo">
       </div>
       <div class="col-md-8 mb-3">
@@ -850,19 +1021,19 @@
   </div>
 </app-modal>
 
-<!-- Modal de Cadastro/Edição de Categoria -->
+<!-- Modal de Cadastro/EdiÃ§Ã£o de Categoria -->
 <app-modal [isOpen]="isCategoriaModalOpen"
   [title]="categoriaModalMode === 'create' ? 'Cadastrar Categoria' : 'Editar Categoria'"
   (closed)="closeCategoriaModal()" size="md">
   <div class="form-container py-2">
     <div class="mb-3">
       <label class="form-label text-muted small fw-medium">NOME DA CATEGORIA</label>
-      <input type="text" class="form-control" placeholder="Ex: Alimentação" [(ngModel)]="novaCategoria.nome">
+      <input type="text" class="form-control" placeholder="Ex: AlimentaÃ§Ã£o" [(ngModel)]="novaCategoria.nome">
     </div>
 
     <div class="mb-4">
-      <label class="form-label text-muted small fw-medium">DESCRIÇÃO</label>
-      <textarea class="form-control" rows="3" placeholder="Ex: Despesas com refeições e lanches..."
+      <label class="form-label text-muted small fw-medium">DESCRIÃ‡ÃƒO</label>
+      <textarea class="form-control" rows="3" placeholder="Ex: Despesas com refeiÃ§Ãµes e lanches..."
         [(ngModel)]="novaCategoria.descricao"></textarea>
     </div>
 
@@ -880,16 +1051,16 @@
 <!-- Modal Gerenciar Cargos de Colaborador -->
 <app-modal [isOpen]="isNovoCargoModalOpen" title="Gerenciar Cargos" (closed)="closeNovoCargoModal()" size="md">
   <div class="form-container py-2">
-    <!-- Area do Formulário -->
+    <!-- Area do FormulÃ¡rio -->
     <div class="row">
       <div class="col-md-5 mb-3">
         <label class="form-label text-muted small fw-medium">NOME DO CARGO</label>
         <input type="text" class="form-control" placeholder="Ex: Analista" [(ngModel)]="novoCargo.nome">
       </div>
       <div class="col-md-7 mb-3">
-        <label class="form-label text-muted small fw-medium">DESCRIÇÃO (Opcional)</label>
+        <label class="form-label text-muted small fw-medium">DESCRIÃ‡ÃƒO (Opcional)</label>
         <div class="d-flex gap-2">
-          <input type="text" class="form-control" placeholder="Ex: Responsável por..."
+          <input type="text" class="form-control" placeholder="Ex: ResponsÃ¡vel por..."
             [(ngModel)]="novoCargo.descricao">
           <button class="btn btn-primary" (click)="salvarNovoCargo()" [disabled]="!novoCargo.nome || isSalvandoCargo"
             style="white-space: nowrap;">
@@ -897,7 +1068,7 @@
             {{ isSalvandoCargo ? 'Salvando...' : (cargoModalMode === 'create' ? 'Adicionar' : 'Alterar') }}
           </button>
           <button class="btn btn-outline-secondary" *ngIf="cargoModalMode === 'edit'" (click)="cancelarEdicaoCargo()"
-            title="Cancelar edição">
+            title="Cancelar ediÃ§Ã£o">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
@@ -912,8 +1083,8 @@
           <thead style="position: sticky; top: 0; background: white; z-index: 1;">
             <tr>
               <th>NOME</th>
-              <th>DESCRIÇÃO</th>
-              <th class="text-end">AÇÕES</th>
+              <th>DESCRIÃ‡ÃƒO</th>
+              <th class="text-end">AÃ‡Ã•ES</th>
             </tr>
           </thead>
           <tbody>
@@ -948,19 +1119,19 @@
   </div>
 </app-modal>
 
-<!-- Modal de Cadastro/Edição de Unidade -->
+<!-- Modal de Cadastro/EdiÃ§Ã£o de Unidade -->
 <app-modal [isOpen]="isUnidadeModalOpen"
   [title]="unidadeModalMode === 'create' ? 'Cadastrar Unidade' : 'Editar Unidade'" (closed)="closeUnidadeModal()"
   size="md">
   <div class="form-container py-2">
     <div class="mb-3">
-      <label class="form-label text-muted small fw-medium">CÓDIGO DA UNIDADE</label>
+      <label class="form-label text-muted small fw-medium">CÃ“DIGO DA UNIDADE</label>
       <input type="number" class="form-control" placeholder="Ex: 102" [(ngModel)]="novaUnidade.codigo">
     </div>
 
     <div class="mb-4">
-      <label class="form-label text-muted small fw-medium">DESCRIÇÃO</label>
-      <input type="text" class="form-control" placeholder="Ex: Matriz São Paulo" [(ngModel)]="novaUnidade.descricao">
+      <label class="form-label text-muted small fw-medium">DESCRIÃ‡ÃƒO</label>
+      <input type="text" class="form-control" placeholder="Ex: Matriz SÃ£o Paulo" [(ngModel)]="novaUnidade.descricao">
     </div>
 
     <div class="d-flex justify-content-end gap-2 pt-3 border-top">
@@ -974,37 +1145,37 @@
   </div>
 </app-modal>
 
-<!-- Modal de Cadastro/Edição de Empresa -->
+<!-- Modal de Cadastro/EdiÃ§Ã£o de Empresa -->
 <app-modal [isOpen]="isEmpresaModalOpen"
   [title]="empresaModalMode === 'create' ? 'Cadastrar Empresa' : 'Editar Empresa'" (closed)="closeEmpresaModal()"
   size="md">
   <div class="form-container py-2 d-flex flex-column" style="min-height: 420px;">
     <div class="mb-3">
       <label class="form-label text-muted small fw-medium">NOME DA EMPRESA</label>
-      <input type="text" class="form-control" placeholder="Ex: Cartão Corporativo Itaú" [(ngModel)]="novaEmpresa.nome">
+      <input type="text" class="form-control" placeholder="Ex: CartÃ£o Corporativo ItaÃº" [(ngModel)]="novaEmpresa.nome">
     </div>
 
     <div class="mb-3">
-      <label class="form-label text-muted small fw-medium">DESCRIÇÃO</label>
-      <textarea class="form-control" rows="3" placeholder="Ex: Faturas do cartão de crédito corporativo..."
+      <label class="form-label text-muted small fw-medium">DESCRIÃ‡ÃƒO</label>
+      <textarea class="form-control" rows="3" placeholder="Ex: Faturas do cartÃ£o de crÃ©dito corporativo..."
         [(ngModel)]="novaEmpresa.descricao"></textarea>
     </div>
 
     <div class="mb-3">
       <label class="form-label text-muted small fw-medium">TIPO</label>
-      <input type="text" class="form-control" maxlength="100" placeholder="Ex: Plano de Saúde"
+      <input type="text" class="form-control" maxlength="100" placeholder="Ex: Plano de SaÃºde"
         [(ngModel)]="novaEmpresa.tipo">
     </div>
 
     <div class="mb-4">
-      <label class="form-label text-muted small fw-medium">MÓDULOS PERMITIDOS</label>
+      <label class="form-label text-muted small fw-medium">MÃ“DULOS PERMITIDOS</label>
       <ng-select [items]="modulosOptions"
          bindLabel="nome"
          bindValue="id"
          [multiple]="true"
          [closeOnSelect]="false"
          appendTo="body"
-         placeholder="Selecione os módulos (opcional)"
+         placeholder="Selecione os mÃ³dulos (opcional)"
          [(ngModel)]="novaEmpresa.modulo_ids">
          <ng-template ng-option-tmp let-item="item" let-item$="item$" let-index="index">
            <input type="checkbox" [checked]="item$.selected" class="me-2" /> {{item.nome}}
@@ -1023,12 +1194,12 @@
 </app-modal>
 
 
-<!-- Modal Novo Usuário -->
-<app-modal [isOpen]="isCadastroModalOpen" title="Novo Usuário" (closed)="closeCadastroModal()">
+<!-- Modal Novo UsuÃ¡rio -->
+<app-modal [isOpen]="isCadastroModalOpen" title="Novo UsuÃ¡rio" (closed)="closeCadastroModal()">
   <form [formGroup]="cadastroForm" (ngSubmit)="onCadastroSubmit()" class="p-4">
     <div class="mb-3">
       <label class="form-label text-muted small fw-medium">NOME COMPLETO</label>
-      <input type="text" class="form-control" formControlName="name" placeholder="Ex: João Silva">
+      <input type="text" class="form-control" formControlName="name" placeholder="Ex: JoÃ£o Silva">
     </div>
     
     <div class="mb-3">
@@ -1037,21 +1208,21 @@
     </div>
 
     <div class="mb-3">
-      <label class="form-label text-muted small fw-medium">SENHA PROVISÓRIA</label>
-      <input type="password" class="form-control" formControlName="password" placeholder="Mínimo 6 caracteres">
+      <label class="form-label text-muted small fw-medium">SENHA PROVISÃ“RIA</label>
+      <input type="password" class="form-control" formControlName="password" placeholder="MÃ­nimo 6 caracteres">
     </div>
 
     <div class="mb-4">
       <label class="form-label text-muted small fw-medium">CONFIRMAR SENHA</label>
       <input type="password" class="form-control" formControlName="confirmPassword" placeholder="Confirme a senha">
       <small class="text-danger mt-1 d-block" *ngIf="cadastroForm.hasError('mismatch') && cadastroForm.get('confirmPassword')?.touched">
-        As senhas não coincidem.
+        As senhas nÃ£o coincidem.
       </small>
     </div>
 
     <div class="d-flex justify-content-end gap-2 pt-3 border-top">
       <app-button variant="ghost" type="button" (clicked)="closeCadastroModal()">Cancelar</app-button>
-      <app-button variant="primary" type="submit" [disabled]="cadastroForm.invalid">Cadastrar Usuário</app-button>
+      <app-button variant="primary" type="submit" [disabled]="cadastroForm.invalid">Cadastrar UsuÃ¡rio</app-button>
     </div>
   </form>
 </app-modal>
@@ -1067,14 +1238,14 @@
   <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()" class="p-4">
     <div class="mb-3">
       <label class="form-label text-muted small fw-medium">NOVA SENHA</label>
-      <input type="password" class="form-control" formControlName="newPassword" placeholder="Mínimo 6 caracteres">
+      <input type="password" class="form-control" formControlName="newPassword" placeholder="MÃ­nimo 6 caracteres">
     </div>
 
     <div class="mb-4">
       <label class="form-label text-muted small fw-medium">CONFIRMAR NOVA SENHA</label>
       <input type="password" class="form-control" formControlName="confirmNewPassword" placeholder="Confirme a nova senha">
       <small class="text-danger mt-1 d-block" *ngIf="passwordForm.hasError('mismatch') && passwordForm.get('confirmNewPassword')?.touched">
-        As senhas não coincidem.
+        As senhas nÃ£o coincidem.
       </small>
     </div>
 
@@ -1085,15 +1256,15 @@
   </form>
 </app-modal>
 
-<app-modal [isOpen]="isTurnoverModalOpen" title="Relatório de Turnover" (closed)="closeTurnoverModal()"
+<app-modal [isOpen]="isTurnoverModalOpen" title="RelatÃ³rio de Turnover" (closed)="closeTurnoverModal()"
   size="lg" [customBodyStyle]="{'height': '90vh', 'overflow-y': 'auto', 'display': 'flex', 'flex-direction': 'column'}">
   <div body class="d-flex flex-column h-100">
     <!-- Filtros do Turnover -->
     <div class="filters-panel-card mb-4" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem;">
       <div class="filters-grid d-flex flex-wrap gap-4 align-items-end">
-        <!-- Coluna de Período -->
+        <!-- Coluna de PerÃ­odo -->
         <div class="filter-group">
-          <label class="filter-label mb-2 d-block text-uppercase text-muted" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Período</label>
+          <label class="filter-label mb-2 d-block text-uppercase text-muted" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">PerÃ­odo</label>
           <div class="d-flex align-items-center gap-2">
             <div class="input-icon-wrapper" style="position: relative; width: 140px;">
               <i class="fa-regular fa-calendar input-icon" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
@@ -1102,7 +1273,7 @@
                 placeholder="Data inicial" [(ngModel)]="turnoverDataInicio"
                 (ngModelChange)="onTurnoverDataInicioChange()">
             </div>
-            <span class="text-muted small">à</span>
+            <span class="text-muted small">Ã </span>
             <div class="input-icon-wrapper" style="position: relative; width: 140px;">
               <i class="fa-regular fa-calendar input-icon" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
               <input type="text" class="form-control form-control-sm w-100" style="padding-left: 2.25rem; height: 38px; border-radius: 8px;" mwlFlatpickr dateFormat="d/m/Y"
@@ -1111,8 +1282,8 @@
             </div>
             <select class="form-select form-select-sm shortcut-select" style="width: 150px; height: 38px; border-radius: 8px;" [(ngModel)]="turnoverShortcut"
               (ngModelChange)="onTurnoverShortcutChange($event)">
-              <option value="ultimo-bimestre">Últ. Bimestre</option>
-              <option value="ultimo-semestre">Últ. Semestre</option>
+              <option value="ultimo-bimestre">Ãšlt. Bimestre</option>
+              <option value="ultimo-semestre">Ãšlt. Semestre</option>
               <option value="este-ano">Este Ano</option>
               <option value="ano-passado">Ano Passado</option>
               <option value="personalizado" disabled>Personalizado</option>
@@ -1125,8 +1296,8 @@
           <label class="filter-label mb-2 d-block text-uppercase text-muted" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Tipo de Movimento</label>
           <select class="form-select form-select-sm" style="width: 200px; height: 38px; border-radius: 8px;" [(ngModel)]="turnoverFiltroTipo" (ngModelChange)="carregarTurnover()">
             <option value="">Todos</option>
-            <option value="ATIVACAO">Ativação (Entrada)</option>
-            <option value="DESATIVACAO">Desativação (Saída)</option>
+            <option value="ATIVACAO">AtivaÃ§Ã£o (Entrada)</option>
+            <option value="DESATIVACAO">DesativaÃ§Ã£o (SaÃ­da)</option>
           </select>
         </div>
 
@@ -1135,9 +1306,9 @@
           <label class="filter-label mb-2 d-block text-uppercase text-muted" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Origem</label>
           <select class="form-select form-select-sm" style="width: 200px; height: 38px; border-radius: 8px;" [(ngModel)]="turnoverFiltroOrigem" (ngModelChange)="carregarTurnover()">
             <option value="">Todas</option>
-            <option value="MANUAL">Criação Manual</option>
-            <option value="ATUALIZACAO_BASE">Importação (RH)</option>
-            <option value="IMPORTACOES">Importação (Planos)</option>
+            <option value="MANUAL">CriaÃ§Ã£o Manual</option>
+            <option value="ATUALIZACAO_BASE">ImportaÃ§Ã£o (RH)</option>
+            <option value="IMPORTACOES">ImportaÃ§Ã£o (Planos)</option>
           </select>
         </div>
       </div>
@@ -1158,14 +1329,14 @@
             <th>CPF/CNPJ</th>
             <th>MOVIMENTO</th>
             <th>ORIGEM</th>
-            <th>USUÁRIO</th>
+            <th>USUÃRIO</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let m of turnoverData">
             <td class="text-nowrap">{{ m.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
             <td class="fw-medium text-dark">{{ m.colaboradorNome }}</td>
-            <td class="text-muted">{{ m.colaboradorDocumento || '—' }}</td>
+            <td class="text-muted">{{ m.colaboradorDocumento || 'â€”' }}</td>
             <td>
               <span class="badge" [ngClass]="m.tipoMovimento === 'ATIVACAO' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'">
                 {{ m.tipoMovimento }}
@@ -1175,7 +1346,7 @@
             <td><span class="text-muted small">{{ m.userNome }}</span></td>
           </tr>
           <tr *ngIf="turnoverData.length === 0">
-            <td colspan="6" class="text-center text-muted py-5">Nenhuma movimentação encontrada para o período selecionado.</td>
+            <td colspan="6" class="text-center text-muted py-5">Nenhuma movimentaÃ§Ã£o encontrada para o perÃ­odo selecionado.</td>
           </tr>
         </tbody>
       </table>
@@ -1189,3 +1360,62 @@
     </button>
   </div>
 </app-modal>
+<!-- Modal de Atribuir Clientes -->
+<app-modal [isOpen]="isClienteModalOpen" [title]="'Atribuir Clientes a ' + (representanteSelecionado?.nome || '')"
+  (closed)="fecharModalClientes()" size="lg">
+    <div class="modal-body p-0">
+    <div class="p-4 border-bottom">
+      <p class="text-muted mb-3">Selecione os clientes que devem ser vinculados a este representante.</p>
+      <div class="config-toolbar d-flex justify-content-between align-items-center">
+        <div class="search-box w-100">
+          <i class="fa-solid fa-search text-muted"></i>
+          <input type="text" placeholder="Buscar por código ou nome do cliente..." [(ngModel)]="searchCliente">
+        </div>
+      </div>
+    </div>
+    
+    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+      <table class="saas-table w-100 m-0">
+        <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+          <tr>
+            <th style="width: 50px;" class="text-center">VÍNCULO</th>
+            <th style="width: 100px;">CÓDIGO</th>
+            <th>NOME DO CLIENTE</th>
+          </tr>
+        </thead>
+        <tbody *ngIf="!loadingClientes">
+          <tr *ngFor="let cliente of listaClientesFiltrada">
+            <td class="text-center">
+              <input type="checkbox" class="form-check-input" [checked]="cliente.linked"
+                (change)="toggleClienteLink(cliente)" style="cursor: pointer;">
+            </td>
+            <td>{{ cliente.codigo || '-' }}</td>
+            <td class="fw-medium">{{ cliente.nome }}</td>
+          </tr>
+          <tr *ngIf="listaClientesFiltrada.length === 0">
+            <td colspan="3" class="text-center text-muted py-5">Nenhum cliente encontrado.</td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="loadingClientes">
+          <tr *ngFor="let i of [1,2,3,4,5]">
+            <td class="text-center"><app-skeleton width="20px" height="20px"></app-skeleton></td>
+            <td><app-skeleton width="60px"></app-skeleton></td>
+            <td><app-skeleton width="200px"></app-skeleton></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" (click)="fecharModalClientes()" [disabled]="savingClientes">Cancelar</button>
+    <button type="button" class="btn btn-primary" (click)="salvarVinculos()" [disabled]="savingClientes">
+      <i class="fa-solid fa-save me-2" *ngIf="!savingClientes"></i>
+      <i class="fa-solid fa-circle-notch fa-spin me-2" *ngIf="savingClientes"></i>
+      Salvar Vínculos
+    </button>
+  </div>
+</app-modal>
+
+
+
+

@@ -1,5 +1,9 @@
 @import 'styles/variables';
 
+:host {
+  display: block;
+}
+
 .erp-skeleton {
   background-color: $gray-200;
   border-radius: $border-radius-sm;
