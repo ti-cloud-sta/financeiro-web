@@ -277,6 +277,8 @@ export class InadimplenciaComponent implements OnInit {
   dataHoje: Date = new Date();
   kpiTotalVencidoAtual = 0;
   kpiTotalProtestadoAtual = 0;
+  qtdTitulosVencidos = 0;
+  qtdTitulosProtestados = 0;
   evolucaoVencido = 0;
   evolucaoProtestado = 0;
 
@@ -504,6 +506,8 @@ export class InadimplenciaComponent implements OnInit {
         this.evolucaoVencido = res.kpiVencidoEvolucao;
         this.kpiTotalProtestadoAtual = res.kpiProtestado;
         this.evolucaoProtestado = res.kpiProtestadoEvolucao;
+        this.qtdTitulosVencidos = (res.gridFinanceiro || []).length;
+        this.qtdTitulosProtestados = (res.gridFinanceiro || []).filter((x: any) => x.status === 'PROTESTADO' || x.status === 'CARTÓRIO').length;
 
         this.rankingClientes = (res.rankingClientesAtraso || []).map((x: any) => ({
           nome: x.cliente,

@@ -536,10 +536,10 @@
                         <span class="text-muted"><i class="fa-regular fa-calendar me-2"></i>Hoje, {{ dataHoje |
                           date:'dd/MM/yyyy' }}</span>
                         <div class="vr text-secondary opacity-25 mx-1"></div>
-                        <span><span class="text-muted me-1">Total em atraso:</span> <strong class="text-danger">R$
-                            1.250.000,00</strong></span>
+                        <span><span class="text-muted me-1">Total em atraso:</span> <strong class="text-danger">{{
+                            kpiTotalVencidoAtual | currency:'BRL' }}</strong></span>
                         <span><span class="text-muted me-1">Total protestado:</span> <strong class="text-warning"
-                            style="color: #f59e0b !important;">R$ 450.000,00</strong></span>
+                            style="color: #f59e0b !important;">{{ kpiTotalProtestadoAtual | currency:'BRL' }}</strong></span>
                       </div>
                     </div>
                     <div class="row g-4">
@@ -548,7 +548,7 @@
                           class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm position-relative d-flex flex-column">
                           <h6 class="mb-3 fw-semibold text-secondary w-75">Títulos Pagos Fora do Prazo (Anual)</h6>
                           <span class="badge bg-secondary bg-opacity-10 text-secondary border position-absolute"
-                            style="top: 1rem; right: 1rem;">359 Títulos</span>
+                            style="top: 1rem; right: 1rem;">{{ qtdTitulosVencidos }} Títulos</span>
                           <div echarts *ngIf="chartOptionsAtrasoAnual" [options]="chartOptionsAtrasoAnual"
                             class="chart-container flex-grow-1 w-100" style="min-height: 250px;"></div>
                         </div>
@@ -558,7 +558,7 @@
                           class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm position-relative d-flex flex-column">
                           <h6 class="mb-3 fw-semibold text-secondary w-75">Protestos no Semestre</h6>
                           <span class="badge bg-secondary bg-opacity-10 text-secondary border position-absolute"
-                            style="top: 1rem; right: 1rem;">57 Títulos</span>
+                            style="top: 1rem; right: 1rem;">{{ qtdTitulosProtestados }} Títulos</span>
                           <div echarts *ngIf="chartOptionsProtestos" [options]="chartOptionsProtestos"
                             class="chart-container flex-grow-1 w-100" style="min-height: 250px;"></div>
                         </div>
@@ -583,9 +583,9 @@
                           date:'dd/MM/yyyy' }}</span>
                         <div class="vr text-secondary opacity-25 mx-1"></div>
                         <span><span class="text-muted me-1">Sem entrega:</span> <strong class="text-warning"
-                            style="color: #f59e0b !important;">R$ 320.000,00</strong></span>
-                        <span><span class="text-muted me-1">Em devolução:</span> <strong class="text-danger">R$
-                            180.000,00</strong></span>
+                            style="color: #f59e0b !important;">{{ kpiSemEntrega | currency:'BRL' }}</strong></span>
+                        <span><span class="text-muted me-1">Em devolução:</span> <strong class="text-danger">{{
+                            kpiDevolucao | currency:'BRL' }}</strong></span>
                       </div>
                     </div>
                     <div class="row g-4">
@@ -596,7 +596,7 @@
                           </h6>
                           <span
                             class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle position-absolute"
-                            style="top: 1rem; right: 1rem;">283 Títulos</span>
+                            style="top: 1rem; right: 1rem;">{{ gridSemEntrega.length }} Títulos</span>
                           <div echarts *ngIf="chartOptionsSemEntrega" [options]="chartOptionsSemEntrega"
                             class="chart-container flex-grow-1 w-100" style="min-height: 250px;"></div>
                         </div>
@@ -607,7 +607,7 @@
                           <h6 class="mb-3 fw-semibold text-secondary w-75">Ocorrências de Devolução (Mês a Mês)</h6>
                           <span
                             class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle position-absolute"
-                            style="top: 1rem; right: 1rem;">169 Títulos</span>
+                            style="top: 1rem; right: 1rem;">{{ gridDevolucao.length }} Títulos</span>
                           <div echarts *ngIf="chartOptionsDevolucao" [options]="chartOptionsDevolucao"
                             class="chart-container flex-grow-1 w-100" style="min-height: 250px;"></div>
                         </div>
@@ -624,8 +624,8 @@
                         <span class="text-muted"><i class="fa-regular fa-calendar me-2"></i>Hoje, {{ dataHoje |
                           date:'dd/MM/yyyy' }}</span>
                         <div class="vr text-secondary opacity-25 mx-1"></div>
-                        <span><span class="text-muted me-1">Total em acordo:</span> <strong class="text-primary">R$
-                            850.000,00</strong></span>
+                        <span><span class="text-muted me-1">Total em acordo:</span> <strong class="text-primary">{{
+                            kpiTotalAcordos | currency:'BRL' }}</strong></span>
                       </div>
                     </div>
                     <div class="row g-4 align-items-stretch">
@@ -1494,7 +1494,8 @@
               <div class="upload-fields-row mb-3">
                 <div class="upload-field-box">
                   <label class="form-label">Planilha de Atualização (Excel)</label>
-          <div class="custom-upload-zone" (click)="triggerUploadAtualizacao()"
+                  <input type="file" #atualizacaoFileInput (change)="onFileSelectedAtualizacao($event)" accept=".xlsx,.xls" class="d-none">
+                  <div class="custom-upload-zone" (click)="triggerUploadAtualizacao()"
             [class.has-file]="selectedFileAtualizacao() !== null"
             [style.pointer-events]="isImportandoDados() ? 'none' : 'auto'"
             [style.opacity]="isImportandoDados() ? '0.6' : '1'">
@@ -1716,3 +1717,9 @@
     <app-button variant="ghost" (clicked)="fecharHistorico()">Fechar</app-button>
   </div>
 </app-modal>
+
+<!-- Modal de Confirmação para Exclusão e Alertas -->
+<app-confirm-modal [isOpen]="isConfirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
+  [confirmText]="confirmText" [cancelText]="cancelText" [variant]="confirmVariant"
+  [showCancel]="showCancelConfirm" (confirmed)="executeConfirm()" (canceled)="closeConfirmModal()">
+</app-confirm-modal>
