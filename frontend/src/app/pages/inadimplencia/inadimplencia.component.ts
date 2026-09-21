@@ -33,6 +33,7 @@ export class InadimplenciaComponent implements OnInit {
   isHistoricoModalOpen = false;
   tituloSelecionadoHistorico: any = null;
   historicoMock: any[] = [];
+  isLoadingHistorico = false;
 
   ngOnInit() {
     this.isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
@@ -316,6 +317,32 @@ export class InadimplenciaComponent implements OnInit {
     return Math.ceil(filtered.length / this.pageSize) || 1;
   }
 
+  // Visão por Carteira (Gerente/Representante)
+  gridCarteira: any[] = [];
+  searchCarteira = '';
+  pageCarteira = 1;
+  kpiTotalVencidoCarteira = 0;
+  kpiTotalProtestadoCarteira = 0;
+
+  // Concentração de Inadimplência e Títulos Vencidos da Carteira
+  gerenteMaiorAtraso: { nome: string; qtd: number; valor: number } | null = null;
+  representanteMaiorAtraso: { nome: string; qtd: number; valor: number } | null = null;
+  gerentesMaisVencidos: Array<{ nome: string; qtd: number; valor: number }> = [];
+  representantesMaisVencidos: Array<{ nome: string; qtd: number; valor: number }> = [];
+
+  get paginatedCarteira() {
+    const s = this.searchCarteira.toLowerCase();
+    const filtered = s ? this.gridCarteira.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s)) : this.gridCarteira;
+    const start = (this.pageCarteira - 1) * this.pageSize;
+    return filtered.slice(start, start + this.pageSize);
+  }
+
+  get totalPagesCarteira() {
+    const s = this.searchCarteira.toLowerCase();
+    const filtered = s ? this.gridCarteira.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s)) : this.gridCarteira;
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
   // Logistica
   kpiSemEntrega = 0;
   kpiDevolucao = 0;
@@ -368,14 +395,14 @@ export class InadimplenciaComponent implements OnInit {
 
   get paginatedAcordos() {
     const s = this.searchAcordos.toLowerCase();
-    const filtered = s ? this.gridAcordos.filter(a => a.titulo.toLowerCase().includes(s) || a.cliente.toLowerCase().includes(s)) : this.gridAcordos;
+    const filtered = s ? this.gridAcordos.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridAcordos;
     const start = (this.pageAcordos - 1) * this.pageSize;
     return filtered.slice(start, start + this.pageSize);
   }
 
   get totalPagesAcordos() {
     const s = this.searchAcordos.toLowerCase();
-    const filtered = s ? this.gridAcordos.filter(a => a.titulo.toLowerCase().includes(s) || a.cliente.toLowerCase().includes(s)) : this.gridAcordos;
+    const filtered = s ? this.gridAcordos.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridAcordos;
     return Math.ceil(filtered.length / this.pageSize) || 1;
   }
 
@@ -418,27 +445,55 @@ export class InadimplenciaComponent implements OnInit {
   abrirHistorico(titulo: any) {
     this.tituloSelecionadoHistorico = titulo;
     this.historicoMock = [];
+    this.isLoadingHistorico = true;
     this.isHistoricoModalOpen = true;
 
-    if (titulo.id) {
+    if (titulo?.id) {
       this.importacoesService.listarHistoricoPendencia(Number(titulo.id)).subscribe({
         next: (itens) => {
-          this.historicoMock = itens.map((h: any) => ({
-            data: h.createdAt ? new Date(h.createdAt) : new Date(),
-            tipo: h.tipo || 'Evento',
-            fase: h.fase || null,
-            status: h.status || null,
-            descricao: h.observacao || ''
-          }));
+          this.isLoadingHistorico = false;
+          this.historicoMock = (itens || []).map((h: any) => {
+            const { icone, cor } = this.iconeCorPorTipo(h.tipo);
+            return {
+              data: h.createdAt ? new Date(h.createdAt) : new Date(),
+              tipo: h.tipo || 'Evento',
+              observacao: h.observacao || '',
+              icone,
+              cor
+            };
+          });
         },
-        error: (err) => console.error('Erro ao carregar histórico:', err)
+        error: (err) => {
+          this.isLoadingHistorico = false;
+          console.error('Erro ao carregar histórico:', err);
+          this.historicoMock = [];
+        }
       });
+    } else {
+      this.isLoadingHistorico = false;
     }
+  }
+
+  private iconeCorPorTipo(tipo: string | null): { icone: string; cor: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'secondary' } {
+    const t = (tipo || '').toLowerCase();
+    if (t.includes('finaliza') || t.includes('resolu')) {
+      return { icone: 'fa-solid fa-check-circle', cor: 'success' };
+    }
+    if (t.includes('email') || t.includes('e-mail') || t.includes('mensagem')) {
+      return { icone: 'fa-solid fa-envelope', cor: 'primary' };
+    }
+    if (t.includes('prorrogad')) return { icone: 'fa-regular fa-calendar-plus', cor: 'warning' };
+    if (t.includes('importada')) return { icone: 'fa-solid fa-file-circle-plus', cor: 'primary' };
+    if (t.includes('fase') || t.includes('classifica')) return { icone: 'fa-solid fa-shuffle', cor: 'info' };
+    if (t.includes('status')) return { icone: 'fa-solid fa-flag', cor: 'warning' };
+    if (t.includes('tratativa')) return { icone: 'fa-solid fa-headset', cor: 'success' };
+    return { icone: 'fa-solid fa-circle-info', cor: 'secondary' };
   }
 
   fecharHistorico() {
     this.isHistoricoModalOpen = false;
     this.tituloSelecionadoHistorico = null;
+    this.isLoadingHistorico = false;
   }
 
   private _loadFinanceiroData() {
@@ -450,9 +505,9 @@ export class InadimplenciaComponent implements OnInit {
         this.kpiTotalProtestadoAtual = res.kpiProtestado;
         this.evolucaoProtestado = res.kpiProtestadoEvolucao;
 
-        this.rankingClientes = res.rankingClientesAtraso.map((x: any) => ({
+        this.rankingClientes = (res.rankingClientesAtraso || []).map((x: any) => ({
           nome: x.cliente,
-          qtd: 0,
+          qtd: x.qtd !== undefined && x.qtd !== null ? x.qtd : 1,
           valor: x.valor
         }));
         
@@ -461,7 +516,14 @@ export class InadimplenciaComponent implements OnInit {
         this.rankingRepresentantesAtraso = res.rankingRepresentantesAtraso;
         this.rankingRepresentantesProtesto = res.rankingRepresentantesProtesto;
 
-        this.maioresAtrasos = res.gridFinanceiro.map((x: any) => {
+        // Contagem de títulos por cliente na lista como fallback caso backend não envie
+        const qtdPorCliente: Record<string, number> = {};
+        for (const item of (res.gridFinanceiro || [])) {
+          const cli = item.cliente || 'Desconhecido';
+          qtdPorCliente[cli] = (qtdPorCliente[cli] || 0) + 1;
+        }
+
+        this.maioresAtrasos = (res.gridFinanceiro || []).map((x: any) => {
           const statusColorMap: Record<string, string> = {
             'ATRASADO': 'warning',
             'PROTESTADO': 'danger',
@@ -474,8 +536,10 @@ export class InadimplenciaComponent implements OnInit {
           const statusColor = statusColorMap[x.status] || 'secondary';
           const venc = x.vencimento ? new Date(x.vencimento + 'T00:00:00') : null;
           const diasAtraso = venc ? Math.floor((new Date().getTime() - venc.getTime()) / 86400000) : null;
+          const qtd = x.qtd !== undefined && x.qtd !== null ? x.qtd : (qtdPorCliente[x.cliente] || 1);
           return {
             ...x,
+            qtd,
             statusColor,
             diasAtraso,
             isCartorio: x.status === 'CARTÓRIO' || x.status === 'PROTESTADO'
@@ -601,7 +665,7 @@ export class InadimplenciaComponent implements OnInit {
           grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
           xAxis: { type: 'category', boundaryGap: false, data: res.evolucaoLogisticaSemEntrega.labels, axisLabel: { color: textColor } },
           yAxis: { type: 'value', splitLine: { show: false }, axisLabel: { color: textColor } },
-          series: [{ name: 'Sem Entrega', type: 'line', data: res.evolucaoLogisticaSemEntrega.values, label: { show: true, position: 'top', fontSize: 11, fontWeight: '600', color: '#64748b' }, itemStyle: { color: this.colors[4] }, areaStyle: { opacity: 0.1 } }]
+          series: [{ name: 'Sem Entrega', type: 'line', data: res.evolucaoLogisticaSemEntrega.values, label: { show: true, position: 'top', fontSize: 11, fontWeight: '600', color: '#64748b' }, itemStyle: { color: this.colors[2] }, areaStyle: { opacity: 0.1 } }]
         };
 
         this.chartOptionsDevolucao = {
@@ -609,7 +673,7 @@ export class InadimplenciaComponent implements OnInit {
           grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
           xAxis: { type: 'category', boundaryGap: false, data: res.evolucaoLogisticaDevolucao.labels, axisLabel: { color: textColor } },
           yAxis: { type: 'value', splitLine: { show: false }, axisLabel: { color: textColor } },
-          series: [{ name: 'Devolução', type: 'line', data: res.evolucaoLogisticaDevolucao.values, label: { show: true, position: 'top', fontSize: 11, fontWeight: '600', color: '#64748b' }, itemStyle: { color: this.colors[6] }, areaStyle: { opacity: 0.1 } }]
+          series: [{ name: 'Devolução', type: 'line', data: res.evolucaoLogisticaDevolucao.values, label: { show: true, position: 'top', fontSize: 11, fontWeight: '600', color: '#64748b' }, itemStyle: { color: this.colors[7] }, areaStyle: { opacity: 0.1 } }]
         };
       },
       error: (err) => console.error('Erro ao carregar dados do dashboard logístico:', err)
@@ -631,9 +695,11 @@ export class InadimplenciaComponent implements OnInit {
         
         this.rankingAcordos = res.rankingAcordos;
 
-        // Grid Acordos - pegando do grid financeiro que tem status ACORDO, ou melhor, o backend nao retorna gridAcordos separado.
-        // Vou filtrar do gridFinanceiro
-        this.gridAcordos = res.gridFinanceiro.filter((x: any) => x.status === 'ACORDO');
+        // Grid Acordos vindo diretamente do backend
+        this.gridAcordos = (res.gridAcordos || []).map((x: any) => ({
+          ...x,
+          statusColor: 'primary'
+        }));
 
         const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         const textColor = isDark ? '#e2e8f0' : '#475569';
