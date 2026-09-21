@@ -1,6 +1,9 @@
 deploy/
 .env
-*.env.production
+**/.env
+.env.*
+*.env
+databse/dumps/
 
 # Python
 __pycache__/
