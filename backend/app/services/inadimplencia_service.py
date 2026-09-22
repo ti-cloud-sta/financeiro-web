@@ -126,11 +126,26 @@ def resolver_intervalo_vencimento(hoje: datetime.date) -> Tuple[datetime.date, d
     if dia_semana in (2, 3, 4):  # quarta, quinta, sexta
         ontem = hoje - datetime.timedelta(days=1)
         return ontem, ontem
-    raise ValueError(
-        f"Importação de pendências não definida para {WEEKDAY_NOMES[dia_semana]}. "
-        "As regras cobrem segunda-feira (sexta-feira anterior), terça-feira (fim de semana "
-        "anterior) e quarta, quinta ou sexta-feira (dia anterior)."
-    )
+    if dia_semana == 5:  # sábado -> sexta anterior
+        sexta = hoje - datetime.timedelta(days=1)
+        return sexta, sexta
+    if dia_semana == 6:  # domingo -> sexta anterior
+        sexta = hoje - datetime.timedelta(days=2)
+        return sexta, sexta
+
+
+def calcular_data_corte_vencimento(data_ref: datetime.date) -> datetime.date:
+    """
+    Retorna a data máxima de vencimento para que um título seja considerado vencido:
+      - Segunda-feira: sexta-feira anterior (hoje - 3 dias), pois boletos que vencem
+        no sábado ou domingo podem ser pagos na segunda sem atraso.
+      - Demais dias (terça a domingo): ontem (hoje - 1 dia).
+    Títulos com dtVencimento maior que essa data NÃO são considerados vencidos e
+    devem ser ignorados na importação de pendências.
+    """
+    if data_ref.weekday() == 0:  # segunda-feira
+        return data_ref - datetime.timedelta(days=3)
+    return data_ref - datetime.timedelta(days=1)
 
 
 
@@ -180,11 +195,13 @@ class InadimplenciaService:
         atualizadas = 0
         ignoradas_sem_cliente = 0
         ignoradas_sem_vencimento = 0
+        ignoradas_nao_vencidas = 0
         ignoradas_duplicadas = 0
         sem_unidade_encontrada = 0
         clientes_criados = 0
         matrizes_criadas = 0
 
+        data_corte = calcular_data_corte_vencimento(datetime.date.today())
         ids_processados_planilha: set[int] = set()
         extensao = nome_arquivo.rsplit(".", 1)[-1].lower() if "." in nome_arquivo else "xlsx"
 
@@ -226,6 +243,12 @@ class InadimplenciaService:
                 if vencimento is None:
                     ignoradas_sem_vencimento += 1
                     continue
+
+                venc_data = vencimento.date() if isinstance(vencimento, datetime.datetime) else vencimento
+                if venc_data > data_corte:
+                    ignoradas_nao_vencidas += 1
+                    continue
+
 
                 tipo_pedido = _clean_str(row.iloc[self.COL_TIPO_PEDIDO])
                 if tipo_pedido:
@@ -490,13 +513,15 @@ class InadimplenciaService:
                         "importadas": importadas,
                         "prorrogadas": prorrogadas,
                         "atualizadas": atualizadas,
-                        "ignoradas_duplicadas": ignoradas_duplicadas
+                        "ignoradas_duplicadas": ignoradas_duplicadas,
+                        "ignoradas_nao_vencidas": ignoradas_nao_vencidas
                     }) + "\n"
 
             baixadas = 0
             if total_com_especie > 0:
                 pendencias_ativas = self.db.query(NfPendencia).filter(
-                    (NfPendencia.encerrado == 'N') | (NfPendencia.encerrado == None)
+                    (NfPendencia.encerrado == 'N') | (NfPendencia.encerrado == None),
+                    NfPendencia.dtVencimento <= data_corte
                 ).all()
                 for p_ativa in pendencias_ativas:
                     if p_ativa.idnfpendencias not in ids_processados_planilha:
@@ -525,6 +550,7 @@ class InadimplenciaService:
                 "baixadas": baixadas,
                 "ignoradasSemCliente": ignoradas_sem_cliente,
                 "ignoradasSemVencimento": ignoradas_sem_vencimento,
+                "ignoradasNaoVencidas": ignoradas_nao_vencidas,
                 "ignoradasDuplicadas": ignoradas_duplicadas,
                 "semUnidadeEncontrada": sem_unidade_encontrada,
                 "clientesCriados": clientes_criados,
@@ -545,16 +571,16 @@ class InadimplenciaService:
         Lista as nfpendencias já classificadas para alimentar o Kanban, já com o nome do
         cliente resolvido (join com clientes). Não pagina - o board mostra o total do filtro.
 
-        Sem parâmetros, mostra o padrão da tela: tudo com vencimento menor que hoje (vencido).
-        Com vencimento_inicio/vencimento_fim, filtra pelo intervalo informado (ex.: o atalho
-        "Regra do Dia" ou um período personalizado escolhido na tela).
+        Sem parâmetros, mostra o padrão da tela: tudo com vencimento menor ou igual à data de corte (vencido).
+        Com vencimento_inicio/vencimento_fim, filtra pelo intervalo informado.
         """
         query = self.db.query(VwNfPendenciaFase, Cliente.nome).outerjoin(
             Cliente, VwNfPendenciaFase.idCliente == Cliente.idclientes
         )
 
         if vencimento_inicio is None and vencimento_fim is None:
-            query = query.filter(VwNfPendenciaFase.dtVencimento < datetime.date.today())
+            data_corte = calcular_data_corte_vencimento(datetime.date.today())
+            query = query.filter(VwNfPendenciaFase.dtVencimento <= data_corte)
         else:
             if vencimento_inicio is not None:
                 query = query.filter(VwNfPendenciaFase.dtVencimento >= vencimento_inicio)

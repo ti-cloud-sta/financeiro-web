@@ -151,8 +151,8 @@ export class InadimplenciaComponent implements OnInit {
         this.isImportandoDados.set(false);
         this.importacaoProgressMsg.set('');
         this.importacaoProgressPercent.set(0);
-        console.error('Erro ao importar pendÃƒÂªncias:', err);
-        this.openAlert('Erro na ImportaÃƒÂ§ÃƒÂ£o', this.extractErrorMessage(err), 'danger');
+        console.error('Erro ao importar pendências:', err);
+        this.openAlert('Erro na Importação', this.extractErrorMessage(err), 'danger');
       },
       complete: () => {
         this.isImportandoDados.set(false);
@@ -161,14 +161,14 @@ export class InadimplenciaComponent implements OnInit {
         this.selectedFileAtualizacao.set(null);
         this.carregarHistoricoAtualizacao();
         
-        // Redireciona e atualiza a tela de pendÃƒÂªncias imediatamente
+        // Redireciona e atualiza a tela de pendências imediatamente
         this.activeTab = 'pendencias';
         setTimeout(() => {
           this.pendenciasComponent?.carregarPendencias();
         }, 100);
         
         if (lastRes) {
-          this.openAlert('ImportaÃƒÂ§ÃƒÂ£o ConcluÃƒÂ­da', this.montarResumoImportacao(lastRes), 'primary');
+          this.openAlert('Importação Concluída', this.montarResumoImportacao(lastRes), 'primary');
         }
       }
     });
@@ -176,15 +176,16 @@ export class InadimplenciaComponent implements OnInit {
 
   private montarResumoImportacao(res: ImportacaoPendenciasResponse): string {
     const linhas = [
-      `Linhas com tÃƒÂ­tulo: ${res.totalLinhasComEspecie}`,
-      `Importadas (Novas): ${res.importadas}`,
-      `Prorrogadas (Vencimento): ${res.prorrogadas || 0}`,
-      `Atualizadas (Saldo / Carteira): ${res.atualizadas || 0}`,
-      `TÃƒÂ­tulos Baixados (Encerrados): ${res.baixadas || 0}`,
-      `Ignoradas (Sem alteraÃƒÂ§ÃƒÂµes): ${res.ignoradasDuplicadas}`,
-      `Ignoradas (Sem vencimento): ${res.ignoradasSemVencimento}`,
-      `Clientes criados: ${res.clientesCriados}`,
-      `Matrizes criadas: ${res.matrizesCriadas}`
+      `• Linhas com título: ${res.totalLinhasComEspecie}`,
+      `• Importadas (Novas): ${res.importadas}`,
+      `• Prorrogadas (Vencimento): ${res.prorrogadas || 0}`,
+      `• Atualizadas (Saldo / Carteira): ${res.atualizadas || 0}`,
+      `• Títulos Baixados (Encerrados): ${res.baixadas || 0}`,
+      `• Ignoradas (A vencer / Não vencidas): ${res.ignoradasNaoVencidas || 0}`,
+      `• Ignoradas (Sem alterações): ${res.ignoradasDuplicadas}`,
+      `• Ignoradas (Sem vencimento): ${res.ignoradasSemVencimento}`,
+      `• Clientes criados: ${res.clientesCriados}`,
+      `• Matrizes criadas: ${res.matrizesCriadas}`
     ];
     return linhas.join('\n');
   }
@@ -207,8 +208,8 @@ export class InadimplenciaComponent implements OnInit {
 
   excluirAtualizacao(id: number) {
     this.openConfirmModal(
-      'Confirmar ExclusÃƒÂ£o',
-      'Tem certeza que deseja excluir esta atualizaÃƒÂ§ÃƒÂ£o? Esta aÃƒÂ§ÃƒÂ£o ÃƒÂ© irreversÃƒÂ­vel.',
+      'Confirmar Exclusão',
+      'Tem certeza que deseja excluir esta atualização? Esta ação é irreversível.',
       () => {
         this.closeConfirmModal();
         this.importacoesService.excluir(id).subscribe({
@@ -216,8 +217,8 @@ export class InadimplenciaComponent implements OnInit {
             this.carregarHistoricoAtualizacao();
           },
           error: (err) => {
-            console.error('Erro ao excluir atualizaÃƒÂ§ÃƒÂ£o de dados', err);
-            this.openAlert('Erro', 'NÃƒÂ£o foi possÃƒÂ­vel excluir o registro.', 'danger');
+            console.error('Erro ao excluir atualização de dados', err);
+            this.openAlert('Erro', 'Não foi possível excluir o registro.', 'danger');
           }
         });
       },
