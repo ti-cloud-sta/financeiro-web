@@ -8,7 +8,7 @@
 
                 <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
                     <div class="period-inputs">
-                        <div class="input-icon-wrapper" style="width: 130px;">
+                        <div class="input-icon-wrapper" style="width: 135px;">
                             <i class="fa-regular fa-calendar input-icon"></i>
                             <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
                                 [locale]="locale" [convertModelValue]="true" [maxDate]="dataFim || ''"
@@ -18,7 +18,7 @@
 
                         <span class="period-separator text-muted small px-1">→</span>
 
-                        <div class="input-icon-wrapper" style="width: 130px;">
+                        <div class="input-icon-wrapper" style="width: 135px;">
                             <i class="fa-regular fa-calendar input-icon"></i>
                             <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
                                 [locale]="locale" [convertModelValue]="true" [minDate]="dataInicio || ''"
@@ -28,17 +28,12 @@
 
                     <select class="form-select form-select-sm shortcut-select" [(ngModel)]="activePeriodShortcut"
                         (ngModelChange)="onShortcutSelectChange($event)">
-                        <option value="vencidas">Vencidas (padrão)</option>
-                        <option value="regra-dia" [disabled]="!regraDiaAplicavel"
-                            [title]="regraDiaAplicavel ? 'Vencimento de ' + (regraDiaInicio | date:'dd/MM') + ' até ' + (regraDiaFim | date:'dd/MM') : 'Sem regra definida para ' + regraDiaDiaSemana">
-                            Regra do Dia{{ regraDiaAplicavel ? '' : ' (indisponível hoje)' }}
-                        </option>
+                        <option value="vencidas">Títulos Vencidos</option>
+                        <option value="ult-vencimento">Últ. Data de Venc.</option>
                         <option value="este-mes">Este Mês</option>
-                        <option value="ultimo-bimestre">Últ. Bimestre</option>
-                        <option value="ultimo-semestre">Últ. Semestre</option>
+                        <option value="este-semestre">Este Semestre</option>
                         <option value="este-ano">Este Ano</option>
-                        <option value="ano-passado">Ano Passado</option>
-                        <option value="personalizado" disabled>Personalizado</option>
+                        <option value="personalizado" disabled hidden>Personalizado</option>
                     </select>
                 </div>
             </div>

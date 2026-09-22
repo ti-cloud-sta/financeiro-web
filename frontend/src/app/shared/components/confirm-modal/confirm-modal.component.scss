@@ -21,6 +21,9 @@
 
   p {
     font-size: 0.95rem;
-    line-height: 1.5;
+    line-height: 1.6;
+    white-space: pre-line;
+    display: inline-block;
+    text-align: left;
   }
 }

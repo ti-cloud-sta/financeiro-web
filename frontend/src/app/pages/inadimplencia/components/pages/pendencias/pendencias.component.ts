@@ -40,7 +40,7 @@ export interface KanbanColumn {
   cards: KanbanCard[];
 }
 
-type PeriodShortcut = 'vencidas' | 'este-mes' | 'ultimo-bimestre' | 'ultimo-semestre' | 'este-ano' | 'ano-passado' | 'regra-dia' | 'personalizado';
+type PeriodShortcut = 'vencidas' | 'ult-vencimento' | 'este-mes' | 'este-semestre' | 'este-ano' | 'personalizado';
 
 const COLUMN_VISIBILITY_STORAGE_KEY = 'pendencias_colunas_visiveis';
 
@@ -327,21 +327,25 @@ export class PendenciasComponent implements OnInit {
     if (this.dataInicio && this.dataFim && this.dataInicio > this.dataFim) {
       this.dataFim = this.dataInicio;
     }
-    this.activePeriodShortcut = 'personalizado';
+    if (!this.dataInicio && !this.dataFim) {
+      this.activePeriodShortcut = 'vencidas';
+    } else {
+      this.activePeriodShortcut = 'personalizado';
+    }
     this.carregarPendencias();
   }
 
   onDataFimChange() {
-    this.activePeriodShortcut = 'personalizado';
+    if (!this.dataInicio && !this.dataFim) {
+      this.activePeriodShortcut = 'vencidas';
+    } else {
+      this.activePeriodShortcut = 'personalizado';
+    }
     this.carregarPendencias();
   }
 
   onShortcutSelectChange(val: PeriodShortcut) {
     if (!val || val === 'personalizado') return;
-    if (val === 'regra-dia') {
-      this.aplicarRegraDia();
-      return;
-    }
     if (val === 'vencidas') {
       this.limparPeriodo();
       return;
@@ -357,41 +361,51 @@ export class PendenciasComponent implements OnInit {
     this.carregarPendencias();
   }
 
-  selecionarAtalhoPeriodo(shortcut: Exclude<PeriodShortcut, 'personalizado' | 'regra-dia' | 'vencidas'>) {
+  selecionarAtalhoPeriodo(shortcut: Exclude<PeriodShortcut, 'personalizado' | 'vencidas'>) {
     const today = new Date();
 
-    const getPastDate = (monthsAgo: number) => {
-      const d = new Date();
-      d.setMonth(d.getMonth() - monthsAgo);
-      return d;
-    };
-
-    if (shortcut === 'este-mes') {
+    if (shortcut === 'ult-vencimento') {
+      const diaSemana = today.getDay(); // 0 = Domingo, 1 = Segunda, 2 = Terça, 3 = Quarta, 4 = Quinta, 5 = Sexta, 6 = Sábado
+      if (diaSemana === 1) {
+        // Segunda-feira: títulos que venceram na sexta-feira anterior (hoje - 3 dias)
+        const sexta = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 3);
+        this.dataInicio = sexta;
+        this.dataFim = new Date(sexta);
+      } else if (diaSemana === 2) {
+        // Terça-feira: títulos que venceram no sábado, domingo ou segunda (hoje - 3 dias até hoje - 1 dia)
+        const sabado = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 3);
+        const segunda = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+        this.dataInicio = sabado;
+        this.dataFim = segunda;
+      } else if (diaSemana === 0) {
+        // Domingo: sexta-feira anterior
+        const sexta = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2);
+        this.dataInicio = sexta;
+        this.dataFim = new Date(sexta);
+      } else if (diaSemana === 6) {
+        // Sábado: sexta-feira anterior
+        const sexta = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+        this.dataInicio = sexta;
+        this.dataFim = new Date(sexta);
+      } else {
+        // Quarta, Quinta, Sexta: exatamente o dia anterior (hoje - 1 dia)
+        const ontem = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+        this.dataInicio = ontem;
+        this.dataFim = new Date(ontem);
+      }
+    } else if (shortcut === 'este-mes') {
       this.dataInicio = new Date(today.getFullYear(), today.getMonth(), 1);
       this.dataFim = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    } else if (shortcut === 'ultimo-bimestre') {
-      this.dataInicio = getPastDate(2);
-      this.dataFim = today;
-    } else if (shortcut === 'ultimo-semestre') {
-      this.dataInicio = getPastDate(6);
-      this.dataFim = today;
+    } else if (shortcut === 'este-semestre') {
+      const isPrimeiroSemestre = today.getMonth() < 6;
+      this.dataInicio = new Date(today.getFullYear(), isPrimeiroSemestre ? 0 : 6, 1);
+      this.dataFim = new Date(today.getFullYear(), isPrimeiroSemestre ? 5 : 11, isPrimeiroSemestre ? 30 : 31);
     } else if (shortcut === 'este-ano') {
       this.dataInicio = new Date(today.getFullYear(), 0, 1);
       this.dataFim = new Date(today.getFullYear(), 11, 31);
-    } else if (shortcut === 'ano-passado') {
-      this.dataInicio = new Date(today.getFullYear() - 1, 0, 1);
-      this.dataFim = new Date(today.getFullYear() - 1, 11, 31);
     }
 
     this.activePeriodShortcut = shortcut;
-  }
-
-  aplicarRegraDia() {
-    if (!this.regraDiaAplicavel || !this.regraDiaInicio || !this.regraDiaFim) return;
-    this.dataInicio = new Date(this.regraDiaInicio + 'T00:00:00');
-    this.dataFim = new Date(this.regraDiaFim + 'T00:00:00');
-    this.activePeriodShortcut = 'regra-dia';
-    this.carregarPendencias();
   }
 
   draggedCard: KanbanCard | null = null;

@@ -111,6 +111,7 @@ export interface ImportacaoPendenciasResponse {
   baixadas?: number;
   ignoradasSemCliente: number;
   ignoradasSemVencimento: number;
+  ignoradasNaoVencidas?: number;
   ignoradasDuplicadas: number;
   semUnidadeEncontrada: number;
   clientesCriados: number;
