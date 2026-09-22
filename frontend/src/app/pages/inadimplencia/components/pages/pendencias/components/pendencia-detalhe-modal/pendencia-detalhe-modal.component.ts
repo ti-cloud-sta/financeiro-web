@@ -184,7 +184,7 @@ export class PendenciaDetalheModalComponent implements OnChanges {
       this.googleAuthService.verificarStatus().subscribe();
       this.carregarMensagensThread();
       if (!this.composeAssunto && this.card) {
-        this.composeAssunto = `Cobrança - Título ${this.card.title} - ${this.card.fullClientName || this.card.clientName}`;
+        this.sugerirAssunto();
       }
       // Aguarda o próximo ciclo para garantir que @else if já renderizou o DOM
       setTimeout(() => this.inserirAssinatura());
@@ -238,6 +238,8 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     const parcela = this.card.parccela || '-';
     const assinaturaHtml = `<br><br><img src="${this.ASSINATURA_URL}" alt="Assinatura" style="max-width: 580px; width: 100%; height: auto; display: block;">`;
 
+    this.sugerirAssunto(tipo);
+
     let textoHtml = '';
 
     switch (tipo) {
@@ -275,6 +277,45 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
     }
 
     el.innerHTML = textoHtml;
+  }
+
+  sugerirAssunto(tipoTemplate?: 'cobranca' | 'recobranca' | 'protesto' | 'sem_data' | 'devolucao'): void {
+    if (!this.card) return;
+
+    const dataVenc = this.card.dtVencimento
+      ? new Date(this.card.dtVencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+      : '';
+
+    // Se acionado pelo botão de template da Logística
+    if (tipoTemplate === 'sem_data') {
+      this.composeAssunto = dataVenc ? `Titulos sem data de entrega - (${dataVenc})` : 'Titulos sem data de entrega';
+      return;
+    }
+    if (tipoTemplate === 'devolucao') {
+      this.composeAssunto = 'Notas de Devolução pendente';
+      return;
+    }
+
+    // Se for abertura do modal / verificação automática
+    const fase = (this.card.fase || '').toUpperCase();
+    const ehDevolucao = this.card.isDevolucao || this.card.status === 'DEVOLUCAO';
+    const semDataEntrega = !this.card.dtEntrega;
+    const ehLogistica = fase === 'LOGISTICA' || ehDevolucao || (semDataEntrega && !tipoTemplate);
+
+    if (ehLogistica && !tipoTemplate) {
+      if (ehDevolucao) {
+        this.composeAssunto = 'Notas de Devolução pendente';
+        return;
+      }
+      this.composeAssunto = dataVenc ? `Titulos sem data de entrega - (${dataVenc})` : 'Titulos sem data de entrega';
+      return;
+    }
+
+    // Financeiro / Cobrança: nome completo do cliente
+    const cliente = this.card.fullClientName || this.card.clientName || '';
+    this.composeAssunto = cliente
+      ? `Cobrança - Título ${this.card.title} - ${cliente}`
+      : `Cobrança - Título ${this.card.title}`;
   }
 
   mostrarAlerta(titulo: string, mensagem: string, variant: 'primary' | 'danger' | 'success' = 'primary') {
@@ -497,7 +538,7 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
 
     // Reset de Mensagens e Compose
     this.mensagens = [];
-    this.composeAssunto = `Cobrança - Título ${card.title} - ${card.fullClientName || card.clientName}`;
+    this.sugerirAssunto();
     this.composeDestinatarios = '';
     this.composeCopias = [];
     this.composeCopiaInput = '';
