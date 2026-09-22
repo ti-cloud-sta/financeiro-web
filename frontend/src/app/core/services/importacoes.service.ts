@@ -207,6 +207,14 @@ export class ImportacoesService {
     );
   }
 
+  enviarEmailLote(idsNf: number[], formData: FormData): Observable<{ sucesso: boolean; total_titulos: number; messageId?: string; threadId?: string }> {
+    formData.append('ids_nf', idsNf.join(','));
+    return this.http.post<{ sucesso: boolean; total_titulos: number; messageId?: string; threadId?: string }>(
+      `${this.apiUrl}/inadimplencia/pendencias/enviar-email-lote`,
+      formData
+    );
+  }
+
   importarPendenciasInadimplencia(file: File): Observable<any> {
     return new Observable(observer => {
       const formData = new FormData();

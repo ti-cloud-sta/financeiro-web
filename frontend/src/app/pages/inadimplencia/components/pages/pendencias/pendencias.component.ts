@@ -6,6 +6,8 @@ import { Portuguese } from 'flatpickr/dist/l10n/pt.js';
 import { ImportacoesService, PendenciaKanban, JanelaRegraDia } from '../../../../../core/services/importacoes.service';
 import { PendenciaDetalheModalComponent, STATUS_OPTIONS } from './components/pendencia-detalhe-modal/pendencia-detalhe-modal.component';
 import { ModalComponent } from '../../../../../shared/components/modal/modal.component';
+import { PendenciaLoteModalComponent } from './components/pendencia-lote-modal/pendencia-lote-modal.component';
+import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 
 export interface KanbanCard {
   id: string;
@@ -13,6 +15,7 @@ export interface KanbanCard {
   status: string;
   statusColor: string;
   clientName: string;
+  fullClientName?: string;
   dtVencimento: Date | null;
   leadTimeDays: number | null;
   isDevolucao: boolean;
@@ -70,7 +73,15 @@ function saveVisibleColumnIds(ids: Set<string>) {
 @Component({
   selector: 'app-pendencias',
   standalone: true,
-  imports: [CommonModule, FormsModule, FlatpickrModule, PendenciaDetalheModalComponent, ModalComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    FlatpickrModule,
+    PendenciaDetalheModalComponent,
+    PendenciaLoteModalComponent,
+    ModalComponent,
+    ButtonComponent
+  ],
   templateUrl: './pendencias.component.html',
   styleUrl: './pendencias.component.scss'
 })
@@ -87,6 +98,10 @@ export class PendenciasComponent implements OnInit {
   filtroDevolucaoAtivo = false;
   filtroProtestadoAtivo = false;
   isLoading = false;
+
+  // Seleção e Disparo em Lote
+  selectedCardsMap = new Map<string, KanbanCard>();
+  isModalLoteOpen = false;
 
   // Drop Status Modal state
   isDropStatusModalOpen = false;
@@ -182,6 +197,7 @@ export class PendenciasComponent implements OnInit {
         status: item.status || '-',
         statusColor: item.status === 'OK' ? 'success' : (item.status === 'PRORROGADO' ? 'info' : (item.status === 'DEVOLUCAO' ? 'orange' : (item.status === 'PROTESTADO' ? 'danger' : (item.status === 'ATRASADO' ? 'warning' : coluna.colorClass)))),
         clientName: this.sliceClientName(item.clienteNome),
+        fullClientName: item.clienteNome || '-',
         dtVencimento: item.dtVencimento ? new Date(item.dtVencimento + 'T00:00:00') : null,
         leadTimeDays: this.calcularDiasDesdeImportacao(item.createdAt),
         isDevolucao: item.devolucao === 'S',
@@ -199,6 +215,22 @@ export class PendenciasComponent implements OnInit {
         valorOriginal: item.valorOriginal,
         valorSaldo: item.valorSaldo
       });
+    }
+
+    // Sincroniza os cards selecionados com a nova listagem
+    const todosCardsNovos = new Map<string, KanbanCard>();
+    for (const col of this.columns) {
+      for (const card of col.cards) {
+        todosCardsNovos.set(card.id, card);
+      }
+    }
+    for (const id of Array.from(this.selectedCardsMap.keys())) {
+      const atualizado = todosCardsNovos.get(id);
+      if (atualizado) {
+        this.selectedCardsMap.set(id, atualizado);
+      } else {
+        this.selectedCardsMap.delete(id);
+      }
     }
   }
 
@@ -530,5 +562,48 @@ export class PendenciasComponent implements OnInit {
     this.pendingDropSourceColId = null;
     this.pendingDropDestColId = null;
     this.dropStatusSelecionado = '';
+  }
+
+  // ------------------------------------------------------------
+  // Métodos de Seleção e Ações em Lote
+  // ------------------------------------------------------------
+  get selectedCards(): KanbanCard[] {
+    return Array.from(this.selectedCardsMap.values());
+  }
+
+  isCardSelected(id: string): boolean {
+    return this.selectedCardsMap.has(id);
+  }
+
+  toggleCardSelection(card: KanbanCard, event: Event): void {
+    const checkbox = event.target as HTMLInputElement;
+    if (checkbox.checked) {
+      this.selectedCardsMap.set(card.id, card);
+    } else {
+      this.selectedCardsMap.delete(card.id);
+    }
+  }
+
+  removerCardDoLote(card: KanbanCard): void {
+    this.selectedCardsMap.delete(card.id);
+  }
+
+  limparSelecao(): void {
+    this.selectedCardsMap.clear();
+  }
+
+  abrirModalLote(): void {
+    if (this.selectedCards.length > 0) {
+      this.isModalLoteOpen = true;
+    }
+  }
+
+  fecharModalLote(): void {
+    this.isModalLoteOpen = false;
+  }
+
+  onLoteEnviado(): void {
+    this.limparSelecao();
+    this.carregarPendencias();
   }
 }

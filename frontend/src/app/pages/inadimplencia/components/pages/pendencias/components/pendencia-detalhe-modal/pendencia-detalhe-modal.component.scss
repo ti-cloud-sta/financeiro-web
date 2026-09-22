@@ -634,9 +634,10 @@
     text-decoration: underline;
   }
 
-  // Assinatura e demais imagens no editor: exibe como miniatura
+  // Assinatura e demais imagens no editor: exibe proporcional
   img {
-    max-width: 200px !important;
+    max-width: 580px !important;
+    width: auto !important;
     height: auto !important;
     display: block;
     margin-top: 0.5rem;
@@ -702,7 +703,8 @@
 // ::ng-deep é necessário porque o conteúdo vem de [innerHTML] e não recebe
 // o atributo _ngcontent do Angular, então o encapsulamento normal não alcança.
 ::ng-deep .chat-body img {
-  max-width: 200px !important;
+  max-width: 580px !important;
+  width: auto !important;
   height: auto !important;
   display: block;
   margin-top: 0.5rem;

@@ -2,7 +2,7 @@ import datetime
 import math
 import io
 import json
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func, cast, Date, desc
@@ -910,6 +910,93 @@ class InadimplenciaService:
 
         return {
             "sucesso": True,
+            "messageId": resultado_envio.get("messageId"),
+            "threadId": resultado_envio.get("threadId"),
+        }
+
+    def enviar_email_lote(
+        self,
+        ids_nf: List[int],
+        destinatarios: str,
+        assunto: str,
+        corpo: str,
+        copia: Optional[str] = None,
+        anexos: Optional[list] = None,
+        user: Optional[User] = None,
+    ) -> dict:
+        """
+        Envia um único e-mail de cobrança/aviso para múltiplos títulos (lote) via Gmail API (OAuth 2.0)
+        e registra o envio no histórico e mensagens de cada uma das pendências selecionadas.
+        """
+        from app.services.google_auth_service import GoogleAuthService
+        from app.services.gmail_service import GmailService
+
+        if not ids_nf:
+            raise ValueError("Nenhum título selecionado para envio em lote.")
+
+        if not user:
+            raise ValueError("Usuário não identificado.")
+
+        nfs = self.db.query(NfPendencia).filter(NfPendencia.idnfpendencias.in_(ids_nf)).all()
+        if not nfs:
+            raise LookupError("Nenhuma das pendências informadas foi encontrada.")
+
+        # 1. Obter o access_token válido junto ao Google OAuth
+        access_token = GoogleAuthService.obter_access_token_valido(user, self.db)
+
+        # 2. Enviar a mensagem única utilizando o GmailService
+        resultado_envio = GmailService.enviar_email(
+            access_token=access_token,
+            destinatarios=destinatarios,
+            assunto=assunto,
+            corpo_html=corpo,
+            copia=copia,
+            anexos=anexos,
+            remetente_email=user.email if user else None,
+        )
+
+        # 3. Montar texto do histórico e lista de anexos
+        obs = f"E-mail em lote ({len(nfs)} títulos) enviado via Gmail para: {destinatarios}. Assunto: {assunto}."
+        if copia:
+            obs += f" Cc: {copia}."
+        if anexos:
+            nomes_anexos = ", ".join([a.filename for a in anexos if getattr(a, "filename", None)])
+            if nomes_anexos:
+                obs += f" Anexos: {nomes_anexos}."
+
+        lista_anexos = [{"nome": a.filename, "tamanho": 0} for a in anexos] if anexos else []
+
+        # 4. Registrar em cada uma das pendências
+        for nf in nfs:
+            self._novo_historico(
+                id_nf=nf.idnfpendencias,
+                tipo="Email Enviado",
+                observacao=obs[:500],
+                id_user=user.iduser,
+                thread_id=resultado_envio.get("threadId"),
+                message_id=resultado_envio.get("messageId"),
+            )
+
+            nova_msg = PendenciaMensagem(
+                idNfPendencias=nf.idnfpendencias,
+                mensagem_id=resultado_envio.get("messageId"),
+                thread_id=resultado_envio.get("threadId"),
+                de=user.email if user else "Você",
+                para=destinatarios,
+                copia=copia,
+                assunto=assunto,
+                conteudo=corpo,
+                anexos=lista_anexos,
+                idUserCreated=user.iduser,
+                minha_mensagem="S"
+            )
+            self.db.add(nova_msg)
+
+        self.db.commit()
+
+        return {
+            "sucesso": True,
+            "total_titulos": len(nfs),
             "messageId": resultado_envio.get("messageId"),
             "threadId": resultado_envio.get("threadId"),
         }

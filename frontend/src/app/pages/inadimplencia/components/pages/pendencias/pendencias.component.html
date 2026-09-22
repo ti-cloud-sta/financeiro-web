@@ -76,6 +76,21 @@
                 </div>
             </div>
 
+            <!-- Botão Mensagem em Lote -->
+            <div class="filter-group d-flex align-items-end">
+                <app-button
+                    variant="primary"
+                    size="sm"
+                    icon="fa-solid fa-paper-plane"
+                    [disabled]="selectedCards.length === 0"
+                    (clicked)="abrirModalLote()">
+                    Mensagem em Lote
+                    @if (selectedCards.length > 0) {
+                    <span class="badge bg-white text-primary fw-bold ms-1" style="font-size: 0.75rem; border-radius: 10px;">{{ selectedCards.length }}</span>
+                    }
+                </app-button>
+            </div>
+
         </div>
     </div>
 
@@ -129,6 +144,7 @@
                          (drop)="onDrop($event, column)">
                         @for (card of column.cards; track card.id) {
                         <div class="kanban-card mb-2 p-3"
+                             [class.card-selected]="isCardSelected(card.id)"
                              draggable="true"
                              (dragstart)="onDragStart($event, card, column)"
                              (dragend)="onDragEnd($event)"
@@ -136,8 +152,16 @@
 
                             <!-- Card Header (Title & Options) -->
                             <div class="d-flex align-items-start justify-content-between mb-2">
-                                <h6 class="card-title text-truncate mb-0" [title]="card.title">{{ card.title }}</h6>
-                                <button class="btn btn-sm btn-icon text-muted p-0 ms-2 flex-shrink-0" title="Opções">
+                                <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                    <input type="checkbox"
+                                           class="form-check-input card-checkbox m-0"
+                                           [checked]="isCardSelected(card.id)"
+                                           (click)="$event.stopPropagation()"
+                                           (change)="toggleCardSelection(card, $event)"
+                                           [title]="'Selecionar título ' + card.title">
+                                    <h6 class="card-title text-truncate mb-0" [title]="card.title">{{ card.title }}</h6>
+                                </div>
+                                <button class="btn btn-sm btn-icon text-muted p-0 ms-2 flex-shrink-0" title="Opções" (click)="$event.stopPropagation()">
                                     <i class="fa-solid fa-ellipsis-vertical"></i>
                                 </button>
                             </div>
@@ -180,6 +204,14 @@
     (closed)="fecharDetalhes()"
     (atualizado)="carregarPendencias()">
 </app-pendencia-detalhe-modal>
+
+<app-pendencia-lote-modal
+    [isOpen]="isModalLoteOpen"
+    [cards]="selectedCards"
+    (cardRemovido)="removerCardDoLote($event)"
+    (closed)="fecharModalLote()"
+    (enviado)="onLoteEnviado()">
+</app-pendencia-lote-modal>
 
 <app-modal
     [isOpen]="isDropStatusModalOpen"
