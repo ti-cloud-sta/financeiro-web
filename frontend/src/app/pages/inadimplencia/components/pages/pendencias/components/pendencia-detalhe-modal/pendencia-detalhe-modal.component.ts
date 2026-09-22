@@ -127,7 +127,8 @@ export class PendenciaDetalheModalComponent implements OnChanges {
   mensagens: MensagemChat[] = [];
   composeAssunto = '';
   composeDestinatarios = '';
-  composeCopia = '';
+  composeCopias: string[] = [];
+  composeCopiaInput = '';
   arquivosSelecionados: File[] = [];
   isEnviandoEmail = false;
   @ViewChild('composeBody') composeBodyRef?: ElementRef<HTMLDivElement>;
@@ -183,7 +184,7 @@ export class PendenciaDetalheModalComponent implements OnChanges {
       this.googleAuthService.verificarStatus().subscribe();
       this.carregarMensagensThread();
       if (!this.composeAssunto && this.card) {
-        this.composeAssunto = `Cobrança - Título ${this.card.title} - ${this.card.clientName}`;
+        this.composeAssunto = `Cobrança - Título ${this.card.title} - ${this.card.fullClientName || this.card.clientName}`;
       }
       // Aguarda o próximo ciclo para garantir que @else if já renderizou o DOM
       setTimeout(() => this.inserirAssinatura());
@@ -241,19 +242,19 @@ export class PendenciaDetalheModalComponent implements OnChanges {
 
     switch (tipo) {
       case 'cobranca':
-        textoHtml = `Prezado(a) cliente <b>${this.card.clientName}</b>,<br><br>
+        textoHtml = `Prezado(a) cliente <b>${this.card.fullClientName || this.card.clientName}</b>,<br><br>
 Consta em nosso sistema o título <b>${this.card.title}</b> (Parcela: ${parcela}) no valor de <b>${valorFormatado}</b>, com vencimento original em <b>${dataVenc}</b>, que se encontra pendente de regularização.<br><br>
 Caso o pagamento já tenha sido efetuado, por favor, desconsidere esta mensagem e nos envie o comprovante para que possamos baixar no sistema. Se houve algum contratempo ou dificuldade para emissão do boleto, estamos à disposição para ajudar.<br><br>
 Atenciosamente,${assinaturaHtml}`;
         break;
       case 'recobranca':
-        textoHtml = `Prezado(a) cliente <b>${this.card.clientName}</b>,<br><br>
+        textoHtml = `Prezado(a) cliente <b>${this.card.fullClientName || this.card.clientName}</b>,<br><br>
 Até o momento, não identificamos o pagamento referente ao título <b>${this.card.title}</b> (Parcela: ${parcela}) no valor de <b>${valorFormatado}</b>, vencido no dia <b>${dataVenc}</b>.<br><br>
 Pedimos a gentileza de nos enviar o comprovante caso o pagamento já tenha ocorrido. Caso contrário, solicitamos uma previsão para a regularização desta pendência ou que entre em contato conosco para verificarmos uma possível negociação.<br><br>
 No aguardo de um retorno,<br>Atenciosamente,${assinaturaHtml}`;
         break;
       case 'protesto':
-        textoHtml = `Prezado(a) cliente <b>${this.card.clientName}</b>,<br><br>
+        textoHtml = `Prezado(a) cliente <b>${this.card.fullClientName || this.card.clientName}</b>,<br><br>
 Informamos que o título <b>${this.card.title}</b> (Parcela: ${parcela}), no valor de <b>${valorFormatado}</b> e vencido em <b>${dataVenc}</b>, continua pendente de pagamento em nosso sistema.<br><br>
 Como não obtivemos retorno nas tentativas de contato anteriores, comunicamos que, caso a pendência não seja regularizada (ou não nos seja enviado o comprovante) nos próximos 2 dias úteis, o título será automaticamente encaminhado ao cartório para <b>protesto</b> e inclusão nos órgãos de proteção ao crédito.<br><br>
 Para evitar os transtornos e custas cartoriais, solicitamos a regularização imediata.<br><br>
@@ -478,7 +479,7 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
       titulo: card.title,
       parcela: card.parccela || '-',
       codigoCliente: card.idCliente?.toString() || '-',
-      nomeCliente: card.clientName,
+      nomeCliente: card.fullClientName || card.clientName,
       portador: card.portador || '-',
       dataEmissao: card.dtEmissao || hoje,
       dataEntrega: card.dtEntrega,
@@ -496,9 +497,10 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
 
     // Reset de Mensagens e Compose
     this.mensagens = [];
-    this.composeAssunto = `Cobrança - Título ${card.title} - ${card.clientName}`;
+    this.composeAssunto = `Cobrança - Título ${card.title} - ${card.fullClientName || card.clientName}`;
     this.composeDestinatarios = '';
-    this.composeCopia = '';
+    this.composeCopias = [];
+    this.composeCopiaInput = '';
     this.arquivosSelecionados = [];
     if (this.composeBodyRef) {
       this.composeBodyRef.nativeElement.innerHTML = '';
@@ -667,8 +669,9 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
     formData.append('destinatarios', this.composeDestinatarios.trim());
     formData.append('assunto', this.composeAssunto.trim());
     formData.append('corpo', corpo);
-    if (this.composeCopia.trim()) {
-      formData.append('copia', this.composeCopia.trim());
+    const copiaFinal = this.obterCopiaFinal();
+    if (copiaFinal) {
+      formData.append('copia', copiaFinal);
     }
     for (const file of this.arquivosSelecionados) {
       formData.append('anexos', file, file.name);
@@ -682,7 +685,8 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
         // Limpa os campos do formulário
         this.composeAssunto = '';
         this.composeDestinatarios = '';
-        this.composeCopia = '';
+        this.composeCopias = [];
+        this.composeCopiaInput = '';
         this.arquivosSelecionados = [];
         if (this.composeBodyRef) {
           this.composeBodyRef.nativeElement.innerHTML = '';
@@ -702,5 +706,64 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
         this.mostrarAlerta('Falha no Envio', detalhe, 'danger');
       }
     });
+  }
+
+  // ------------------------------------------------------------
+  // Métodos de Gerenciamento de Chips de Cópia (Cc)
+  // ------------------------------------------------------------
+  adicionarCopia(): void {
+    const raw = this.composeCopiaInput ? this.composeCopiaInput.trim() : '';
+    if (!raw) return;
+
+    const pedacos = raw.split(/[,;\n\r]+/);
+    for (const p of pedacos) {
+      const email = p.trim();
+      if (email && !this.composeCopias.includes(email)) {
+        this.composeCopias.push(email);
+      }
+    }
+    this.composeCopiaInput = '';
+  }
+
+  removerCopia(index: number): void {
+    if (index >= 0 && index < this.composeCopias.length) {
+      this.composeCopias.splice(index, 1);
+    }
+  }
+
+  aoPressionarTeclaCopia(event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ',' || event.key === ';') {
+      event.preventDefault();
+      this.adicionarCopia();
+    } else if (event.key === 'Backspace' && !this.composeCopiaInput && this.composeCopias.length > 0) {
+      this.composeCopias.pop();
+    }
+  }
+
+  aoColarCopia(event: ClipboardEvent): void {
+    const texto = event.clipboardData?.getData('text');
+    if (texto && /[,;\n\r\s]/.test(texto)) {
+      event.preventDefault();
+      const pedacos = texto.split(/[,;\n\r\s]+/);
+      for (const p of pedacos) {
+        const email = p.trim();
+        if (email && !this.composeCopias.includes(email)) {
+          this.composeCopias.push(email);
+        }
+      }
+    }
+  }
+
+  focarInputCopia(inputEl: HTMLInputElement): void {
+    inputEl?.focus();
+  }
+
+  emailValido(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  obterCopiaFinal(): string {
+    this.adicionarCopia();
+    return this.composeCopias.join(', ');
   }
 }

@@ -171,7 +171,7 @@
                                 <span class="badge status-badge bg-{{card.statusColor}} bg-opacity-10 text-{{card.statusColor}} flex-shrink-0">
                                     {{ card.status }}
                                 </span>
-                                <span class="card-client fw-semibold text-end text-truncate ms-2" [title]="card.clientName">
+                                <span class="card-client fw-semibold text-end text-truncate ms-2" [title]="card.fullClientName || card.clientName">
                                     {{ card.clientName }}
                                 </span>
                             </div>
