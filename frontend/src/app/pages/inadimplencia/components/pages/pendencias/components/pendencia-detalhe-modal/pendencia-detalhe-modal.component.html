@@ -268,7 +268,27 @@
           <div class="compose-row compose-row--split">
             <input type="text" class="form-control form-control-sm" placeholder="Para (destinatários separados por vírgula)"
               [(ngModel)]="composeDestinatarios">
-            <input type="text" class="form-control form-control-sm" placeholder="Cc (cópia opcional)" [(ngModel)]="composeCopia">
+            <div class="chips-input-container" (click)="focarInputCopia(copiaInputRef)">
+              <span class="chips-prefix"><i class="fa-solid fa-copy"></i> Cc:</span>
+              <div class="chips-list">
+                @for (email of composeCopias; track $index) {
+                  <span class="email-chip" [class.email-chip--invalid]="!emailValido(email)" [title]="email">
+                    <span class="chip-text">{{ email }}</span>
+                    <button type="button" class="chip-remove" (click)="removerCopia($index); $event.stopPropagation();" title="Remover e-mail">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </span>
+                }
+                <input #copiaInputRef
+                  type="text"
+                  class="chips-inline-input"
+                  [placeholder]="composeCopias.length === 0 ? 'Adicionar Cc (Enter ou vírgula)' : '+ Cc...'"
+                  [(ngModel)]="composeCopiaInput"
+                  (keydown)="aoPressionarTeclaCopia($event)"
+                  (blur)="adicionarCopia()"
+                  (paste)="aoColarCopia($event)">
+              </div>
+            </div>
           </div>
           <div class="compose-templates">
             <span class="template-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Modelos Rápidos:</span>

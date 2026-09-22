@@ -29,7 +29,8 @@ export class PendenciaLoteModalComponent implements OnChanges {
   // Campos de composição do e-mail
   composeAssunto = '';
   composeDestinatarios = '';
-  composeCopia = '';
+  composeCopias: string[] = [];
+  composeCopiaInput = '';
   arquivosSelecionados: File[] = [];
   isEnviandoEmail = false;
 
@@ -67,7 +68,7 @@ export class PendenciaLoteModalComponent implements OnChanges {
   get clientesDistintos(): string[] {
     const set = new Set<string>();
     for (const c of this.cards) {
-      const nome = c.clientName || 'Cliente';
+      const nome = c.fullClientName || c.clientName || 'Cliente';
       set.add(nome);
     }
     return Array.from(set);
@@ -180,7 +181,7 @@ export class PendenciaLoteModalComponent implements OnChanges {
         <tr style="border-bottom: 1px solid #e5e7eb;">
           <td style="padding: 8px 10px; font-weight: 500; color: #111827;">${card.title}</td>
           <td style="padding: 8px 10px; color: #4b5563;">${parc}</td>
-          ${exibirColunaCliente ? `<td style="padding: 8px 10px; color: #4b5563;">${card.clientName}</td>` : ''}
+          ${exibirColunaCliente ? `<td style="padding: 8px 10px; color: #4b5563;">${card.fullClientName || card.clientName}</td>` : ''}
           <td style="padding: 8px 10px; color: #4b5563;">${venc}</td>
           <td style="padding: 8px 10px; font-weight: 600; color: #b91c1c; text-align: right; font-variant-numeric: tabular-nums;">${saldo}</td>
         </tr>`;
@@ -334,8 +335,9 @@ Permanecemos à disposição.<br>Atenciosamente,${assinaturaHtml}`;
     formData.append('destinatarios', this.composeDestinatarios.trim());
     formData.append('assunto', this.composeAssunto.trim());
     formData.append('corpo', corpo);
-    if (this.composeCopia.trim()) {
-      formData.append('copia', this.composeCopia.trim());
+    const copiaFinal = this.obterCopiaFinal();
+    if (copiaFinal) {
+      formData.append('copia', copiaFinal);
     }
     for (const file of this.arquivosSelecionados) {
       formData.append('anexos', file, file.name);
@@ -350,7 +352,8 @@ Permanecemos à disposição.<br>Atenciosamente,${assinaturaHtml}`;
         // Limpa os campos do formulário
         this.composeAssunto = '';
         this.composeDestinatarios = '';
-        this.composeCopia = '';
+        this.composeCopias = [];
+        this.composeCopiaInput = '';
         this.arquivosSelecionados = [];
         if (this.composeBodyRef) {
           this.composeBodyRef.nativeElement.innerHTML = '';
@@ -373,5 +376,64 @@ Permanecemos à disposição.<br>Atenciosamente,${assinaturaHtml}`;
         this.mostrarAlerta('Falha no Envio', detalhe, 'danger');
       }
     });
+  }
+
+  // ------------------------------------------------------------
+  // Métodos de Gerenciamento de Chips de Cópia (Cc)
+  // ------------------------------------------------------------
+  adicionarCopia(): void {
+    const raw = this.composeCopiaInput ? this.composeCopiaInput.trim() : '';
+    if (!raw) return;
+
+    const pedacos = raw.split(/[,;\n\r]+/);
+    for (const p of pedacos) {
+      const email = p.trim();
+      if (email && !this.composeCopias.includes(email)) {
+        this.composeCopias.push(email);
+      }
+    }
+    this.composeCopiaInput = '';
+  }
+
+  removerCopia(index: number): void {
+    if (index >= 0 && index < this.composeCopias.length) {
+      this.composeCopias.splice(index, 1);
+    }
+  }
+
+  aoPressionarTeclaCopia(event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ',' || event.key === ';') {
+      event.preventDefault();
+      this.adicionarCopia();
+    } else if (event.key === 'Backspace' && !this.composeCopiaInput && this.composeCopias.length > 0) {
+      this.composeCopias.pop();
+    }
+  }
+
+  aoColarCopia(event: ClipboardEvent): void {
+    const texto = event.clipboardData?.getData('text');
+    if (texto && /[,;\n\r\s]/.test(texto)) {
+      event.preventDefault();
+      const pedacos = texto.split(/[,;\n\r\s]+/);
+      for (const p of pedacos) {
+        const email = p.trim();
+        if (email && !this.composeCopias.includes(email)) {
+          this.composeCopias.push(email);
+        }
+      }
+    }
+  }
+
+  focarInputCopia(inputEl: HTMLInputElement): void {
+    inputEl?.focus();
+  }
+
+  emailValido(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  obterCopiaFinal(): string {
+    this.adicionarCopia();
+    return this.composeCopias.join(', ');
   }
 }
