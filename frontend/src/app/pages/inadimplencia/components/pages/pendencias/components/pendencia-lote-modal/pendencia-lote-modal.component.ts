@@ -89,15 +89,51 @@ export class PendenciaLoteModalComponent implements OnChanges {
     this.closed.emit();
   }
 
-  sugerirAssunto(): void {
-    const clientes = this.clientesDistintos;
-    if (clientes.length === 1) {
-      this.composeAssunto = `Cobrança - Títulos Pendentes (${this.cards.length}) - ${clientes[0]}`;
-    } else if (clientes.length > 1) {
-      this.composeAssunto = `Cobrança - Títulos Pendentes (${this.cards.length} títulos)`;
-    } else {
+  sugerirAssunto(tipoTemplate?: 'cobranca' | 'recobranca' | 'protesto' | 'sem_data' | 'devolucao'): void {
+    if (this.cards.length === 0) {
       this.composeAssunto = 'Cobrança - Títulos Pendentes';
+      return;
     }
+
+    // Helper para extrair e formatar datas de vencimento distintas dos cards selecionados
+    const extrairVencimentos = (): string => {
+      const datas = Array.from(new Set(
+        this.cards
+          .filter(c => c.dtVencimento)
+          .map(c => new Date(c.dtVencimento!).toLocaleDateString('pt-BR', { timeZone: 'UTC' }))
+      ));
+      return datas.length > 0 ? datas.join(', ') : '';
+    };
+
+    // Se acionado pelo botão de template da Logística
+    if (tipoTemplate === 'sem_data') {
+      const v = extrairVencimentos();
+      this.composeAssunto = v ? `Titulos sem data de entrega - (${v})` : 'Titulos sem data de entrega';
+      return;
+    }
+    if (tipoTemplate === 'devolucao') {
+      this.composeAssunto = 'Notas de Devolução pendente';
+      return;
+    }
+
+    // Se for abertura automática / sincronização de cards
+    const ehLogistica = this.cards.some(c => (c.fase || '').toUpperCase() === 'LOGISTICA');
+    const ehDevolucao = this.cards.some(c => c.isDevolucao || c.status === 'DEVOLUCAO');
+    const semDataEntrega = this.cards.some(c => !c.dtEntrega);
+
+    if ((ehLogistica || ehDevolucao || semDataEntrega) && !tipoTemplate) {
+      if (ehDevolucao) {
+        this.composeAssunto = 'Notas de Devolução pendente';
+        return;
+      }
+      const v = extrairVencimentos();
+      this.composeAssunto = v ? `Titulos sem data de entrega - (${v})` : 'Titulos sem data de entrega';
+      return;
+    }
+
+    // Financeiro / Cobrança: seleciona um único nome de cliente referente às notas
+    const clientePrincipal = this.cards[0]?.fullClientName || this.cards[0]?.clientName || 'Cliente';
+    this.composeAssunto = `Cobrança - Títulos Pendentes - ${clientePrincipal}`;
   }
 
   conectarGoogle(): void {
@@ -204,11 +240,14 @@ export class PendenciaLoteModalComponent implements OnChanges {
   aplicarTemplate(tipo: 'cobranca' | 'recobranca' | 'protesto' | 'sem_data' | 'devolucao'): void {
     if (!this.composeBodyRef || this.cards.length === 0) return;
 
+    this.sugerirAssunto(tipo);
+
     const el = this.composeBodyRef.nativeElement;
     const totalFormatado = this.valorTotalSaldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const assinaturaHtml = `<br><br><img src="${this.ASSINATURA_URL}" alt="Assinatura" style="max-width: 580px; width: 100%; height: auto; display: block;">`;
     const tabelaTitulos = this.montarTabelaTitulosHtml();
-    const clienteRef = this.clientesDistintos.length === 1 ? `<b>${this.clientesDistintos[0]}</b>` : 'cliente';
+    const clientePrincipal = this.cards[0]?.fullClientName || this.cards[0]?.clientName || 'Cliente';
+    const clienteRef = `<b>${clientePrincipal}</b>`;
 
     let textoHtml = '';
 
