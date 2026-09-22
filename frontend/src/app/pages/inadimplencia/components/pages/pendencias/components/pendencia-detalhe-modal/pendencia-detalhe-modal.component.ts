@@ -210,7 +210,7 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     const assinaturaHtml = `<br><br><img
       src="${this.ASSINATURA_URL}"
       alt="Assinatura"
-      style="max-width: 200px; height: auto; display: block;"
+      style="max-width: 580px; width: 100%; height: auto; display: block;"
       onerror="this.style.display='none'; document.dispatchEvent(new CustomEvent('assinatura-erro'));"
     >`;
 
@@ -235,7 +235,7 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     const valorFormatado = (this.card.valorSaldo || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const dataVenc = this.card.dtVencimento ? new Date(this.card.dtVencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-';
     const parcela = this.card.parccela || '-';
-    const assinaturaHtml = `<br><br><img src="${this.ASSINATURA_URL}" alt="Assinatura" style="max-width: 200px; height: auto; display: block;">`;
+    const assinaturaHtml = `<br><br><img src="${this.ASSINATURA_URL}" alt="Assinatura" style="max-width: 580px; width: 100%; height: auto; display: block;">`;
 
     let textoHtml = '';
 

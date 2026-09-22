@@ -1,0 +1,219 @@
+<app-modal [isOpen]="isOpen" title="Mensagem em Lote" size="lg" (closed)="close()">
+  <div class="pendencia-lote-container">
+
+    <!-- Cabeçalho do Lote com Resumo -->
+    <div class="lote-header-summary">
+      <div class="summary-info">
+        <div class="client-badge">
+          <i class="fa-solid fa-building me-1"></i>
+          <span class="fw-semibold">{{ nomeClienteExibicao }}</span>
+        </div>
+        <div class="summary-details text-muted small">
+          <span><strong>{{ cards.length }}</strong> título(s) selecionado(s)</span>
+          <span class="mx-1">•</span>
+          <span>Total: <strong class="text-danger font-monospace">{{ valorTotalSaldo | currency:'BRL' }}</strong></span>
+        </div>
+      </div>
+      @if (cards.length > 0) {
+      <div class="selection-action">
+        <span class="badge bg-primary bg-opacity-10 text-primary">
+          <i class="fa-solid fa-layer-group me-1"></i> Disparo em Lote
+        </span>
+      </div>
+      }
+    </div>
+
+    <!-- Tabela Compacta de Títulos Selecionados -->
+    <div class="table-card mb-3">
+      <div class="table-responsive custom-scrollbar" style="max-height: 160px;">
+        <table class="saas-table">
+          <thead>
+            <tr>
+              <th style="width: 20%;">Título</th>
+              <th style="width: 15%;">Parcela</th>
+              @if (clientesDistintos.length > 1) {
+              <th>Cliente</th>
+              }
+              <th style="width: 20%;">Vencimento</th>
+              <th style="width: 20%; text-align: right;">Saldo</th>
+              <th style="width: 10%; text-align: center;">Remover</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (card of cards; track card.id) {
+            <tr>
+              <td class="fw-semibold text-primary font-monospace">{{ card.title }}</td>
+              <td>{{ card.parccela || '1' }}</td>
+              @if (clientesDistintos.length > 1) {
+              <td class="text-truncate" style="max-width: 180px;" [title]="card.clientName">{{ card.clientName }}</td>
+              }
+              <td>{{ card.dtVencimento ? (card.dtVencimento | date:'dd/MM/yyyy') : '—' }}</td>
+              <td class="text-end font-monospace fw-semibold text-danger">
+                {{ (card.valorSaldo || 0) | currency:'BRL' }}
+              </td>
+              <td class="text-center">
+                <button type="button" class="btn-remove-title" title="Remover da seleção" (click)="removerTitulo(card)">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </td>
+            </tr>
+            }
+            @if (cards.length === 0) {
+            <tr>
+              <td [attr.colspan]="clientesDistintos.length > 1 ? 6 : 5" class="text-center text-muted py-3">
+                Nenhum título selecionado no momento.
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Caixa de Mensagem / Painel de Composição -->
+    <div class="chat-panel">
+
+      <!-- Banner de Conexão com Google OAuth -->
+      @if (!googleAuthService.isConectado()) {
+      <div class="google-auth-banner google-auth-banner--disconnected">
+        <div class="google-auth-info">
+          <div class="google-icon-wrapper">
+            <svg viewBox="0 0 24 24" width="22" height="22">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+          </div>
+          <div class="google-auth-text">
+            <span class="google-auth-title">Conectar conta do Gmail</span>
+            <span class="google-auth-subtitle">Autorize sua conta para enviar e-mails de cobrança diretamente pelo seu remetente.</span>
+          </div>
+        </div>
+        <button type="button" class="btn-google-connect" (click)="conectarGoogle()" [disabled]="googleAuthService.isCarregando()">
+          @if (googleAuthService.isCarregando()) {
+            <i class="fa-solid fa-spinner fa-spin me-1"></i> Conectando...
+          } @else {
+            <i class="fa-brands fa-google me-1"></i> Conectar com Google
+          }
+        </button>
+      </div>
+      } @else {
+      <div class="google-auth-banner google-auth-banner--connected">
+        <div class="google-auth-info">
+          <span class="connected-badge">
+            <i class="fa-solid fa-circle-check text-success me-1"></i> Conectado ao Gmail
+          </span>
+          @if (googleAuthService.emailConectado()) {
+          <span class="connected-email">{{ googleAuthService.emailConectado() }}</span>
+          }
+        </div>
+        <button type="button" class="btn-google-disconnect" (click)="abrirConfirmarDesconexao()" title="Desconectar conta Google">
+          <i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Desconectar
+        </button>
+      </div>
+      }
+
+      <!-- Painel de Composição -->
+      <div class="compose-panel">
+        <div class="compose-row">
+          <input type="text" class="form-control form-control-sm" placeholder="Assunto do e-mail"
+            [(ngModel)]="composeAssunto">
+        </div>
+        <div class="compose-row compose-row--split">
+          <input type="text" class="form-control form-control-sm" placeholder="Para (destinatários separados por vírgula)"
+            [(ngModel)]="composeDestinatarios">
+          <input type="text" class="form-control form-control-sm" placeholder="Cc (cópia opcional)" [(ngModel)]="composeCopia">
+        </div>
+
+        <div class="compose-templates">
+          <span class="template-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Modelos Rápidos:</span>
+          <button type="button" class="template-chip" (click)="aplicarTemplate('cobranca')">Cobrança Consolidada</button>
+          <button type="button" class="template-chip" (click)="aplicarTemplate('recobranca')">Recobrança</button>
+          <button type="button" class="template-chip" (click)="aplicarTemplate('protesto')">Protesto</button>
+          <button type="button" class="template-chip" (click)="aplicarTemplate('sem_data')">Sem Data Entrega</button>
+          <button type="button" class="template-chip" (click)="aplicarTemplate('devolucao')">Devolução</button>
+        </div>
+
+        <div class="compose-toolbar">
+          <button type="button" class="toolbar-btn" title="Negrito" (mousedown)="$event.preventDefault()" (click)="aplicarFormatacao('bold')">
+            <i class="fa-solid fa-bold"></i>
+          </button>
+          <button type="button" class="toolbar-btn" title="Itálico" (mousedown)="$event.preventDefault()" (click)="aplicarFormatacao('italic')">
+            <i class="fa-solid fa-italic"></i>
+          </button>
+          <button type="button" class="toolbar-btn" title="Sublinhado" (mousedown)="$event.preventDefault()" (click)="aplicarFormatacao('underline')">
+            <i class="fa-solid fa-underline"></i>
+          </button>
+          <button type="button" class="toolbar-btn" title="Lista" (mousedown)="$event.preventDefault()" (click)="aplicarFormatacao('insertUnorderedList')">
+            <i class="fa-solid fa-list-ul"></i>
+          </button>
+          <span class="toolbar-divider"></span>
+          <button type="button" class="toolbar-btn" title="Anexar arquivo" (mousedown)="$event.preventDefault()" (click)="triggerAnexo()">
+            <i class="fa-solid fa-paperclip"></i>
+          </button>
+        </div>
+
+        @if (assinaturaComErro) {
+        <div class="compose-row" style="padding: 0.5rem 0.75rem; background: #fff8e1; border: 1px solid #f59e0b; border-radius: 8px; display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; color:#92400e;">
+          <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i>
+          <span>A imagem da assinatura não pôde ser carregada no editor, mas o e-mail será enviado com o link correto.</span>
+        </div>
+        }
+
+        <div #composeBody class="compose-body" contenteditable="true"
+          data-placeholder="Escreva sua mensagem ou selecione um modelo rápido acima..."></div>
+
+        @if (arquivosSelecionados.length > 0) {
+        <div class="compose-attachments">
+          @for (file of arquivosSelecionados; track $index) {
+          <span class="attachment-chip">
+            <i class="fa-solid fa-paperclip"></i>
+            <span class="attachment-name">{{ file.name }}</span>
+            <span class="attachment-size">({{ formatarTamanhoArquivo(file.size) }})</span>
+            <button type="button" (click)="removerArquivo($index)" title="Remover anexo"><i class="fa-solid fa-xmark"></i></button>
+          </span>
+          }
+        </div>
+        }
+
+        <div class="compose-footer d-flex justify-content-between align-items-center mt-2">
+          <span class="text-muted small">
+            <i class="fa-solid fa-circle-info me-1"></i>
+            O e-mail será disparado e o histórico registrado em todos os <strong>{{ cards.length }}</strong> títulos selecionados.
+          </span>
+          <app-button variant="primary" icon="fa-solid fa-paper-plane" [loading]="isEnviandoEmail" [disabled]="isEnviandoEmail || cards.length === 0" (clicked)="enviarMensagem()">
+            {{ googleAuthService.isConectado() ? 'Enviar Mensagem em Lote' : 'Conectar e Enviar' }}
+          </app-button>
+        </div>
+      </div>
+
+      <input #anexoInput type="file" multiple style="display:none;" (change)="onAnexoSelecionado($event)">
+    </div>
+
+  </div>
+
+  <!-- Modais de Notificação e Confirmação -->
+  <app-confirm-modal
+    [isOpen]="alertaModalOpen"
+    [title]="alertaTitulo"
+    [message]="alertaMensagem"
+    [variant]="alertaVariant"
+    [showCancel]="false"
+    confirmText="Entendido"
+    (confirmed)="alertaModalOpen = false"
+    (canceled)="alertaModalOpen = false">
+  </app-confirm-modal>
+
+  <app-confirm-modal
+    [isOpen]="confirmarDesconectarOpen"
+    title="Desconectar Conta Google"
+    message="Tem certeza que deseja desconectar sua conta do Gmail? Você precisará autorizar novamente para enviar novos e-mails."
+    variant="danger"
+    [showCancel]="true"
+    confirmText="Sim, desconectar"
+    cancelText="Cancelar"
+    (confirmed)="desconectarGoogle()"
+    (canceled)="confirmarDesconectarOpen = false">
+  </app-confirm-modal>
+</app-modal>
