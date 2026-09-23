@@ -599,6 +599,11 @@ A interface do Kanban possui *toggles* no cabeçalho das colunas para alternar a
   - O processamento acumula os IDs de banco (`idnfpendencias`) de todos os títulos processados em `ids_processados_planilha`.
   - Ao final do lote, todas as pendências ativas no banco (`encerrado = 'N'`) cujos IDs não estiverem no conjunto são marcadas como `encerrado = 'S'` gerando o histórico *"Pendência finalizada"*. Essa checagem por ID impede baixas indevidas cruzadas entre diferentes espécies do mesmo título.
 
+### 6.4.1 Importação via API (Datasul)
+- **Endpoint**: `POST /api/v1/importacoes/inadimplencia/importar-pendencias/datasul` (JWT obrigatório). Body: `{"pendencias": [ ... ]}`, onde cada item traz os mesmos campos das colunas da planilha (`estabelecimento`, `especie`, `serie`, `titulo`, `parcela`, `nrPedidoCliente`, `tipoPedido`, `codigoCliente`, `nomeCliente`, `codigoMatriz`, `portador`, `carteira`, `dtEmissao`, `dtEntrega`, `dtVencimento`, `valorOriginal`, `valorSaldo`). Retorna o mesmo resumo JSON da planilha (sem streaming).
+- **Mesmas regras**: planilha e Datasul passam pelo mesmo método `InadimplenciaService._processar_linhas_pendencias` — qualquer regra nova de importação deve ser feita ali, nunca duplicada. Isso inclui a **baixa automática por ausência**: a carga do Datasul deve ser sempre a base completa de títulos em aberto.
+- **Registro**: grava uma importação com `tipo = "Importação DATASUL"` (`TIPO_IMPORTACAO_DATASUL`), `nomeArquivo = DATASUL_<data_hora>` e extensão `json`. Diferente da planilha, tudo roda em uma única transação: se falhar, nem a importação nem as pendências são gravadas.
+
 ### 6.5 Opções Padronizadas de Status
-Todos os dropdowns de status no frontend e backend (`STATUS_OPTIONS`) contêm as 19 opções ordenadas alfabeticamente:
-`["ACORDO", "AD", "AN", "ANALISAR", "ATRASADO", "CART-DES", "COMISSAO", "DES", "DEVOLUCAO", "EXPORTACAO", "MARTINS", "MERCADINHO", "OK", "PERDAS", "PR", "PRORROGADO", "PROTESTADO", "RJ", "SEM DATA DE ENTREGA"]`.
+Todos os dropdowns de status no frontend e backend (`STATUS_OPTIONS`) contêm as 18 opções ordenadas alfabeticamente (`CART-DES` não existe mais — foi simplificado para `DES`):
+`["ACORDO", "AD", "AN", "ANALISAR", "ATRASADO", "COMISSAO", "DES", "DEVOLUCAO", "EXPORTACAO", "MARTINS", "MERCADINHO", "OK", "PERDAS", "PR", "PRORROGADO", "PROTESTADO", "RJ", "SEM DATA DE ENTREGA"]`.

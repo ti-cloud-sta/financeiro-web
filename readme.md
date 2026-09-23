@@ -78,8 +78,7 @@ A rota de leitura de extratos consome os serviços do *Google Gemini*. Como medi
 
 # Segurança e Autenticação (Aviso Crítico)
 
-> **ATENÇÃO TÉCNICA (Auditoria):** Atualmente (Fase 1 do Backend), a aplicação FastAPI **não possui validação de rotas, middlewares de login ou JWT implementados**. Todos os endpoints são integralmente públicos. 
-A configuração de CORS (`main.py`) também é permissiva (`["*"]`). A implementação do **Supabase Authentication** (originalmente planejado) para bloqueio e identidade ainda consta no *roadmap* como pendente e deve ser a maior prioridade de infraestrutura e arquitetura de segurança antes da transição para produção. O Frontend já está preparado para essa transição (ver seção de Estrutura do Frontend acima) através de uma camada de serviços mockados facilmente substituível.
+> **Estado atual:** o backend emite JWT próprio (`/api/v1/auth/login`, validado por `get_current_user` em `app/api/deps.py`) e o frontend usa o `AuthService` real, com o `auth.interceptor.ts` enviando o token em todas as chamadas `HttpClient`. Todos os routers de negócio exigem autenticação: o `main.py` aplica `dependencies=[Depends(get_current_user)]` em cada `include_router` (só `/api/v1/auth` é público). O CORS (`main.py`) segue aberto (`allow_origins=["*"]`, sem credenciais) e deve ser restringido antes da produção.
 
 > **Correção aplicada nesta auditoria:** `backend/app/core/config.py` continha uma senha de banco de dados real hardcoded como valor padrão da classe `Settings` (exposta no histórico do Git). O valor padrão foi removido; **recomenda-se fortemente rotacionar essa senha no MySQL**, já que ela permanece visível em commits antigos.
 
@@ -100,7 +99,7 @@ src/app/
 
 O Frontend possui gerenciamento através de **Angular Signals** (adotado de forma consistente nas páginas mais recentes; o módulo mais antigo, Despesas de Viagens, ainda não foi migrado) e adota o padrão **Mobile First**, suportando resoluções de desktop até smartphones. O Layout utiliza menus recolhíveis, skeleton loaders e feedbacks em mensagens de `toast` para alta qualidade UX.
 
-**Autenticação no Frontend (placeholder mockado)**: como o backend ainda não implementa autenticação real (ver aviso abaixo), o frontend usa uma arquitetura *interface-first* — interfaces como `IAuthService`/`ISessionService`/`ITokenService` são injetadas via DI (`app.config.ts`) apontando para implementações mock (`MockAuthService`, etc.) que aceitam qualquer credencial válida no formulário e geram um token fake. O interceptor de HTTP (`auth.interceptor.ts`) e o guard de rotas já funcionam de verdade contra esse token mock, então a troca para autenticação real (ex.: Supabase Auth) exige apenas implementar os serviços reais e trocar os bindings — nenhuma outra camada do app depende do mock diretamente. As chamadas de dados de negócio (colaboradores, importações, dashboards) já são 100% reais contra a API.
+**Autenticação no Frontend**: arquitetura *interface-first* — interfaces como `IAuthService` são injetadas via DI (`app.config.ts`). A autenticação (`AuthService`, `UserService`) já é real contra a API; outros serviços de infraestrutura (permissões, módulos, notificações, menu, dashboard da home) ainda apontam para implementações `Mock*` e podem ser trocados sem afetar as demais camadas.
 
 ---
 

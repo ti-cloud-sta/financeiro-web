@@ -61,7 +61,7 @@ export class InadimplenciaComponent implements OnInit {
   });
 
   carregarHistoricoAtualizacao() {
-    this.importacoesService.listar(1, 50, undefined, 'PENDENCIAS').subscribe({
+    this.importacoesService.listar(1, 50, undefined, 'PENDENCIAS,Importação DATASUL').subscribe({
       next: (res) => this.atualizacaoHistory.set(res.items || []),
       error: (err) => console.error('Erro ao carregar historico de atualizações de dados:', err)
     });

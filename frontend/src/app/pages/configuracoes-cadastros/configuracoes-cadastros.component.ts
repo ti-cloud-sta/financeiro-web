@@ -109,21 +109,41 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
     return p && cp && p.value === cp.value ? null : { mismatch: true };
   }
 
+  isSalvandoCadastro = false;
+  cadastroErrorMessage: string | null = null;
+  isSalvandoSenha = false;
+  passwordErrorMessage: string | null = null;
+
   openCadastroModal() {
     this.cadastroForm.reset();
+    this.cadastroErrorMessage = null;
     this.isCadastroModalOpen = true;
   }
   closeCadastroModal() {
     this.isCadastroModalOpen = false;
   }
   onCadastroSubmit() {
-    if (this.cadastroForm.invalid) return;
-    this.closeCadastroModal();
+    if (this.cadastroForm.invalid || this.isSalvandoCadastro) return;
+    const { name, email, password } = this.cadastroForm.value;
+    this.isSalvandoCadastro = true;
+    this.cadastroErrorMessage = null;
+    this.usersService.register({ name, email, password }).subscribe({
+      next: () => {
+        this.isSalvandoCadastro = false;
+        this.closeCadastroModal();
+        this.carregarUsuarios();
+      },
+      error: (err) => {
+        this.isSalvandoCadastro = false;
+        this.cadastroErrorMessage = err?.error?.detail || 'Não foi possível cadastrar o usuário.';
+      }
+    });
   }
 
   openPasswordModal(user: User) {
     this.selectedUser = user;
     this.passwordForm.reset();
+    this.passwordErrorMessage = null;
     this.isPasswordModalOpen = true;
   }
   closePasswordModal() {
@@ -131,19 +151,37 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
     this.selectedUser = null;
   }
   onPasswordSubmit() {
-    if (this.passwordForm.invalid) return;
-    this.closePasswordModal();
+    if (this.passwordForm.invalid || !this.selectedUser || this.isSalvandoSenha) return;
+    this.isSalvandoSenha = true;
+    this.passwordErrorMessage = null;
+    this.usersService.changePassword(this.selectedUser.iduser!, this.passwordForm.value.newPassword).subscribe({
+      next: () => {
+        this.isSalvandoSenha = false;
+        this.closePasswordModal();
+      },
+      error: (err) => {
+        this.isSalvandoSenha = false;
+        this.passwordErrorMessage = err?.error?.detail || 'Não foi possível alterar a senha.';
+      }
+    });
   }
 
   confirmGrantAdmin(user: User) {
-    this.openConfirmModal('Alterar Acesso', `Deseja ${user.role === 'admin' ? 'remover' : 'conceder'} acesso de administrador para ${user.name}?`, () => {
-      this.users.update(users => users.map(u => {
-        if (u.iduser === user.iduser) {
-          return { ...u, role: u.role === 'admin' ? 'user' : 'admin' };
+    const tornarAdmin = user.role !== 'admin';
+    this.openConfirmModal('Alterar Acesso', `Deseja ${tornarAdmin ? 'conceder' : 'remover'} acesso de administrador para ${user.name}?`, () => {
+      this.usersService.setAdmin(user.iduser!, tornarAdmin).subscribe({
+        next: () => {
+          this.users.update(users => users.map(u =>
+            u.iduser === user.iduser ? { ...u, role: tornarAdmin ? 'admin' : 'user' } : u
+          ));
+          this.closeConfirmModal();
+        },
+        error: (err) => {
+          this.isConfirmLoading = false;
+          this.closeConfirmModal();
+          this.usuariosErrorMessage = err?.error?.detail || 'Não foi possível alterar o acesso do usuário.';
         }
-        return u;
-      }));
-      this.closeConfirmModal();
+      });
     });
   }
 
