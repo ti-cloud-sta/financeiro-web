@@ -646,7 +646,10 @@ class InadimplenciaService:
         if not nf:
             raise LookupError(f"Pendência {id_nf} não encontrada.")
 
-        fase_anterior = nf.fase or "-"
+        # Buscar a fase calculada pela view antes de alterar
+        vw_nf = self.db.query(VwNfPendenciaFase).filter(VwNfPendenciaFase.idnfpendencias == id_nf).first()
+        fase_anterior = vw_nf.fase if vw_nf and vw_nf.fase else (nf.fase or "-")
+
         nf.fase = nova_fase
         
         hist_detalhes = f"Fase alterada de '{fase_anterior}' para '{nova_fase}'."
@@ -683,7 +686,10 @@ class InadimplenciaService:
         if not nf:
             raise LookupError(f"Pendência {id_nf} não encontrada.")
 
-        status_anterior = nf.status or "-"
+        # Buscar o status calculado pela view antes de alterar
+        vw_nf = self.db.query(VwNfPendenciaFase).filter(VwNfPendenciaFase.idnfpendencias == id_nf).first()
+        status_anterior = vw_nf.status if vw_nf and vw_nf.status else (nf.status or "-")
+
         nf.status = novo_status
         self._novo_historico(
             id_nf, "Alteração de Status",
@@ -760,7 +766,7 @@ class InadimplenciaService:
         eventos = (
             self.db.query(HistoricoPendencia)
             .filter(HistoricoPendencia.idNfPendencias == id_nf)
-            .order_by(HistoricoPendencia.createdAt.asc())
+            .order_by(HistoricoPendencia.idhistoricopendencia.asc())
             .all()
         )
         return [self._serializar_historico(h) for h in eventos]
@@ -1533,7 +1539,7 @@ class InadimplenciaService:
             .outerjoin(Cliente, Cliente.idclientes == NfPendencia.idCliente)
             .outerjoin(VwNfPendenciaFase, VwNfPendenciaFase.idnfpendencias == NfPendencia.idnfpendencias)
             .filter(NfPendencia.encerrado == 'N', (NfPendencia.dtEntrega.is_(None)) | (VwNfPendenciaFase.carteira == 'DEV'))
-            .order_by(desc(NfPendencia.valorSaldo))
+            .order_by(NfPendencia.dtVencimento.asc())
             .limit(50)
             .all()
         )
@@ -1611,7 +1617,7 @@ class InadimplenciaService:
             .outerjoin(Cliente, Cliente.idclientes == NfPendencia.idCliente)
             .join(VwNfPendenciaFase, VwNfPendenciaFase.idnfpendencias == NfPendencia.idnfpendencias)
             .filter(NfPendencia.encerrado == 'N', (VwNfPendenciaFase.fase == 'ACORDO') | (VwNfPendenciaFase.status == 'ACORDO'))
-            .order_by(desc(NfPendencia.valorSaldo))
+            .order_by(NfPendencia.dtVencimento.asc())
             .limit(50)
             .all()
         )
@@ -1761,7 +1767,7 @@ class InadimplenciaService:
             )
             .outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente)
             .filter(VwNfPendenciaFase.fase == 'FINANCEIRO', VwNfPendenciaFase.dtVencimento < hoje_datetime)
-            .order_by(desc(VwNfPendenciaFase.valorSaldo))
+            .order_by(VwNfPendenciaFase.dtVencimento.asc())
             .limit(1000) # Previne payloads excessivamente gigantes
             .all()
         )
@@ -1811,10 +1817,10 @@ class InadimplenciaService:
                 "qtd": qtd_titulos_cliente.get(g.cliente_nome, 1)
             })
 
-        grid_sem_entrega_db = self.db.query(VwNfPendenciaFase, Cliente.nome.label('cliente_nome')).outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente).filter(VwNfPendenciaFase.fase == 'LOGISTICA', VwNfPendenciaFase.status == 'SEM DATA DE ENTREGA', VwNfPendenciaFase.dtVencimento < hoje_datetime).order_by(desc(VwNfPendenciaFase.valorSaldo)).all()
+        grid_sem_entrega_db = self.db.query(VwNfPendenciaFase, Cliente.nome.label('cliente_nome')).outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente).filter(VwNfPendenciaFase.fase == 'LOGISTICA', VwNfPendenciaFase.status == 'SEM DATA DE ENTREGA', VwNfPendenciaFase.dtVencimento < hoje_datetime).order_by(VwNfPendenciaFase.dtVencimento.asc()).all()
         grid_sem_entrega = [{"id": r[0].idnfpendencias, "titulo": r[0].titulo, "cliente": r.cliente_nome, "vencimento": r[0].dtVencimento.isoformat() if r[0].dtVencimento else None, "valor": float(r[0].valorSaldo or 0)} for r in grid_sem_entrega_db]
 
-        grid_devolucao_db = self.db.query(VwNfPendenciaFase, Cliente.nome.label('cliente_nome')).outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente).filter(VwNfPendenciaFase.fase == 'LOGISTICA', VwNfPendenciaFase.status == 'DEVOLUÇÃO', VwNfPendenciaFase.dtVencimento < hoje_datetime).order_by(desc(VwNfPendenciaFase.valorSaldo)).all()
+        grid_devolucao_db = self.db.query(VwNfPendenciaFase, Cliente.nome.label('cliente_nome')).outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente).filter(VwNfPendenciaFase.fase == 'LOGISTICA', VwNfPendenciaFase.status == 'DEVOLUÇÃO', VwNfPendenciaFase.dtVencimento < hoje_datetime).order_by(VwNfPendenciaFase.dtVencimento.asc()).all()
         grid_devolucao = [{"id": r[0].idnfpendencias, "titulo": r[0].titulo, "cliente": r.cliente_nome, "vencimento": r[0].dtVencimento.isoformat() if r[0].dtVencimento else None, "valor": float(r[0].valorSaldo or 0)} for r in grid_devolucao_db]
 
         grid_acordos_db = (
@@ -1829,7 +1835,7 @@ class InadimplenciaService:
             )
             .outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente)
             .filter(VwNfPendenciaFase.status == 'ACORDO')
-            .order_by(desc(VwNfPendenciaFase.valorSaldo))
+            .order_by(VwNfPendenciaFase.dtVencimento.asc())
             .limit(1000)
             .all()
         )

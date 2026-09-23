@@ -72,4 +72,10 @@ Todos os select boxes de status (filtro Kanban, modal de detalhes e modal de mud
 - **Financeiro**: Sub-abas `Gerencial` e `Gerente/Representante`, contendo o painel `Atual` (data de hoje, cards de Total Vencido, Total Protestado e evolução vs ontem) e a grid principal de títulos.
 - **Logística**: Ocorrências sem data de entrega e de devolução.
 - **Comercial**: Acordos comerciais e ranking dos 5 maiores acordos.
-- **Modais Integrados**: Modal de Tratativas e Modal de Histórico de Pendências.
+
+### Modais Integrados (Tratativas, Histórico, Mensagens):
+- Todos os modais de listagem da pendência (Tratativas, Histórico de Eventos e Mensagens/E-mails) utilizam o tamanho `lg` (`size="lg"`).
+- O cabeçalho dos modais exibe a `FASE` atual do título (em vez do status genérico) utilizando as cores dinâmicas via `getBadgeClass()`.
+- **Loading States**: Durante o carregamento assíncrono das APIs, os modais exibem esqueletos de carregamento estilizados utilizando o componente padrão `<app-skeleton>`, reproduzindo o layout real da lista ou do chat para manter a imersão (Skeleton UI Premium).
+- **Modal de Mensagens**: Exibe uma timeline estilo "Chat" com balões de mensagens, avatares gerados automaticamente com iniciais do remetente e suporte à marcação de "Minha Mensagem" para alinhamento à direita (com cor primária) vs "Mensagem do Cliente" (alinhamento à esquerda, fundo claro).
+
