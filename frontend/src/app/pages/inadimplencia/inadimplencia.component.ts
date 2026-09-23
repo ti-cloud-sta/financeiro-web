@@ -649,12 +649,15 @@ export class InadimplenciaComponent implements OnInit {
         const textColor = isDark ? '#e2e8f0' : '#475569';
         const splitLineColor = isDark ? '#334155' : '#e2e8f0';
 
+        // "Pagos fora do prazo" fica zerado de propósito: ainda não temos a informação de
+        // pagamento dos títulos para saber se foram quitados ou não, só os meses no eixo.
+        const atrasoAnualZerado = (res.evolucaoAtraso.labels || []).map(() => 0);
         this.chartOptionsAtrasoAnual = {
           tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
           grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
           xAxis: { type: 'category', data: res.evolucaoAtraso.labels, axisLabel: { color: textColor } },
           yAxis: { type: 'value', splitLine: { show: false }, axisLabel: { color: textColor } },
-          series: [{ name: 'Vencidos', type: 'line', data: res.evolucaoAtraso.values, label: { show: true, position: 'top', fontSize: 11, fontWeight: '600', color: '#64748b' }, itemStyle: { color: this.colors[2] }, areaStyle: { opacity: 0.1 } }]
+          series: [{ name: 'Vencidos', type: 'line', data: atrasoAnualZerado, label: { show: true, position: 'top', fontSize: 11, fontWeight: '600', color: '#64748b' }, itemStyle: { color: this.colors[2] }, areaStyle: { opacity: 0.1 } }]
         };
 
         this.chartOptionsProtestos = {
