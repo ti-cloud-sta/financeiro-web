@@ -1,4 +1,4 @@
-<div class="page-container">
+﻿<div class="page-container">
   <div class="main-layout">
     <aside class="main-sidebar" [class.collapsed]="isSidebarCollapsed">
       <div class="sidebar-header d-flex justify-content-end mb-3 pb-2 border-bottom">
@@ -48,6 +48,12 @@
             <i class="fa-solid fa-briefcase"></i> <span class="nav-text">Empresas</span>
           </button>
         </li>
+        <li>
+          <button class="main-nav-link" [class.active]="activeConfigTab === 'comercial'"
+            (click)="setActiveConfigTab('comercial')" title="Comercial">
+            <i class="fa-solid fa-chart-pie"></i> <span class="nav-text">Comercial</span>
+          </button>
+        </li>
       </ul>
     </aside>
 
@@ -93,7 +99,7 @@
                       <tr>
                         <th>NOME</th>
                         <th>EMAIL</th>
-                        <th>NÍVEL DE ACESSO</th>
+                        <th>NÃVEL DE ACESSO</th>
                         <th class="text-end">AÇÕES</th>
                       </tr>
                     </thead>
@@ -499,6 +505,171 @@
                   </div>
                 </div>
               </div>
+        <!-- Aba Comercial -->
+        <div class="tab-pane fade" [class.show]="activeConfigTab === 'comercial'" [class.active]="activeConfigTab === 'comercial'" role="tabpanel">
+          <div class="config-layout">
+            <div class="dashboard-header d-flex justify-content-between align-items-center border-bottom pt-2">
+              <ul class="config-nav mb-0 border-bottom-0 pb-0 px-3">
+                <li class="config-nav-item">
+                  <button class="config-nav-link" [class.active]="comercialTab() === 'gerentes'"
+                    (click)="setComercialTab('gerentes')">
+                    Gerentes
+                  </button>
+                </li>
+                <li class="config-nav-item">
+                  <button class="config-nav-link" [class.active]="comercialTab() === 'representantes'"
+                    (click)="setComercialTab('representantes')">
+                    Representantes
+                  </button>
+                </li>
+              </ul>
+            </div>
+            
+            <div class="config-content p-4">
+              @if (comercialTab() === 'gerentes') {
+                <div class="config-header mb-4">
+                  <div>
+                    <h3>Gerentes</h3>
+                    <p class="text-muted">Gerencie os perfis e configurações dos gerentes comerciais.</p>
+                  </div>
+                </div>
+                
+                <div class="config-toolbar d-flex justify-content-between align-items-center mb-3">
+                  <div class="search-box">
+                    <i class="fa-solid fa-search text-muted"></i>
+                    <input type="text" placeholder="Buscar por nome, centro ou cargo..." [ngModel]="searchTermGerentes"
+                      (ngModelChange)="onSearchGerentesChange($event)">
+                  </div>
+                  <div class="config-actions">
+                    <!-- Buttons if necessary -->
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="saas-table w-100">
+                    <thead>
+                      <tr>
+                        <th>NOME</th>
+                        <th>CENTRO DE CUSTO</th>
+                        <th>CARGO</th>
+                        <th class="text-end">AÇÕES</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let colab of listaGerentes">
+                        <td class="fw-medium">{{ colab.nome }}</td>
+                        <td>
+                          <span *ngIf="colab.centro_custo">{{ colab.centro_custo.codigo }} - {{ colab.centro_custo.nome
+                            }}</span>
+                          <span *ngIf="!colab.centro_custo" class="text-muted">N/A</span>
+                        </td>
+                        <td>
+                          <span *ngIf="colab.cargo_colaborador">{{ colab.cargo_colaborador.nome }}</span>
+                          <span *ngIf="!colab.cargo_colaborador" class="text-muted">N/A</span>
+                        </td>
+                        <td class="text-end">
+                          <div class="action-buttons">
+                            <button class="btn-icon text-danger" title="Remover Cargo" (click)="confirmarRemocaoCargo(colab)"><i
+                                class="fa-solid fa-user-minus"></i></button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr *ngIf="listaGerentes.length === 0">
+                        <td colspan="5" class="text-center text-muted py-4">Nenhum gerente encontrado.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container" *ngIf="listaGerentes.length > 0">
+                  <span class="text-muted small">Total de {{ totalGerentes }} registros</span>
+                  <div class="pagination-actions">
+                    <button class="btn-page" [disabled]="currentPageGerentes === 1" (click)="goToPageGerentes(currentPageGerentes - 1)">
+                      <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span class="page-indicator">Página {{ currentPageGerentes }} de {{ totalPagesGerentes }}</span>
+                    <button class="btn-page" [disabled]="currentPageGerentes === totalPagesGerentes"
+                      (click)="goToPageGerentes(currentPageGerentes + 1)">
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                  </div>
+                </div>
+              } @else {
+                <div class="config-header mb-4">
+                  <div>
+                    <h3>Representantes</h3>
+                    <p class="text-muted">Gerencie os perfis e configurações dos representantes comerciais.</p>
+                  </div>
+                </div>
+                
+                <div class="config-toolbar d-flex justify-content-between align-items-center mb-3">
+                  <div class="search-box">
+                    <i class="fa-solid fa-search text-muted"></i>
+                    <input type="text" placeholder="Buscar por nome, centro ou cargo..." [ngModel]="searchTermRepresentantes"
+                      (ngModelChange)="onSearchRepresentantesChange($event)">
+                  </div>
+                  <div class="config-actions">
+                    <!-- Buttons if necessary -->
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="saas-table w-100">
+                    <thead>
+                      <tr>
+                        <th>NOME</th>
+                        <th>CENTRO DE CUSTO</th>
+                        <th>CARGO</th>
+                        <th class="text-end">AÇÕES</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let colab of listaRepresentantes">
+                        <td class="fw-medium">{{ colab.nome }}</td>
+                        <td>
+                          <span *ngIf="colab.centro_custo">{{ colab.centro_custo.codigo }} - {{ colab.centro_custo.nome
+                            }}</span>
+                          <span *ngIf="!colab.centro_custo" class="text-muted">N/A</span>
+                        </td>
+                        <td>
+                          <span *ngIf="colab.cargo_colaborador">{{ colab.cargo_colaborador.nome }}</span>
+                          <span *ngIf="!colab.cargo_colaborador" class="text-muted">N/A</span>
+                        </td>
+                        <td class="text-end">
+                          <div class="action-buttons">
+                            <button class="btn-icon text-primary me-2" title="Atribuir Clientes" (click)="abrirModalClientes(colab)"><i
+                                class="fa-solid fa-users-gear"></i></button>
+                            <button class="btn-icon text-danger" title="Remover Cargo" (click)="confirmarRemocaoCargo(colab)"><i
+                                class="fa-solid fa-user-minus"></i></button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr *ngIf="listaRepresentantes.length === 0">
+                        <td colspan="5" class="text-center text-muted py-4">Nenhum representante encontrado.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container" *ngIf="listaRepresentantes.length > 0">
+                  <span class="text-muted small">Total de {{ totalRepresentantes }} registros</span>
+                  <div class="pagination-actions">
+                    <button class="btn-page" [disabled]="currentPageRepresentantes === 1" (click)="goToPageRepresentantes(currentPageRepresentantes - 1)">
+                      <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span class="page-indicator">Página {{ currentPageRepresentantes }} de {{ totalPagesRepresentantes }}</span>
+                    <button class="btn-page" [disabled]="currentPageRepresentantes === totalPagesRepresentantes"
+                      (click)="goToPageRepresentantes(currentPageRepresentantes + 1)">
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -1170,7 +1341,7 @@
             <th>CPF/CNPJ</th>
             <th>MOVIMENTO</th>
             <th>ORIGEM</th>
-            <th>USUÁRIO</th>
+            <th>USUÃRIO</th>
           </tr>
         </thead>
         <tbody>
@@ -1201,3 +1372,62 @@
     </button>
   </div>
 </app-modal>
+<!-- Modal de Atribuir Clientes -->
+<app-modal [isOpen]="isClienteModalOpen" [title]="'Atribuir Clientes a ' + (representanteSelecionado?.nome || '')"
+  (closed)="fecharModalClientes()" size="lg">
+    <div class="modal-body p-0">
+    <div class="p-4 border-bottom">
+      <p class="text-muted mb-3">Selecione os clientes que devem ser vinculados a este representante.</p>
+      <div class="config-toolbar d-flex justify-content-between align-items-center">
+        <div class="search-box w-100">
+          <i class="fa-solid fa-search text-muted"></i>
+          <input type="text" placeholder="Buscar por código ou nome do cliente..." [(ngModel)]="searchCliente">
+        </div>
+      </div>
+    </div>
+    
+    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+      <table class="saas-table w-100 m-0">
+        <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+          <tr>
+            <th style="width: 50px;" class="text-center">VÍNCULO</th>
+            <th style="width: 100px;">CÓDIGO</th>
+            <th>NOME DO CLIENTE</th>
+          </tr>
+        </thead>
+        <tbody *ngIf="!loadingClientes">
+          <tr *ngFor="let cliente of listaClientesFiltrada">
+            <td class="text-center">
+              <input type="checkbox" class="form-check-input" [checked]="cliente.linked"
+                (change)="toggleClienteLink(cliente)" style="cursor: pointer;">
+            </td>
+            <td>{{ cliente.codigo || '-' }}</td>
+            <td class="fw-medium">{{ cliente.nome }}</td>
+          </tr>
+          <tr *ngIf="listaClientesFiltrada.length === 0">
+            <td colspan="3" class="text-center text-muted py-5">Nenhum cliente encontrado.</td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="loadingClientes">
+          <tr *ngFor="let i of [1,2,3,4,5]">
+            <td class="text-center"><app-skeleton width="20px" height="20px"></app-skeleton></td>
+            <td><app-skeleton width="60px"></app-skeleton></td>
+            <td><app-skeleton width="200px"></app-skeleton></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" (click)="fecharModalClientes()" [disabled]="savingClientes">Cancelar</button>
+    <button type="button" class="btn btn-primary" (click)="salvarVinculos()" [disabled]="savingClientes">
+      <i class="fa-solid fa-save me-2" *ngIf="!savingClientes"></i>
+      <i class="fa-solid fa-circle-notch fa-spin me-2" *ngIf="savingClientes"></i>
+      Salvar Vínculos
+    </button>
+  </div>
+</app-modal>
+
+
+
+

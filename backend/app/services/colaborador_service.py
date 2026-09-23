@@ -16,14 +16,14 @@ class ColaboradorService:
             raise HTTPException(status_code=404, detail="Colaborador não encontrado.")
         return colab
 
-    def get_colaboradores(self, page: int = 1, page_size: int = 20, search: str = None):
+    def get_colaboradores(self, page: int = 1, page_size: int = 20, search: str = None, id_cargo: int = None):
         if page < 1:
             page = 1
         if page_size > 2000:
             page_size = 2000
             
         skip = (page - 1) * page_size
-        items, total = self.repository.get_all(skip=skip, limit=page_size, search=search)
+        items, total = self.repository.get_all(skip=skip, limit=page_size, search=search, id_cargo=id_cargo)
         
         total_pages = (total + page_size - 1) // page_size if total > 0 else 0
         

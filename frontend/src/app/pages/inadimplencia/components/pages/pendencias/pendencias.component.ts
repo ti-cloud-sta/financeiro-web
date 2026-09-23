@@ -6,6 +6,8 @@ import { Portuguese } from 'flatpickr/dist/l10n/pt.js';
 import { ImportacoesService, PendenciaKanban, JanelaRegraDia } from '../../../../../core/services/importacoes.service';
 import { PendenciaDetalheModalComponent, STATUS_OPTIONS } from './components/pendencia-detalhe-modal/pendencia-detalhe-modal.component';
 import { ModalComponent } from '../../../../../shared/components/modal/modal.component';
+import { PendenciaLoteModalComponent } from './components/pendencia-lote-modal/pendencia-lote-modal.component';
+import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 
 export interface KanbanCard {
   id: string;
@@ -13,6 +15,7 @@ export interface KanbanCard {
   status: string;
   statusColor: string;
   clientName: string;
+  fullClientName?: string;
   dtVencimento: Date | null;
   leadTimeDays: number | null;
   isDevolucao: boolean;
@@ -40,7 +43,7 @@ export interface KanbanColumn {
   cards: KanbanCard[];
 }
 
-type PeriodShortcut = 'vencidas' | 'este-mes' | 'ultimo-bimestre' | 'ultimo-semestre' | 'este-ano' | 'ano-passado' | 'regra-dia' | 'personalizado';
+type PeriodShortcut = 'vencidas' | 'ult-vencimento' | 'este-mes' | 'este-semestre' | 'este-ano' | 'personalizado';
 
 const COLUMN_VISIBILITY_STORAGE_KEY = 'pendencias_colunas_visiveis';
 
@@ -70,7 +73,15 @@ function saveVisibleColumnIds(ids: Set<string>) {
 @Component({
   selector: 'app-pendencias',
   standalone: true,
-  imports: [CommonModule, FormsModule, FlatpickrModule, PendenciaDetalheModalComponent, ModalComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    FlatpickrModule,
+    PendenciaDetalheModalComponent,
+    PendenciaLoteModalComponent,
+    ModalComponent,
+    ButtonComponent
+  ],
   templateUrl: './pendencias.component.html',
   styleUrl: './pendencias.component.scss'
 })
@@ -87,6 +98,10 @@ export class PendenciasComponent implements OnInit {
   filtroDevolucaoAtivo = false;
   filtroProtestadoAtivo = false;
   isLoading = false;
+
+  // Seleção e Disparo em Lote
+  selectedCardsMap = new Map<string, KanbanCard>();
+  isModalLoteOpen = false;
 
   // Drop Status Modal state
   isDropStatusModalOpen = false;
@@ -182,6 +197,7 @@ export class PendenciasComponent implements OnInit {
         status: item.status || '-',
         statusColor: item.status === 'OK' ? 'success' : (item.status === 'PRORROGADO' ? 'info' : (item.status === 'DEVOLUCAO' ? 'orange' : (item.status === 'PROTESTADO' ? 'danger' : (item.status === 'ATRASADO' ? 'warning' : coluna.colorClass)))),
         clientName: this.sliceClientName(item.clienteNome),
+        fullClientName: item.clienteNome || '-',
         dtVencimento: item.dtVencimento ? new Date(item.dtVencimento + 'T00:00:00') : null,
         leadTimeDays: this.calcularDiasDesdeImportacao(item.createdAt),
         isDevolucao: item.devolucao === 'S',
@@ -199,6 +215,22 @@ export class PendenciasComponent implements OnInit {
         valorOriginal: item.valorOriginal,
         valorSaldo: item.valorSaldo
       });
+    }
+
+    // Sincroniza os cards selecionados com a nova listagem
+    const todosCardsNovos = new Map<string, KanbanCard>();
+    for (const col of this.columns) {
+      for (const card of col.cards) {
+        todosCardsNovos.set(card.id, card);
+      }
+    }
+    for (const id of Array.from(this.selectedCardsMap.keys())) {
+      const atualizado = todosCardsNovos.get(id);
+      if (atualizado) {
+        this.selectedCardsMap.set(id, atualizado);
+      } else {
+        this.selectedCardsMap.delete(id);
+      }
     }
   }
 
@@ -327,21 +359,25 @@ export class PendenciasComponent implements OnInit {
     if (this.dataInicio && this.dataFim && this.dataInicio > this.dataFim) {
       this.dataFim = this.dataInicio;
     }
-    this.activePeriodShortcut = 'personalizado';
+    if (!this.dataInicio && !this.dataFim) {
+      this.activePeriodShortcut = 'vencidas';
+    } else {
+      this.activePeriodShortcut = 'personalizado';
+    }
     this.carregarPendencias();
   }
 
   onDataFimChange() {
-    this.activePeriodShortcut = 'personalizado';
+    if (!this.dataInicio && !this.dataFim) {
+      this.activePeriodShortcut = 'vencidas';
+    } else {
+      this.activePeriodShortcut = 'personalizado';
+    }
     this.carregarPendencias();
   }
 
   onShortcutSelectChange(val: PeriodShortcut) {
     if (!val || val === 'personalizado') return;
-    if (val === 'regra-dia') {
-      this.aplicarRegraDia();
-      return;
-    }
     if (val === 'vencidas') {
       this.limparPeriodo();
       return;
@@ -357,41 +393,51 @@ export class PendenciasComponent implements OnInit {
     this.carregarPendencias();
   }
 
-  selecionarAtalhoPeriodo(shortcut: Exclude<PeriodShortcut, 'personalizado' | 'regra-dia' | 'vencidas'>) {
+  selecionarAtalhoPeriodo(shortcut: Exclude<PeriodShortcut, 'personalizado' | 'vencidas'>) {
     const today = new Date();
 
-    const getPastDate = (monthsAgo: number) => {
-      const d = new Date();
-      d.setMonth(d.getMonth() - monthsAgo);
-      return d;
-    };
-
-    if (shortcut === 'este-mes') {
+    if (shortcut === 'ult-vencimento') {
+      const diaSemana = today.getDay(); // 0 = Domingo, 1 = Segunda, 2 = Terça, 3 = Quarta, 4 = Quinta, 5 = Sexta, 6 = Sábado
+      if (diaSemana === 1) {
+        // Segunda-feira: títulos que venceram na sexta-feira anterior (hoje - 3 dias)
+        const sexta = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 3);
+        this.dataInicio = sexta;
+        this.dataFim = new Date(sexta);
+      } else if (diaSemana === 2) {
+        // Terça-feira: títulos que venceram no sábado, domingo ou segunda (hoje - 3 dias até hoje - 1 dia)
+        const sabado = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 3);
+        const segunda = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+        this.dataInicio = sabado;
+        this.dataFim = segunda;
+      } else if (diaSemana === 0) {
+        // Domingo: sexta-feira anterior
+        const sexta = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2);
+        this.dataInicio = sexta;
+        this.dataFim = new Date(sexta);
+      } else if (diaSemana === 6) {
+        // Sábado: sexta-feira anterior
+        const sexta = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+        this.dataInicio = sexta;
+        this.dataFim = new Date(sexta);
+      } else {
+        // Quarta, Quinta, Sexta: exatamente o dia anterior (hoje - 1 dia)
+        const ontem = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+        this.dataInicio = ontem;
+        this.dataFim = new Date(ontem);
+      }
+    } else if (shortcut === 'este-mes') {
       this.dataInicio = new Date(today.getFullYear(), today.getMonth(), 1);
       this.dataFim = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    } else if (shortcut === 'ultimo-bimestre') {
-      this.dataInicio = getPastDate(2);
-      this.dataFim = today;
-    } else if (shortcut === 'ultimo-semestre') {
-      this.dataInicio = getPastDate(6);
-      this.dataFim = today;
+    } else if (shortcut === 'este-semestre') {
+      const isPrimeiroSemestre = today.getMonth() < 6;
+      this.dataInicio = new Date(today.getFullYear(), isPrimeiroSemestre ? 0 : 6, 1);
+      this.dataFim = new Date(today.getFullYear(), isPrimeiroSemestre ? 5 : 11, isPrimeiroSemestre ? 30 : 31);
     } else if (shortcut === 'este-ano') {
       this.dataInicio = new Date(today.getFullYear(), 0, 1);
       this.dataFim = new Date(today.getFullYear(), 11, 31);
-    } else if (shortcut === 'ano-passado') {
-      this.dataInicio = new Date(today.getFullYear() - 1, 0, 1);
-      this.dataFim = new Date(today.getFullYear() - 1, 11, 31);
     }
 
     this.activePeriodShortcut = shortcut;
-  }
-
-  aplicarRegraDia() {
-    if (!this.regraDiaAplicavel || !this.regraDiaInicio || !this.regraDiaFim) return;
-    this.dataInicio = new Date(this.regraDiaInicio + 'T00:00:00');
-    this.dataFim = new Date(this.regraDiaFim + 'T00:00:00');
-    this.activePeriodShortcut = 'regra-dia';
-    this.carregarPendencias();
   }
 
   draggedCard: KanbanCard | null = null;
@@ -516,5 +562,48 @@ export class PendenciasComponent implements OnInit {
     this.pendingDropSourceColId = null;
     this.pendingDropDestColId = null;
     this.dropStatusSelecionado = '';
+  }
+
+  // ------------------------------------------------------------
+  // Métodos de Seleção e Ações em Lote
+  // ------------------------------------------------------------
+  get selectedCards(): KanbanCard[] {
+    return Array.from(this.selectedCardsMap.values());
+  }
+
+  isCardSelected(id: string): boolean {
+    return this.selectedCardsMap.has(id);
+  }
+
+  toggleCardSelection(card: KanbanCard, event: Event): void {
+    const checkbox = event.target as HTMLInputElement;
+    if (checkbox.checked) {
+      this.selectedCardsMap.set(card.id, card);
+    } else {
+      this.selectedCardsMap.delete(card.id);
+    }
+  }
+
+  removerCardDoLote(card: KanbanCard): void {
+    this.selectedCardsMap.delete(card.id);
+  }
+
+  limparSelecao(): void {
+    this.selectedCardsMap.clear();
+  }
+
+  abrirModalLote(): void {
+    if (this.selectedCards.length > 0) {
+      this.isModalLoteOpen = true;
+    }
+  }
+
+  fecharModalLote(): void {
+    this.isModalLoteOpen = false;
+  }
+
+  onLoteEnviado(): void {
+    this.limparSelecao();
+    this.carregarPendencias();
   }
 }

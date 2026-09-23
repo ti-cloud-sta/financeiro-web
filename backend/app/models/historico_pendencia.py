@@ -10,6 +10,9 @@ class HistoricoPendencia(Base):
     idNfPendencias = Column(Integer, ForeignKey("nfpendencias.idnfpendencias"), nullable=True)
     observacao = Column(String(500), nullable=True)
     tipo = Column(String(45), nullable=True)  # ex.: "Pendencia Importada", "Alteração de Fase", "Alteração de Status", "Tratativa Registrada"
+    fase = Column(String(50), nullable=True)
+    status = Column(String(50), nullable=True)
+    dtVencimento = Column(DateTime, nullable=True)
     createdAt = Column(DateTime, nullable=True, default=func.now())
     idUserCreated = Column(Integer, ForeignKey("users.iduser"), nullable=True)
     thread_id = Column(String(100), nullable=True)   # Gmail threadId para rastreamento de respostas

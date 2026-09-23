@@ -224,6 +224,54 @@ def enviar_email_pendencia(
         logger.error("Erro ao enviar email da pendência %s: %s", id_nf, e)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/inadimplencia/pendencias/enviar-email-lote")
+def enviar_email_lote(
+    ids_nf: str = Form(..., description="IDs das pendências separados por vírgula ou JSON string"),
+    destinatarios: str = Form(..., description="E-mails destinatários separados por vírgula"),
+    assunto: str = Form(..., description="Assunto do e-mail"),
+    corpo: str = Form(..., description="Corpo do e-mail formatado em HTML"),
+    copia: Optional[str] = Form(None, description="E-mails em cópia"),
+    anexos: List[UploadFile] = File(default=[]),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Envia um único e-mail de cobrança/aviso referente a múltiplos títulos (lote) utilizando
+    a conta Gmail conectada do usuário autenticado e registra no histórico de cada pendência.
+    """
+    import json
+    try:
+        raw = ids_nf.strip()
+        if raw.startswith("["):
+            lista_ids = [int(x) for x in json.loads(raw)]
+        else:
+            lista_ids = [int(x.strip()) for x in raw.split(",") if x.strip()]
+    except Exception:
+        raise HTTPException(status_code=400, detail="Formato inválido para a lista de IDs das pendências.")
+
+    if not lista_ids:
+        raise HTTPException(status_code=400, detail="Nenhuma pendência informada para envio.")
+
+    try:
+        return InadimplenciaService(db).enviar_email_lote(
+            ids_nf=lista_ids,
+            destinatarios=destinatarios,
+            assunto=assunto,
+            corpo=corpo,
+            copia=copia,
+            anexos=anexos,
+            user=current_user,
+        )
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except LookupError as le:
+        raise HTTPException(status_code=404, detail=str(le))
+    except Exception as e:
+        logger.error("Erro ao enviar email em lote das pendências: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/inadimplencia/pendencias/{id_nf}/mensagens")
 def listar_mensagens_pendencia(
     id_nf: int,
@@ -5997,3 +6045,21 @@ async def conciliar_zeferino(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.get("/inadimplencia/dashboard/visao-geral")
+def get_dashboard_visao_geral(db: Session = Depends(get_db)):
+    from app.services.inadimplencia_service import InadimplenciaService
+    svc = InadimplenciaService(db)
+    return svc.get_dashboard_visao_geral()
+
+@router.get("/inadimplencia/dashboard/logistica")
+def get_dashboard_logistica(db: Session = Depends(get_db)):
+    from app.services.inadimplencia_service import InadimplenciaService
+    svc = InadimplenciaService(db)
+    return svc.get_dashboard_logistica()
+
+@router.get("/inadimplencia/dashboard/comercial")
+def get_dashboard_comercial(db: Session = Depends(get_db)):
+    from app.services.inadimplencia_service import InadimplenciaService
+    svc = InadimplenciaService(db)
+    return svc.get_dashboard_comercial()

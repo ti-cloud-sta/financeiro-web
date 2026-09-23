@@ -8,7 +8,7 @@
 
                 <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
                     <div class="period-inputs">
-                        <div class="input-icon-wrapper" style="width: 130px;">
+                        <div class="input-icon-wrapper" style="width: 135px;">
                             <i class="fa-regular fa-calendar input-icon"></i>
                             <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
                                 [locale]="locale" [convertModelValue]="true" [maxDate]="dataFim || ''"
@@ -18,7 +18,7 @@
 
                         <span class="period-separator text-muted small px-1">→</span>
 
-                        <div class="input-icon-wrapper" style="width: 130px;">
+                        <div class="input-icon-wrapper" style="width: 135px;">
                             <i class="fa-regular fa-calendar input-icon"></i>
                             <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
                                 [locale]="locale" [convertModelValue]="true" [minDate]="dataInicio || ''"
@@ -28,17 +28,12 @@
 
                     <select class="form-select form-select-sm shortcut-select" [(ngModel)]="activePeriodShortcut"
                         (ngModelChange)="onShortcutSelectChange($event)">
-                        <option value="vencidas">Vencidas (padrão)</option>
-                        <option value="regra-dia" [disabled]="!regraDiaAplicavel"
-                            [title]="regraDiaAplicavel ? 'Vencimento de ' + (regraDiaInicio | date:'dd/MM') + ' até ' + (regraDiaFim | date:'dd/MM') : 'Sem regra definida para ' + regraDiaDiaSemana">
-                            Regra do Dia{{ regraDiaAplicavel ? '' : ' (indisponível hoje)' }}
-                        </option>
+                        <option value="vencidas">Títulos Vencidos</option>
+                        <option value="ult-vencimento">Últ. Data de Venc.</option>
                         <option value="este-mes">Este Mês</option>
-                        <option value="ultimo-bimestre">Últ. Bimestre</option>
-                        <option value="ultimo-semestre">Últ. Semestre</option>
+                        <option value="este-semestre">Este Semestre</option>
                         <option value="este-ano">Este Ano</option>
-                        <option value="ano-passado">Ano Passado</option>
-                        <option value="personalizado" disabled>Personalizado</option>
+                        <option value="personalizado" disabled hidden>Personalizado</option>
                     </select>
                 </div>
             </div>
@@ -79,6 +74,21 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Botão Mensagem em Lote -->
+            <div class="filter-group d-flex align-items-end">
+                <app-button
+                    variant="primary"
+                    size="sm"
+                    icon="fa-solid fa-paper-plane"
+                    [disabled]="selectedCards.length === 0"
+                    (clicked)="abrirModalLote()">
+                    Mensagem em Lote
+                    @if (selectedCards.length > 0) {
+                    <span class="badge bg-white text-primary fw-bold ms-1" style="font-size: 0.75rem; border-radius: 10px;">{{ selectedCards.length }}</span>
+                    }
+                </app-button>
             </div>
 
         </div>
@@ -134,6 +144,7 @@
                          (drop)="onDrop($event, column)">
                         @for (card of column.cards; track card.id) {
                         <div class="kanban-card mb-2 p-3"
+                             [class.card-selected]="isCardSelected(card.id)"
                              draggable="true"
                              (dragstart)="onDragStart($event, card, column)"
                              (dragend)="onDragEnd($event)"
@@ -141,8 +152,16 @@
 
                             <!-- Card Header (Title & Options) -->
                             <div class="d-flex align-items-start justify-content-between mb-2">
-                                <h6 class="card-title text-truncate mb-0" [title]="card.title">{{ card.title }}</h6>
-                                <button class="btn btn-sm btn-icon text-muted p-0 ms-2 flex-shrink-0" title="Opções">
+                                <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                    <input type="checkbox"
+                                           class="form-check-input card-checkbox m-0"
+                                           [checked]="isCardSelected(card.id)"
+                                           (click)="$event.stopPropagation()"
+                                           (change)="toggleCardSelection(card, $event)"
+                                           [title]="'Selecionar título ' + card.title">
+                                    <h6 class="card-title text-truncate mb-0" [title]="card.title">{{ card.title }}</h6>
+                                </div>
+                                <button class="btn btn-sm btn-icon text-muted p-0 ms-2 flex-shrink-0" title="Opções" (click)="$event.stopPropagation()">
                                     <i class="fa-solid fa-ellipsis-vertical"></i>
                                 </button>
                             </div>
@@ -152,7 +171,7 @@
                                 <span class="badge status-badge bg-{{card.statusColor}} bg-opacity-10 text-{{card.statusColor}} flex-shrink-0">
                                     {{ card.status }}
                                 </span>
-                                <span class="card-client fw-semibold text-end text-truncate ms-2" [title]="card.clientName">
+                                <span class="card-client fw-semibold text-end text-truncate ms-2" [title]="card.fullClientName || card.clientName">
                                     {{ card.clientName }}
                                 </span>
                             </div>
@@ -185,6 +204,14 @@
     (closed)="fecharDetalhes()"
     (atualizado)="carregarPendencias()">
 </app-pendencia-detalhe-modal>
+
+<app-pendencia-lote-modal
+    [isOpen]="isModalLoteOpen"
+    [cards]="selectedCards"
+    (cardRemovido)="removerCardDoLote($event)"
+    (closed)="fecharModalLote()"
+    (enviado)="onLoteEnviado()">
+</app-pendencia-lote-modal>
 
 <app-modal
     [isOpen]="isDropStatusModalOpen"

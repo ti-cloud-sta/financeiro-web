@@ -127,11 +127,21 @@ export class PendenciaDetalheModalComponent implements OnChanges {
   mensagens: MensagemChat[] = [];
   composeAssunto = '';
   composeDestinatarios = '';
-  composeCopia = '';
+  composeCopias: string[] = [];
+  composeCopiaInput = '';
   arquivosSelecionados: File[] = [];
   isEnviandoEmail = false;
   @ViewChild('composeBody') composeBodyRef?: ElementRef<HTMLDivElement>;
   @ViewChild('anexoInput') anexoInputRef?: ElementRef<HTMLInputElement>;
+
+  /**
+   * URL pública da assinatura — deve ser acessível externamente para que
+   * clientes de e-mail (Gmail, Outlook, etc.) consigam carregar a imagem.
+   * Base64 é bloqueada por muitos clientes por políticas de segurança.
+   */
+  readonly ASSINATURA_URL = 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjFFw0P_XxmH9v5vpY_xD7PMIP1q2rv_5mwb3CaGqd5rnz3ie-wGL7D8PieowH1fAoQt9AhuT2ehoXRV8AAErbImaEhVWn_qKwytXXoEd5QUK4Ms_fSEOZ7cJTJXmr90qTmNbbj8AcZ7-oBBwH0OXObMEr6wg6UXfzxgf2ibk8vh6fRGNLl7RRsxA_Jm9k/s1600/Composi%C3%A7%C3%A3o-1-TANIA.gif';
+  /** Flag para avisar quando a assinatura não pôde ser carregada no editor */
+  assinaturaComErro = false;
 
   // Modais de confirmação/alerta (Design System / No native alert/confirm)
   alertaModalOpen = false;
@@ -163,6 +173,7 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     }
     if (changes['isOpen'] && this.isOpen) {
       this.activeTab = 'tratativa';
+      this.assinaturaComErro = false;
       this.googleAuthService.verificarStatus().subscribe();
     }
   }
@@ -173,9 +184,10 @@ export class PendenciaDetalheModalComponent implements OnChanges {
       this.googleAuthService.verificarStatus().subscribe();
       this.carregarMensagensThread();
       if (!this.composeAssunto && this.card) {
-        this.composeAssunto = `Cobrança - Título ${this.card.title} - ${this.card.clientName}`;
+        this.sugerirAssunto();
       }
-      setTimeout(() => this.inserirAssinatura(), 100);
+      // Aguarda o próximo ciclo para garantir que @else if já renderizou o DOM
+      setTimeout(() => this.inserirAssinatura());
     } else if (tab === 'historico') {
       this.carregarHistorico();
     } else if (tab === 'tratativa') {
@@ -183,18 +195,38 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     }
   }
 
+  /**
+   * Insere a assinatura como <img> com URL pública no editor contenteditable.
+   * Adiciona handler onerror para avisar o usuário se a imagem não carregar.
+   */
   private inserirAssinatura() {
-    if (this.composeBodyRef && this.card) {
-      const el = this.composeBodyRef.nativeElement;
-      const htmlAtual = el.innerHTML.trim();
-      const assinaturaHtml = `<br><br><img src="${window.location.origin}/assets/images/assinatura.png" alt="Assinatura" style="max-width: 100%; height: auto;">`;
-      
-      if (!htmlAtual || htmlAtual === '<br>' || htmlAtual === '<div><br></div>') {
-        el.innerHTML = assinaturaHtml;
-      } else if (!htmlAtual.includes('assinatura.png')) {
-        el.innerHTML = htmlAtual + assinaturaHtml;
-      }
+    if (!this.composeBodyRef || !this.card) return;
+    const el = this.composeBodyRef.nativeElement;
+    const htmlAtual = el.innerHTML.trim();
+
+    // Identifica se a assinatura já foi inserida pela presença da URL
+    const assinaturaJaPresente = htmlAtual.includes(this.ASSINATURA_URL);
+    if (assinaturaJaPresente) return;
+
+    const assinaturaHtml = `<br><br><img
+      src="${this.ASSINATURA_URL}"
+      alt="Assinatura"
+      style="max-width: 580px; width: 100%; height: auto; display: block;"
+      onerror="this.style.display='none'; document.dispatchEvent(new CustomEvent('assinatura-erro'));"
+    >`;
+
+    if (!htmlAtual || htmlAtual === '<br>' || htmlAtual === '<div><br></div>') {
+      el.innerHTML = assinaturaHtml;
+    } else {
+      el.innerHTML = htmlAtual + assinaturaHtml;
     }
+
+    // Escuta o evento de erro disparado pelo onerror inline
+    const handler = () => {
+      this.assinaturaComErro = true;
+      document.removeEventListener('assinatura-erro', handler);
+    };
+    document.addEventListener('assinatura-erro', handler, { once: true });
   }
 
   aplicarTemplate(tipo: 'cobranca' | 'recobranca' | 'protesto' | 'sem_data' | 'devolucao') {
@@ -204,25 +236,27 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     const valorFormatado = (this.card.valorSaldo || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const dataVenc = this.card.dtVencimento ? new Date(this.card.dtVencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-';
     const parcela = this.card.parccela || '-';
-    const assinaturaHtml = `<br><br><img src="${window.location.origin}/assets/images/assinatura.png" alt="Assinatura" style="max-width: 100%; height: auto;">`;
-    
+    const assinaturaHtml = `<br><br><img src="${this.ASSINATURA_URL}" alt="Assinatura" style="max-width: 580px; width: 100%; height: auto; display: block;">`;
+
+    this.sugerirAssunto(tipo);
+
     let textoHtml = '';
 
     switch (tipo) {
       case 'cobranca':
-        textoHtml = `Prezado(a) cliente <b>${this.card.clientName}</b>,<br><br>
+        textoHtml = `Prezado(a) cliente <b>${this.card.fullClientName || this.card.clientName}</b>,<br><br>
 Consta em nosso sistema o título <b>${this.card.title}</b> (Parcela: ${parcela}) no valor de <b>${valorFormatado}</b>, com vencimento original em <b>${dataVenc}</b>, que se encontra pendente de regularização.<br><br>
 Caso o pagamento já tenha sido efetuado, por favor, desconsidere esta mensagem e nos envie o comprovante para que possamos baixar no sistema. Se houve algum contratempo ou dificuldade para emissão do boleto, estamos à disposição para ajudar.<br><br>
 Atenciosamente,${assinaturaHtml}`;
         break;
       case 'recobranca':
-        textoHtml = `Prezado(a) cliente <b>${this.card.clientName}</b>,<br><br>
+        textoHtml = `Prezado(a) cliente <b>${this.card.fullClientName || this.card.clientName}</b>,<br><br>
 Até o momento, não identificamos o pagamento referente ao título <b>${this.card.title}</b> (Parcela: ${parcela}) no valor de <b>${valorFormatado}</b>, vencido no dia <b>${dataVenc}</b>.<br><br>
 Pedimos a gentileza de nos enviar o comprovante caso o pagamento já tenha ocorrido. Caso contrário, solicitamos uma previsão para a regularização desta pendência ou que entre em contato conosco para verificarmos uma possível negociação.<br><br>
 No aguardo de um retorno,<br>Atenciosamente,${assinaturaHtml}`;
         break;
       case 'protesto':
-        textoHtml = `Prezado(a) cliente <b>${this.card.clientName}</b>,<br><br>
+        textoHtml = `Prezado(a) cliente <b>${this.card.fullClientName || this.card.clientName}</b>,<br><br>
 Informamos que o título <b>${this.card.title}</b> (Parcela: ${parcela}), no valor de <b>${valorFormatado}</b> e vencido em <b>${dataVenc}</b>, continua pendente de pagamento em nosso sistema.<br><br>
 Como não obtivemos retorno nas tentativas de contato anteriores, comunicamos que, caso a pendência não seja regularizada (ou não nos seja enviado o comprovante) nos próximos 2 dias úteis, o título será automaticamente encaminhado ao cartório para <b>protesto</b> e inclusão nos órgãos de proteção ao crédito.<br><br>
 Para evitar os transtornos e custas cartoriais, solicitamos a regularização imediata.<br><br>
@@ -243,6 +277,45 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
     }
 
     el.innerHTML = textoHtml;
+  }
+
+  sugerirAssunto(tipoTemplate?: 'cobranca' | 'recobranca' | 'protesto' | 'sem_data' | 'devolucao'): void {
+    if (!this.card) return;
+
+    const dataVenc = this.card.dtVencimento
+      ? new Date(this.card.dtVencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+      : '';
+
+    // Se acionado pelo botão de template da Logística
+    if (tipoTemplate === 'sem_data') {
+      this.composeAssunto = dataVenc ? `Titulos sem data de entrega - (${dataVenc})` : 'Titulos sem data de entrega';
+      return;
+    }
+    if (tipoTemplate === 'devolucao') {
+      this.composeAssunto = 'Notas de Devolução pendente';
+      return;
+    }
+
+    // Se for abertura do modal / verificação automática
+    const fase = (this.card.fase || '').toUpperCase();
+    const ehDevolucao = this.card.isDevolucao || this.card.status === 'DEVOLUCAO';
+    const semDataEntrega = !this.card.dtEntrega;
+    const ehLogistica = fase === 'LOGISTICA' || ehDevolucao || (semDataEntrega && !tipoTemplate);
+
+    if (ehLogistica && !tipoTemplate) {
+      if (ehDevolucao) {
+        this.composeAssunto = 'Notas de Devolução pendente';
+        return;
+      }
+      this.composeAssunto = dataVenc ? `Titulos sem data de entrega - (${dataVenc})` : 'Titulos sem data de entrega';
+      return;
+    }
+
+    // Financeiro / Cobrança: nome completo do cliente
+    const cliente = this.card.fullClientName || this.card.clientName || '';
+    this.composeAssunto = cliente
+      ? `Cobrança - Título ${this.card.title} - ${cliente}`
+      : `Cobrança - Título ${this.card.title}`;
   }
 
   mostrarAlerta(titulo: string, mensagem: string, variant: 'primary' | 'danger' | 'success' = 'primary') {
@@ -447,7 +520,7 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
       titulo: card.title,
       parcela: card.parccela || '-',
       codigoCliente: card.idCliente?.toString() || '-',
-      nomeCliente: card.clientName,
+      nomeCliente: card.fullClientName || card.clientName,
       portador: card.portador || '-',
       dataEmissao: card.dtEmissao || hoje,
       dataEntrega: card.dtEntrega,
@@ -465,9 +538,10 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
 
     // Reset de Mensagens e Compose
     this.mensagens = [];
-    this.composeAssunto = `Cobrança - Título ${card.title} - ${card.clientName}`;
+    this.sugerirAssunto();
     this.composeDestinatarios = '';
-    this.composeCopia = '';
+    this.composeCopias = [];
+    this.composeCopiaInput = '';
     this.arquivosSelecionados = [];
     if (this.composeBodyRef) {
       this.composeBodyRef.nativeElement.innerHTML = '';
@@ -596,7 +670,7 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
     });
   }
 
-  async enviarMensagem() {
+  enviarMensagem() {
     if (!this.card || this.isEnviandoEmail) return;
 
     const corpo = this.composeBodyRef?.nativeElement.innerHTML?.trim() || '';
@@ -615,15 +689,20 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
       return;
     }
 
-    // Se o usuário ainda não autorizou o Gmail, abre o popup primeiro
+    // Se o usuário ainda não autorizou o Gmail, abre o popup de autorização
     if (!this.googleAuthService.isConectado()) {
-      try {
-        await this.googleAuthService.iniciarAutorizacaoPopup();
-      } catch (err: any) {
-        this.mostrarAlerta('Autorização Necessária', 'É obrigatório conectar sua conta do Google antes de enviar e-mails.', 'danger');
-        return;
-      }
+      this.googleAuthService.iniciarAutorizacaoPopup()
+        .then(() => this._dispararEnvio(corpo))
+        .catch(() => this.mostrarAlerta('Autorização Necessária', 'É obrigatório conectar sua conta do Google antes de enviar e-mails.', 'danger'));
+      return;
     }
+
+    this._dispararEnvio(corpo);
+  }
+
+  /** Monta o FormData e faz o POST. O corpo já contém a URL pública da assinatura — nenhuma conversão necessária. */
+  private _dispararEnvio(corpo: string) {
+    if (!this.card) return;
 
     this.isEnviandoEmail = true;
 
@@ -631,8 +710,9 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
     formData.append('destinatarios', this.composeDestinatarios.trim());
     formData.append('assunto', this.composeAssunto.trim());
     formData.append('corpo', corpo);
-    if (this.composeCopia.trim()) {
-      formData.append('copia', this.composeCopia.trim());
+    const copiaFinal = this.obterCopiaFinal();
+    if (copiaFinal) {
+      formData.append('copia', copiaFinal);
     }
     for (const file of this.arquivosSelecionados) {
       formData.append('anexos', file, file.name);
@@ -646,7 +726,8 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
         // Limpa os campos do formulário
         this.composeAssunto = '';
         this.composeDestinatarios = '';
-        this.composeCopia = '';
+        this.composeCopias = [];
+        this.composeCopiaInput = '';
         this.arquivosSelecionados = [];
         if (this.composeBodyRef) {
           this.composeBodyRef.nativeElement.innerHTML = '';
@@ -666,5 +747,64 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
         this.mostrarAlerta('Falha no Envio', detalhe, 'danger');
       }
     });
+  }
+
+  // ------------------------------------------------------------
+  // Métodos de Gerenciamento de Chips de Cópia (Cc)
+  // ------------------------------------------------------------
+  adicionarCopia(): void {
+    const raw = this.composeCopiaInput ? this.composeCopiaInput.trim() : '';
+    if (!raw) return;
+
+    const pedacos = raw.split(/[,;\n\r]+/);
+    for (const p of pedacos) {
+      const email = p.trim();
+      if (email && !this.composeCopias.includes(email)) {
+        this.composeCopias.push(email);
+      }
+    }
+    this.composeCopiaInput = '';
+  }
+
+  removerCopia(index: number): void {
+    if (index >= 0 && index < this.composeCopias.length) {
+      this.composeCopias.splice(index, 1);
+    }
+  }
+
+  aoPressionarTeclaCopia(event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ',' || event.key === ';') {
+      event.preventDefault();
+      this.adicionarCopia();
+    } else if (event.key === 'Backspace' && !this.composeCopiaInput && this.composeCopias.length > 0) {
+      this.composeCopias.pop();
+    }
+  }
+
+  aoColarCopia(event: ClipboardEvent): void {
+    const texto = event.clipboardData?.getData('text');
+    if (texto && /[,;\n\r\s]/.test(texto)) {
+      event.preventDefault();
+      const pedacos = texto.split(/[,;\n\r\s]+/);
+      for (const p of pedacos) {
+        const email = p.trim();
+        if (email && !this.composeCopias.includes(email)) {
+          this.composeCopias.push(email);
+        }
+      }
+    }
+  }
+
+  focarInputCopia(inputEl: HTMLInputElement): void {
+    inputEl?.focus();
+  }
+
+  emailValido(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  obterCopiaFinal(): string {
+    this.adicionarCopia();
+    return this.composeCopias.join(', ');
   }
 }

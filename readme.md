@@ -115,3 +115,13 @@ O Frontend possui gerenciamento através de **Angular Signals** (adotado de form
 # Filosofia do Projeto
 
 Este ERP não é apenas um sistema, mas uma plataforma em constante evolução. Cada módulo deve ser desenvolvido de forma independente, seguindo os mesmos padrões arquiteturais (FastAPI Service Layer no backend, Angular Signals/Standalone no frontend), garantindo consistência, escalabilidade e facilidade de manutenção a longo prazo, evitando soluções improvisadas.
+
+
+# Histórico de Evolução (Changelog)
+
+## 19/09/2026 - Refatoração UI/UX do Módulo de Inadimplência
+* **Design Premium SaaS**: O painel de Inadimplência/Pendências foi inteiramente reconstruído para adequação ao padrão visual moderno (*Edge-to-Edge*).
+* **Visão Geral Consolidada**: Criação de um dashboard global que reúne indicadores Financeiros, Logísticos e Comerciais no mesmo lugar.
+* **Padronização de Abas**: As abas departamentais (Financeiro, Comercial, Logística) agora compartilham do mesmo padrão estrutural: um painel 'Atual' contendo KPIs e a Grid principal de faturas, e seções de 'Rankings' e 'Evolução' extraídas para cartões Full-Width.
+* **Nova Visão por Carteira**: Implementação completa da aba 'Gerente/Representante' no Financeiro, com seletores de carteira e grids de KPIs segmentados.
+* **Ações e Histórico**: Integração padronizada do Modal de 'Tratativas e Histórico' em todas as grids de inadimplência.

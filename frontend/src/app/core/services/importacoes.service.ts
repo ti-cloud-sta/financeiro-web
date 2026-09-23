@@ -111,6 +111,7 @@ export interface ImportacaoPendenciasResponse {
   baixadas?: number;
   ignoradasSemCliente: number;
   ignoradasSemVencimento: number;
+  ignoradasNaoVencidas?: number;
   ignoradasDuplicadas: number;
   semUnidadeEncontrada: number;
   clientesCriados: number;
@@ -158,6 +159,10 @@ export class ImportacoesService {
     return this.http.get<JanelaRegraDia>(`${this.apiUrl}/inadimplencia/janela-regra-dia`);
   }
 
+  obterDashboardVisaoGeral(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/inadimplencia/dashboard/visao-geral`);
+  }
+
   alterarFasePendencia(id: number, fase: string, status?: string): Observable<{ idnfpendencias: number; fase: string }> {
     const payload: any = { fase };
     if (status) {
@@ -198,6 +203,14 @@ export class ImportacoesService {
   enviarEmailPendencia(idNf: number, formData: FormData): Observable<{ sucesso: boolean; messageId?: string; threadId?: string }> {
     return this.http.post<{ sucesso: boolean; messageId?: string; threadId?: string }>(
       `${this.apiUrl}/inadimplencia/pendencias/${idNf}/enviar-email`,
+      formData
+    );
+  }
+
+  enviarEmailLote(idsNf: number[], formData: FormData): Observable<{ sucesso: boolean; total_titulos: number; messageId?: string; threadId?: string }> {
+    formData.append('ids_nf', idsNf.join(','));
+    return this.http.post<{ sucesso: boolean; total_titulos: number; messageId?: string; threadId?: string }>(
+      `${this.apiUrl}/inadimplencia/pendencias/enviar-email-lote`,
       formData
     );
   }

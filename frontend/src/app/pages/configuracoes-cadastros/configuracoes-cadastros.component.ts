@@ -23,6 +23,7 @@ import {
   ColaboradoresService, Colaborador,
   ImportPreviewResponse, ImportProcessarResponse, ImportNovo, ImportDivergente, ImportDesligado
 } from '../../core/services/colaboradores.service';
+import { ClientesService, Cliente } from '../../core/services/clientes.service';
 import { CategoriasService, Categoria } from '../../core/services/categorias.service';
 import { CargosColaboradoresService, CargoColaborador } from '../../core/services/cargos-colaboradores.service';
 import { CentrosCustoService, CentroCusto } from '../../core/services/centros-custo.service';
@@ -54,6 +55,8 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
 
   private authService = inject(IAuthService);
   private usersService = inject(UsersService);
+
+  private clientesService = inject(ClientesService);
   isAdmin = computed(() => this.authService.currentUser()?.role === 'admin');
 
   users = signal<User[]>([]);
@@ -247,14 +250,22 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
   }
 
   // Tab state
-  activeConfigTab: 'colaboradores' | 'categorias' | 'cargos' | 'centros-custo' | 'unidades' | 'empresas' | 'usuarios' = 'colaboradores';
+  activeConfigTab: 'colaboradores' | 'categorias' | 'cargos' | 'centros-custo' | 'unidades' | 'empresas' | 'usuarios' | 'comercial' = 'colaboradores';
 
   setActiveConfigTab(tab: typeof this.activeConfigTab) {
     this.activeConfigTab = tab;
   }
 
+  comercialTab = signal<'gerentes' | 'representantes'>('gerentes');
+
+  setComercialTab(tab: 'gerentes' | 'representantes') {
+    this.comercialTab.set(tab);
+  }
+
   ngOnInit(): void {
     this.carregarColaboradores();
+    this.carregarGerentes();
+    this.carregarRepresentantes();
     this.carregarCategorias();
     this.carregarCargos();
     this.carregarCentrosCusto();
@@ -487,6 +498,163 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
   totalColaboradores = 0;
   totalPages = 1;
   listaColaboradores: Colaborador[] = [];
+  
+  // GERENTES
+  // ==========================================
+  searchTermGerentes = '';
+  currentPageGerentes = 1;
+  itemsPerPageGerentes = 10;
+  totalGerentes = 0;
+  totalPagesGerentes = 1;
+  listaGerentes: Colaborador[] = [];
+
+  carregarGerentes() {
+    this.colaboradoresService.listar(this.currentPageGerentes, this.itemsPerPageGerentes, this.searchTermGerentes, 9).subscribe({
+      next: (res) => {
+        this.listaGerentes = res.items;
+        this.totalGerentes = res.total;
+        this.totalPagesGerentes = res.total_pages;
+      },
+      error: (err) => console.error('Erro ao carregar gerentes', err)
+    });
+  }
+
+  onSearchGerentesChange(term: string) {
+    this.searchTermGerentes = term;
+    this.currentPageGerentes = 1;
+    this.carregarGerentes();
+  }
+
+  goToPageGerentes(page: number) {
+    if (page >= 1 && page <= this.totalPagesGerentes) {
+      this.currentPageGerentes = page;
+      this.carregarGerentes();
+    }
+  }
+
+  // REPRESENTANTES
+  // ==========================================
+  searchTermRepresentantes = '';
+  currentPageRepresentantes = 1;
+  itemsPerPageRepresentantes = 10;
+  totalRepresentantes = 0;
+  totalPagesRepresentantes = 1;
+  listaRepresentantes: Colaborador[] = [];
+
+  carregarRepresentantes() {
+    this.colaboradoresService.listar(this.currentPageRepresentantes, this.itemsPerPageRepresentantes, this.searchTermRepresentantes, 10).subscribe({
+      next: (res) => {
+        this.listaRepresentantes = res.items;
+        this.totalRepresentantes = res.total;
+        this.totalPagesRepresentantes = res.total_pages;
+      },
+      error: (err) => console.error('Erro ao carregar representantes', err)
+    });
+  }
+
+  onSearchRepresentantesChange(term: string) {
+    this.searchTermRepresentantes = term;
+    this.currentPageRepresentantes = 1;
+    this.carregarRepresentantes();
+  }
+
+  goToPageRepresentantes(page: number) {
+    if (page >= 1 && page <= this.totalPagesRepresentantes) {
+      this.currentPageRepresentantes = page;
+      this.carregarRepresentantes();
+    }
+  }
+
+  // ATRIBUIR CLIENTES
+  // ==========================================
+  isClienteModalOpen = false;
+  representanteSelecionado: Colaborador | null = null;
+  listaClientesAtribuir: Cliente[] = [];
+  loadingClientes = false;
+  savingClientes = false;
+  searchCliente = '';
+
+  get listaClientesFiltrada(): Cliente[] {
+    if (!this.searchCliente) return this.listaClientesAtribuir;
+    const term = this.searchCliente.toLowerCase();
+    return this.listaClientesAtribuir.filter(c => 
+      c.nome.toLowerCase().includes(term) || 
+      (c.codigo && c.codigo.toString().toLowerCase().includes(term))
+    );
+  }
+
+  confirmarRemocaoCargo(colab: Colaborador) {
+    this.openConfirmModal(
+      'Remover Cargo',
+      `Tem certeza que deseja remover o cargo comercial de ${colab.nome}? Ele voltar\u00e1 a ser um colaborador padr\u00e3o.`,
+      () => {
+        this.isConfirmLoading = true;
+        const updateData = { idCargoColaborador: 8 };
+        
+        if (!colab.idColaborador) return;
+        this.colaboradoresService.atualizar(colab.idColaborador, updateData).subscribe({
+          next: () => {
+            this.closeConfirmModal();
+            this.carregarGerentes();
+            this.carregarRepresentantes();
+          },
+          error: (err) => {
+            console.error('Erro ao remover cargo', err);
+            this.isConfirmLoading = false;
+          }
+        });
+      }
+    );
+  }
+
+  abrirModalClientes(colab: Colaborador) {
+    this.representanteSelecionado = colab;
+    this.isClienteModalOpen = true;
+    this.listaClientesAtribuir = [];
+    this.searchCliente = '';
+    this.loadingClientes = true;
+    
+    this.clientesService.listar(colab.idColaborador).subscribe({
+      next: (res) => {
+        this.listaClientesAtribuir = res;
+        this.loadingClientes = false;
+      },
+      error: (err) => {
+        console.error('Erro ao carregar clientes', err);
+        this.loadingClientes = false;
+      }
+    });
+  }
+
+  fecharModalClientes() {
+    this.isClienteModalOpen = false;
+    this.representanteSelecionado = null;
+    this.listaClientesAtribuir = [];
+  }
+
+  toggleClienteLink(cliente: Cliente) {
+    cliente.linked = !cliente.linked;
+  }
+
+  salvarVinculos() {
+    if (!this.representanteSelecionado || !this.representanteSelecionado.idColaborador) return;
+    
+    this.savingClientes = true;
+    const idsVinculados = this.listaClientesAtribuir
+      .filter(c => c.linked)
+      .map(c => c.idclientes);
+
+    this.clientesService.vincularRepresentante(this.representanteSelecionado.idColaborador, idsVinculados).subscribe({
+      next: () => {
+        this.savingClientes = false;
+        this.fecharModalClientes();
+      },
+      error: (err) => {
+        console.error('Erro ao salvar vínculos', err);
+        this.savingClientes = false;
+      }
+    });
+  }
 
   isColaboradorModalOpen = false;
   colaboradorModalMode: 'create' | 'edit' = 'create';

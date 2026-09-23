@@ -40,6 +40,16 @@ class ImportacaoRepository:
         return items, total
 
     def delete(self, id_importacao: int) -> bool:
+        from sqlalchemy import text
+        # Desvincular as pendências da importação antes de deletar
+        # Isso previne que a restrição ON DELETE CASCADE apague as pendências e
+        # falhe por causa de mensagens vinculadas (IntegrityError).
+        self.db.execute(
+            text("UPDATE nfpendencias SET idImportacoes = NULL WHERE idImportacoes = :id"),
+            {"id": id_importacao}
+        )
+        self.db.flush()
+
         importacao = self.db.query(Importacao).filter(Importacao.idImportacoes == id_importacao).first()
         if importacao:
             self.db.delete(importacao)

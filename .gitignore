@@ -1,3 +1,21 @@
 deploy/
 .env
-*.env.production
+**/.env
+.env.*
+*.env
+databse/dumps/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs & Temp
+*.log
+*.tmp
+*.bak
+*.backup
+
+# OS & Editor
+.DS_Store
+Thumbs.db
