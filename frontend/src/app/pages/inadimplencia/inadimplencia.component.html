@@ -211,7 +211,7 @@
                                   <th>Cliente</th>
                                   <th>Fase</th>
                                   <th class="text-end">Valor</th>
-                                  <th class="text-center">Tratativas/Histórico</th>
+                                  <th class="text-center">AÇÕES</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -323,7 +323,7 @@
                               <th>Vencimento</th>
                               <th>Fase</th>
                               <th class="text-end">Valor</th>
-                              <th class="text-center">Tratativas/Histórico</th>
+                              <th class="text-center">AÇÕES</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -367,7 +367,7 @@
                                 <th>Cliente</th>
                                 <th>Vencimento</th>
                                 <th class="text-end">Valor</th>
-                                <th class="text-center">Tratativas/Histórico</th>
+                                <th class="text-center">AÇÕES</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -395,7 +395,7 @@
                                 <th>Cliente</th>
                                 <th>Vencimento</th>
                                 <th class="text-end">Valor</th>
-                                <th class="text-center">Tratativas/Histórico</th>
+                                <th class="text-center">AÇÕES</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -468,7 +468,7 @@
                                 <th>Vencimento</th>
                                 <th>Status</th>
                                 <th class="text-end">Valor</th>
-                                <th class="text-center">Tratativas/Histórico</th>
+                                <th class="text-center">AÇÕES</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -737,7 +737,7 @@
                                   <th>Status</th>
                                   <th class="text-center">Qtd Títulos</th>
                                   <th class="text-end">Valor</th>
-                                  <th class="text-center">Tratativas/Histórico</th>
+                                  <th class="text-center">AÇÕES</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -756,15 +756,19 @@
                                   <td class="text-end"><span
                                       class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1">{{
                                       t.valor | currency:'BRL' }}</span></td>
-                                  <td class="text-center">
-                                    <button class="btn btn-sm btn-light text-secondary border-0 p-1 me-1"
-                                      title="Visualizar tratativas" (click)="abrirTratativas(t)">
-                                      <i class="fa-regular fa-comments" style="font-size: 1.1rem;"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-light text-secondary border-0 p-1"
-                                      title="Visualizar Histórico" (click)="abrirHistorico(t)">
-                                      <i class="fa-solid fa-clock-rotate-left" style="font-size: 1.1rem;"></i>
-                                    </button>
+                                  <td class="text-center text-nowrap">
+                                    <button class="btn btn-sm bg-primary bg-opacity-10 text-primary border-0 p-1 me-1"
+  title="Visualizar Tratativas" (click)="abrirTratativas(t)">
+  <i class="fa-solid fa-clipboard-list" style="font-size: 1.1rem;"></i>
+</button>
+<button class="btn btn-sm bg-info bg-opacity-10 text-info border-0 p-1 me-1"
+  title="Visualizar Mensagens" (click)="abrirMensagens(t)">
+  <i class="fa-solid fa-comments" style="font-size: 1.1rem;"></i>
+</button>
+<button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1"
+  title="Visualizar Histórico" (click)="abrirHistorico(t)">
+  <i class="fa-solid fa-timeline" style="font-size: 1.1rem;"></i>
+</button>
                                   </td>
                                 </tr>
                                 <tr *ngIf="paginatedFinanceiro.length === 0">
@@ -1070,7 +1074,7 @@
                                   <th>Status</th>
                                   <th class="text-center">Qtd Títulos</th>
                                   <th class="text-end">Valor</th>
-                                  <th class="text-center">Tratativas/Histórico</th>
+                                  <th class="text-center">AÇÕES</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1089,15 +1093,19 @@
                                   <td class="text-end"><span
                                       class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1">{{
                                       t.valor | currency:'BRL' }}</span></td>
-                                  <td class="text-center">
-                                    <button class="btn btn-sm btn-light text-secondary border-0 p-1 me-1"
-                                      title="Visualizar tratativas" (click)="abrirTratativas(t)">
-                                      <i class="fa-regular fa-comments" style="font-size: 1.1rem;"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-light text-secondary border-0 p-1"
-                                      title="Visualizar Histórico" (click)="abrirHistorico(t)">
-                                      <i class="fa-solid fa-clock-rotate-left" style="font-size: 1.1rem;"></i>
-                                    </button>
+                                  <td class="text-center text-nowrap">
+                                    <button class="btn btn-sm bg-primary bg-opacity-10 text-primary border-0 p-1 me-1"
+  title="Visualizar Tratativas" (click)="abrirTratativas(t)">
+  <i class="fa-solid fa-clipboard-list" style="font-size: 1.1rem;"></i>
+</button>
+<button class="btn btn-sm bg-info bg-opacity-10 text-info border-0 p-1 me-1"
+  title="Visualizar Mensagens" (click)="abrirMensagens(t)">
+  <i class="fa-solid fa-comments" style="font-size: 1.1rem;"></i>
+</button>
+<button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1"
+  title="Visualizar Histórico" (click)="abrirHistorico(t)">
+  <i class="fa-solid fa-timeline" style="font-size: 1.1rem;"></i>
+</button>
                                   </td>
                                 </tr>
                                 <tr *ngIf="paginatedCarteira.length === 0">
@@ -1183,7 +1191,7 @@
                                   <th>Cliente</th>
                                   <th>Vencimento</th>
                                   <th class="text-end">Valor</th>
-                                  <th class="text-center">Tratativas/Histórico</th>
+                                  <th class="text-center">AÇÕES</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1194,15 +1202,19 @@
                                   <td class="text-end"><span
                                       class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning-subtle px-2 py-1">{{
                                       g.valor | currency:'BRL' }}</span></td>
-                                  <td class="text-center">
-                                    <button class="btn btn-sm btn-light text-secondary border-0 p-1 me-1"
-                                      title="Visualizar tratativas" (click)="abrirTratativas(g)">
-                                      <i class="fa-regular fa-comments" style="font-size: 1.1rem;"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-light text-secondary border-0 p-1"
-                                      title="Visualizar Histórico" (click)="abrirHistorico(g)">
-                                      <i class="fa-solid fa-clock-rotate-left" style="font-size: 1.1rem;"></i>
-                                    </button>
+                                  <td class="text-center text-nowrap">
+                                    <button class="btn btn-sm bg-primary bg-opacity-10 text-primary border-0 p-1 me-1"
+  title="Visualizar Tratativas" (click)="abrirTratativas(g)">
+  <i class="fa-solid fa-clipboard-list" style="font-size: 1.1rem;"></i>
+</button>
+<button class="btn btn-sm bg-info bg-opacity-10 text-info border-0 p-1 me-1"
+  title="Visualizar Mensagens" (click)="abrirMensagens(g)">
+  <i class="fa-solid fa-comments" style="font-size: 1.1rem;"></i>
+</button>
+<button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1"
+  title="Visualizar Histórico" (click)="abrirHistorico(g)">
+  <i class="fa-solid fa-timeline" style="font-size: 1.1rem;"></i>
+</button>
                                   </td>
                                 </tr>
                                 <tr *ngIf="paginatedSemEntrega.length === 0">
@@ -1247,7 +1259,7 @@
                                   <th>Cliente</th>
                                   <th>Vencimento</th>
                                   <th class="text-end">Valor</th>
-                                  <th class="text-center">Tratativas/Histórico</th>
+                                  <th class="text-center">AÇÕES</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1258,15 +1270,19 @@
                                   <td class="text-end"><span
                                       class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1">{{
                                       g.valor | currency:'BRL' }}</span></td>
-                                  <td class="text-center">
-                                    <button class="btn btn-sm btn-light text-secondary border-0 p-1 me-1"
-                                      title="Visualizar tratativas" (click)="abrirTratativas(g)">
-                                      <i class="fa-regular fa-comments" style="font-size: 1.1rem;"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-light text-secondary border-0 p-1"
-                                      title="Visualizar Histórico" (click)="abrirHistorico(g)">
-                                      <i class="fa-solid fa-clock-rotate-left" style="font-size: 1.1rem;"></i>
-                                    </button>
+                                  <td class="text-center text-nowrap">
+                                    <button class="btn btn-sm bg-primary bg-opacity-10 text-primary border-0 p-1 me-1"
+  title="Visualizar Tratativas" (click)="abrirTratativas(g)">
+  <i class="fa-solid fa-clipboard-list" style="font-size: 1.1rem;"></i>
+</button>
+<button class="btn btn-sm bg-info bg-opacity-10 text-info border-0 p-1 me-1"
+  title="Visualizar Mensagens" (click)="abrirMensagens(g)">
+  <i class="fa-solid fa-comments" style="font-size: 1.1rem;"></i>
+</button>
+<button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1"
+  title="Visualizar Histórico" (click)="abrirHistorico(g)">
+  <i class="fa-solid fa-timeline" style="font-size: 1.1rem;"></i>
+</button>
                                   </td>
                                 </tr>
                                 <tr *ngIf="paginatedDevolucao.length === 0">
@@ -1371,7 +1387,7 @@
                                 <th>Vencimento</th>
                                 <th>Status</th>
                                 <th class="text-end">Valor</th>
-                                <th class="text-center">Tratativas/Histórico</th>
+                                <th class="text-center">AÇÕES</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1385,15 +1401,19 @@
                                 <td class="text-end"><span
                                     class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary-subtle px-2 py-1">{{
                                     ga.valor | currency:'BRL' }}</span></td>
-                                <td class="text-center">
-                                  <button class="btn btn-sm btn-light text-secondary border-0 p-1 me-1"
-                                    title="Visualizar tratativas" (click)="abrirTratativas(ga)">
-                                    <i class="fa-regular fa-comments" style="font-size: 1.1rem;"></i>
-                                  </button>
-                                  <button class="btn btn-sm btn-light text-secondary border-0 p-1"
-                                    title="Visualizar Histórico" (click)="abrirHistorico(ga)">
-                                    <i class="fa-solid fa-clock-rotate-left" style="font-size: 1.1rem;"></i>
-                                  </button>
+                                <td class="text-center text-nowrap">
+                                  <button class="btn btn-sm bg-primary bg-opacity-10 text-primary border-0 p-1 me-1"
+  title="Visualizar Tratativas" (click)="abrirTratativas(ga)">
+  <i class="fa-solid fa-clipboard-list" style="font-size: 1.1rem;"></i>
+</button>
+<button class="btn btn-sm bg-info bg-opacity-10 text-info border-0 p-1 me-1"
+  title="Visualizar Mensagens" (click)="abrirMensagens(ga)">
+  <i class="fa-solid fa-comments" style="font-size: 1.1rem;"></i>
+</button>
+<button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1"
+  title="Visualizar Histórico" (click)="abrirHistorico(ga)">
+  <i class="fa-solid fa-timeline" style="font-size: 1.1rem;"></i>
+</button>
                                 </td>
                               </tr>
                               <tr *ngIf="paginatedAcordos.length === 0">
@@ -1616,86 +1636,146 @@
 
 <!-- Modal Tratativas -->
 <app-modal [isOpen]="isTratativasModalOpen"
-  [title]="'Tratativas - Título ' + (tituloSelecionadoTratativas?.titulo || '')" size="md"
+  [title]="'Tratativas - Título ' + (tituloSelecionadoTratativas?.titulo || '')" size="lg"
   (closed)="fecharTratativas()">
-
-  <div class="p-2">
-    <div *ngIf="tituloSelecionadoTratativas" class="mb-4 pb-3 border-bottom">
-      <div class="row text-muted" style="font-size: 0.9rem;">
-        <div class="col-6">
-          <strong class="text-dark">Cliente:</strong> {{ tituloSelecionadoTratativas.cliente }}
-        </div>
-        <div class="col-6 text-end">
-          <strong class="text-dark">Vencimento:</strong> {{ tituloSelecionadoTratativas.vencimento |
-          date:'dd/MM/yyyy' }}
-        </div>
-        <div class="col-6 mt-2">
-          <strong class="text-dark">Valor:</strong> <span class="text-danger fw-semibold">{{
-            tituloSelecionadoTratativas.valor | currency:'BRL' }}</span>
-        </div>
-        <div class="col-6 text-end mt-2">
-          <span
-            class="badge status-badge bg-{{tituloSelecionadoTratativas.statusColor}} bg-opacity-10 text-{{tituloSelecionadoTratativas.statusColor}} border border-{{tituloSelecionadoTratativas.statusColor}}-subtle fw-normal px-2 py-1">{{
-            tituloSelecionadoTratativas.status }}</span>
+  <ng-container body>
+    <div *ngIf="tituloSelecionadoTratativas" class="card border-0 bg-light mb-4">
+      <div class="card-body p-3">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="text-muted small text-uppercase fw-semibold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Cliente</div>
+            <div class="text-dark fw-medium text-truncate" [title]="tituloSelecionadoTratativas.cliente">
+              {{ tituloSelecionadoTratativas.cliente }}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase fw-semibold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Vencimento</div>
+            <div class="text-dark fw-medium">
+              {{ tituloSelecionadoTratativas.vencimento | date:'dd/MM/yyyy' }}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase fw-semibold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Valor</div>
+            <div class="text-danger fw-bold">
+              {{ tituloSelecionadoTratativas.valor | currency:'BRL' }}
+            </div>
+          </div>
+          <div class="col-12 mt-2 pt-2 border-top">
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-muted small fw-semibold" style="font-size: 0.75rem;">FASE:</span>
+              <span class="badge fw-normal px-2 py-1" [ngClass]="getBadgeClass(tituloSelecionadoTratativas.fase)">
+                {{ tituloSelecionadoTratativas.fase || 'N/A' }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Timeline / Lista de Tratativas -->
     <div class="tratativas-list">
-      <div *ngFor="let tratativa of tratativasMock; let isLast = last" class="mb-3">
-        <div class="d-flex justify-content-between mb-1">
-          <span class="fw-semibold text-dark" style="font-size: 0.9rem;">
-            <i class="fa-solid fa-user-circle text-secondary me-1"></i> {{ tratativa.autor }}
-          </span>
-          <span class="text-muted" style="font-size: 0.8rem;">
-            <i class="fa-regular fa-clock me-1"></i> {{ tratativa.data | date:'dd/MM/yyyy HH:mm' }}
-          </span>
+      <div *ngIf="isLoadingTratativas" class="py-4 px-3">
+        <div class="d-flex mb-4">
+          <app-skeleton type="circle" width="32px" height="32px" class="me-3"></app-skeleton>
+          <div class="d-flex flex-column" style="width: 80%;">
+            <app-skeleton type="rect" width="30%" height="15px" class="mb-2" style="border-radius: 8px;"></app-skeleton>
+            <app-skeleton type="rect" width="100%" height="40px" style="border-radius: 8px;"></app-skeleton>
+          </div>
         </div>
-        <div class="p-3 bg-light rounded-3 text-secondary border border-1"
-          style="font-size: 0.9rem; line-height: 1.5; border-color: #f1f5f9 !important;">
-          {{ tratativa.conteudo }}
+        <div class="d-flex mb-4">
+          <app-skeleton type="circle" width="32px" height="32px" class="me-3"></app-skeleton>
+          <div class="d-flex flex-column" style="width: 80%;">
+            <app-skeleton type="rect" width="40%" height="15px" class="mb-2" style="border-radius: 8px;"></app-skeleton>
+            <app-skeleton type="rect" width="80%" height="40px" style="border-radius: 8px;"></app-skeleton>
+          </div>
         </div>
       </div>
 
-      <div *ngIf="tratativasMock.length === 0" class="text-center text-muted py-4">
-        Nenhuma tratativa registrada para este título.
+      <div *ngIf="!isLoadingTratativas">
+        <div *ngFor="let tratativa of tratativasMock; let isLast = last" class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="fw-semibold text-dark" style="font-size: 0.9rem;">
+              <i class="fa-solid fa-user-circle text-secondary me-1"></i> {{ tratativa.autor }}
+            </span>
+            <span class="text-muted small">{{ tratativa.data | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="p-3 bg-white border rounded shadow-sm text-dark small position-relative">
+            <div class="chat-bubble-arrow position-absolute" style="top: -6px; left: 15px; border-width: 0 6px 6px 6px; border-style: solid; border-color: transparent transparent #dee2e6 transparent;"></div>
+            <div class="chat-bubble-arrow-inner position-absolute" style="top: -5px; left: 15px; border-width: 0 6px 6px 6px; border-style: solid; border-color: transparent transparent #ffffff transparent;"></div>
+            {{ tratativa.conteudo }}
+          </div>
+          <hr *ngIf="!isLast" class="text-muted opacity-25 my-3">
+        </div>
+      </div>
+
+      <div *ngIf="!isLoadingTratativas && tratativasMock.length === 0" class="empty-state text-center py-5">
+        <div class="empty-state-icon bg-light text-muted mb-3 mx-auto d-flex align-items-center justify-content-center rounded-circle" style="width: 64px; height: 64px;">
+          <i class="fa-solid fa-clipboard-list fa-2x"></i>
+        </div>
+        <h6 class="text-dark fw-semibold mb-1">Nenhuma tratativa</h6>
+        <p class="text-muted small mb-0">Não há tratativas registradas para este título.</p>
       </div>
     </div>
-  </div>
-
-  <div modal-footer class="w-100 d-flex justify-content-end pt-2 border-top">
-    <app-button variant="ghost" (clicked)="fecharTratativas()">Fechar</app-button>
-  </div>
+  </ng-container>
+  <ng-container footer>
+    <div class="w-100 d-flex justify-content-end">
+      <app-button variant="ghost" (clicked)="fecharTratativas()">Fechar</app-button>
+    </div>
+  </ng-container>
 </app-modal>
 
 <!-- Modal Histórico -->
 <app-modal [isOpen]="isHistoricoModalOpen" [title]="'Histórico do Título ' + (tituloSelecionadoHistorico?.titulo || '')"
-  size="md" (closed)="fecharHistorico()">
-
-  <div class="p-2">
-    <div *ngIf="tituloSelecionadoHistorico" class="mb-4 pb-3 border-bottom">
-      <div class="row text-muted" style="font-size: 0.9rem;">
-        <div class="col-6">
-          <strong class="text-dark">Cliente:</strong> {{ tituloSelecionadoHistorico.cliente }}
-        </div>
-        <div class="col-6 text-end">
-          <strong class="text-dark">Vencimento:</strong> {{ tituloSelecionadoHistorico.vencimento |
-          date:'dd/MM/yyyy' }}
-        </div>
-        <div class="col-6 mt-2">
-          <strong class="text-dark">Valor:</strong> <span class="text-danger fw-semibold">{{
-            tituloSelecionadoHistorico.valor | currency:'BRL' }}</span>
+  size="lg" (closed)="fecharHistorico()">
+  <ng-container body>
+    <div *ngIf="tituloSelecionadoHistorico" class="card border-0 bg-light mb-4">
+      <div class="card-body p-3">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="text-muted small text-uppercase fw-semibold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Cliente</div>
+            <div class="text-dark fw-medium text-truncate" [title]="tituloSelecionadoHistorico.cliente">
+              {{ tituloSelecionadoHistorico.cliente }}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase fw-semibold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Vencimento</div>
+            <div class="text-dark fw-medium">
+              {{ tituloSelecionadoHistorico.vencimento | date:'dd/MM/yyyy' }}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase fw-semibold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Valor</div>
+            <div class="text-danger fw-bold">
+              {{ tituloSelecionadoHistorico.valor | currency:'BRL' }}
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Timeline Vertical -->
-    <div *ngIf="isLoadingHistorico" class="text-center text-muted py-4">
-      <i class="fa-solid fa-spinner fa-spin me-2"></i>Carregando histórico...
+    <div *ngIf="isLoadingHistorico" class="py-4 px-3">
+      <div class="d-flex mb-4">
+        <app-skeleton type="circle" width="32px" height="32px" class="me-3"></app-skeleton>
+        <div class="d-flex flex-column" style="width: 80%;">
+          <app-skeleton type="rect" width="30%" height="15px" class="mb-2" style="border-radius: 8px;"></app-skeleton>
+          <app-skeleton type="rect" width="100%" height="40px" style="border-radius: 8px;"></app-skeleton>
+        </div>
+      </div>
+      <div class="d-flex mb-4">
+        <app-skeleton type="circle" width="32px" height="32px" class="me-3"></app-skeleton>
+        <div class="d-flex flex-column" style="width: 80%;">
+          <app-skeleton type="rect" width="40%" height="15px" class="mb-2" style="border-radius: 8px;"></app-skeleton>
+          <app-skeleton type="rect" width="80%" height="40px" style="border-radius: 8px;"></app-skeleton>
+        </div>
+      </div>
     </div>
-    <div *ngIf="!isLoadingHistorico && historicoMock.length === 0" class="text-center text-muted py-4">
-      Nenhum registro de histórico para este título.
+    <div *ngIf="!isLoadingHistorico && historicoMock.length === 0" class="empty-state text-center py-5">
+      <div class="empty-state-icon bg-light text-muted mb-3 mx-auto d-flex align-items-center justify-content-center rounded-circle" style="width: 64px; height: 64px;">
+        <i class="fa-solid fa-timeline fa-2x"></i>
+      </div>
+      <h6 class="text-dark fw-semibold mb-1">Sem histórico</h6>
+      <p class="text-muted small mb-0">Nenhum evento registrado para este título.</p>
     </div>
     <div *ngIf="!isLoadingHistorico && historicoMock.length > 0" class="timeline-vertical custom-scrollbar">
       <div *ngFor="let item of historicoMock; let i = index; let last = last" class="timeline-v-node" [class.last]="last">
@@ -1711,11 +1791,12 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <div modal-footer class="w-100 d-flex justify-content-end pt-2 border-top">
-    <app-button variant="ghost" (clicked)="fecharHistorico()">Fechar</app-button>
-  </div>
+  </ng-container>
+  <ng-container footer>
+    <div class="w-100 d-flex justify-content-end">
+      <app-button variant="ghost" (clicked)="fecharHistorico()">Fechar</app-button>
+    </div>
+  </ng-container>
 </app-modal>
 
 <!-- Modal de Confirmação para Exclusão e Alertas -->
@@ -1723,3 +1804,104 @@
   [confirmText]="confirmText" [cancelText]="cancelText" [variant]="confirmVariant"
   [showCancel]="showCancelConfirm" (confirmed)="executeConfirm()" (canceled)="closeConfirmModal()">
 </app-confirm-modal>
+
+<!-- Modal Mensagens -->
+<app-modal [isOpen]="isMensagensModalOpen"
+  [title]="'Mensagens - Título ' + (tituloSelecionadoMensagens?.titulo || '')" size="lg"
+  (closed)="fecharMensagens()">
+  <ng-container body>
+    <div *ngIf="tituloSelecionadoMensagens" class="card border-0 bg-light mb-4">
+      <div class="card-body p-3">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="text-muted small text-uppercase fw-semibold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Cliente</div>
+            <div class="text-dark fw-medium text-truncate" [title]="tituloSelecionadoMensagens.cliente">
+              {{ tituloSelecionadoMensagens.cliente }}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase fw-semibold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Vencimento</div>
+            <div class="text-dark fw-medium">
+              {{ tituloSelecionadoMensagens.vencimento | date:'dd/MM/yyyy' }}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase fw-semibold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Valor</div>
+            <div class="text-danger fw-bold">
+              {{ tituloSelecionadoMensagens.valor | currency:'BRL' }}
+            </div>
+          </div>
+          <div class="col-12 mt-2 pt-2 border-top">
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-muted small fw-semibold" style="font-size: 0.75rem;">FASE:</span>
+              <span class="badge fw-normal px-2 py-1" [ngClass]="getBadgeClass(tituloSelecionadoMensagens.fase)">
+                {{ tituloSelecionadoMensagens.fase || 'N/A' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline / Lista de Mensagens -->
+    <div class="chat-panel animate-fade-in">
+      <div class="chat-thread" style="max-height: 400px; overflow-y: auto;">
+        <div *ngIf="isLoadingMensagens" class="py-4 px-3">
+          <div class="d-flex mb-4 justify-content-end">
+            <div class="d-flex flex-column align-items-end" style="width: 70%;">
+              <app-skeleton type="rect" width="100%" height="60px" class="mb-2" style="border-radius: 12px;"></app-skeleton>
+              <app-skeleton type="rect" width="40%" height="20px" style="border-radius: 12px;"></app-skeleton>
+            </div>
+            <app-skeleton type="circle" width="32px" height="32px" class="ms-2"></app-skeleton>
+          </div>
+          <div class="d-flex mb-4">
+            <app-skeleton type="circle" width="32px" height="32px" class="me-2"></app-skeleton>
+            <div class="d-flex flex-column" style="width: 70%;">
+              <app-skeleton type="rect" width="100%" height="60px" class="mb-2" style="border-radius: 12px;"></app-skeleton>
+              <app-skeleton type="rect" width="60%" height="20px" style="border-radius: 12px;"></app-skeleton>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!isLoadingMensagens">
+          <div *ngFor="let msg of mensagensMock" class="chat-message mb-3" [class.chat-message--mine]="msg.minhaMensagem" [class.chat-message--reply]="!msg.minhaMensagem">
+            <div *ngIf="!msg.minhaMensagem" class="reply-avatar me-2" title="{{ msg.autor }}">
+              <app-avatar [initials]="msg.iniciais" size="sm"></app-avatar>
+            </div>
+            <div class="chat-bubble flex-grow-1 p-3 rounded" [ngClass]="msg.minhaMensagem ? 'bg-primary text-white ms-auto' : 'bg-light text-dark'" [style.max-width]="'85%'">
+              <div class="chat-bubble-header d-flex justify-content-between mb-2" [ngClass]="msg.minhaMensagem ? 'text-white-50' : 'text-muted'">
+                <span class="chat-author fw-bold small">{{ msg.autor }}</span>
+                <span class="chat-time small">{{ msg.data | date:'dd/MM HH:mm' }}</span>
+              </div>
+              <div *ngIf="msg.assunto" class="chat-subject mb-2 small fw-semibold">
+                <i class="fa-solid fa-tag me-1"></i>{{ msg.assunto }}
+              </div>
+              <div class="chat-body small" [innerHTML]="msg.corpo"></div>
+              <div *ngIf="msg.anexos && msg.anexos.length > 0" class="chat-attachments mt-2 pt-2 border-top" [ngClass]="msg.minhaMensagem ? 'border-light' : ''">
+                <span *ngFor="let anexo of msg.anexos" class="badge bg-secondary bg-opacity-25 text-dark me-1 mb-1">
+                  <i class="fa-solid fa-paperclip me-1"></i>{{ anexo }}
+                </span>
+              </div>
+            </div>
+            <div *ngIf="msg.minhaMensagem" class="ms-2">
+              <app-avatar [initials]="msg.iniciais" size="sm"></app-avatar>
+            </div>
+          </div>
+          
+          <div *ngIf="mensagensMock.length === 0" class="empty-state text-center py-5">
+            <div class="empty-state-icon bg-light text-muted mb-3 mx-auto d-flex align-items-center justify-content-center rounded-circle" style="width: 64px; height: 64px;">
+              <i class="fa-regular fa-envelope-open fa-2x"></i>
+            </div>
+            <h6 class="text-dark fw-semibold mb-1">Nenhuma mensagem</h6>
+            <p class="text-muted small mb-0">Não há registros de troca de e-mails nesta pendência.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+  <ng-container footer>
+    <div class="w-100 d-flex justify-content-end">
+      <app-button variant="ghost" (clicked)="fecharMensagens()">Fechar</app-button>
+    </div>
+  </ng-container>
+</app-modal>

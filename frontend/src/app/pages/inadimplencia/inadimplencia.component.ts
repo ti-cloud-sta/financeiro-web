@@ -5,14 +5,26 @@ import { PendenciasComponent } from './components/pages/pendencias/pendencias.co
 import { NgxEchartsModule } from 'ngx-echarts';
 import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
+import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { ConfirmModalComponent } from '../../shared/components/confirm-modal/confirm-modal.component';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
-import { ImportacoesService, Importacao, ImportacaoPendenciasResponse } from '../../core/services/importacoes.service';
+import { ImportacoesService, Importacao, ImportacaoPendenciasResponse, MensagemThreadApi } from '../../core/services/importacoes.service';
+
+export interface MensagemChat {
+  id: number;
+  autor: string;
+  iniciais: string;
+  minhaMensagem: boolean;
+  data: Date;
+  assunto: string;
+  corpo: string;
+  anexos: string[];
+}
 
 @Component({
   selector: 'app-inadimplencia',
   standalone: true,
-  imports: [CommonModule, FormsModule, PendenciasComponent, ButtonComponent, ConfirmModalComponent, ModalComponent, NgxEchartsModule, SkeletonComponent],
+  imports: [CommonModule, FormsModule, PendenciasComponent, ButtonComponent, ConfirmModalComponent, ModalComponent, NgxEchartsModule, SkeletonComponent, AvatarComponent],
   templateUrl: './inadimplencia.component.html',
   styleUrls: ['./inadimplencia.component.scss']
 })
@@ -28,6 +40,12 @@ export class InadimplenciaComponent implements OnInit {
   isTratativasModalOpen = false;
   tituloSelecionadoTratativas: any = null;
   tratativasMock: any[] = [];
+
+  // Modal Mensagens
+  isMensagensModalOpen = false;
+  tituloSelecionadoMensagens: any = null;
+  mensagensMock: MensagemChat[] = [];
+  isLoadingMensagens = false;
 
   // Modal Histórico
   isHistoricoModalOpen = false;
@@ -420,10 +438,13 @@ export class InadimplenciaComponent implements OnInit {
   }
 
 
+  isLoadingTratativas = false;
+
   abrirTratativas(titulo: any) {
     this.tituloSelecionadoTratativas = titulo;
     this.tratativasMock = []; // We can rename this to tratativasReais, but to not break HTML let's keep it or rename it. Let's just use tratativasMock as the array.
     this.isTratativasModalOpen = true;
+    this.isLoadingTratativas = true;
 
     if (titulo.id) {
       this.importacoesService.listarTratativas(Number(titulo.id)).subscribe({
@@ -434,15 +455,88 @@ export class InadimplenciaComponent implements OnInit {
             autor: t.autor || 'Usuário',
             conteudo: t.conteudo
           }));
+          this.isLoadingTratativas = false;
         },
-        error: (err) => console.error('Erro ao carregar tratativas:', err)
+        error: (err) => {
+          console.error('Erro ao carregar tratativas:', err);
+          this.isLoadingTratativas = false;
+        }
       });
+    } else {
+      this.isLoadingTratativas = false;
     }
   }
 
   fecharTratativas() {
     this.isTratativasModalOpen = false;
     this.tituloSelecionadoTratativas = null;
+  }
+
+  getBadgeClass(fase: string | null | undefined): string {
+    if (!fase) return 'bg-light text-secondary border border-secondary-subtle';
+    const f = fase.toUpperCase();
+    if (f === 'ACORDO') return 'bg-success bg-opacity-10 text-success border border-success-subtle';
+    if (f === 'PROTESTADO' || f === 'DEVOLUCAO' || f === 'ATRASADO') return 'bg-danger bg-opacity-10 text-danger border border-danger-subtle';
+    if (f === 'SEM DATA DE ENTREGA') return 'bg-warning bg-opacity-10 text-warning border border-warning-subtle';
+    return 'bg-primary bg-opacity-10 text-primary border border-primary-subtle';
+  }
+
+  abrirMensagens(titulo: any) {
+    this.tituloSelecionadoMensagens = titulo;
+    this.mensagensMock = [];
+    this.isMensagensModalOpen = true;
+    this.isLoadingMensagens = true;
+
+    if (titulo.id) {
+      this.importacoesService.listarMensagensPendencia(Number(titulo.id)).subscribe({
+        next: (itens) => {
+          this.mensagensMock = itens.map(m => this.mapearMensagemApi(m));
+          this.isLoadingMensagens = false;
+        },
+        error: (err) => {
+          console.error('Erro ao carregar mensagens:', err);
+          this.isLoadingMensagens = false;
+        }
+      });
+    } else {
+      this.isLoadingMensagens = false;
+    }
+  }
+
+  fecharMensagens() {
+    this.isMensagensModalOpen = false;
+    this.tituloSelecionadoMensagens = null;
+    this.mensagensMock = [];
+  }
+
+  private mapearMensagemApi(m: MensagemThreadApi): MensagemChat {
+    const autor = this.extrairNomeEmail(m.de);
+    return {
+      id: m.internal_date,
+      autor,
+      iniciais: this.obterIniciais(autor),
+      minhaMensagem: m.minha_mensagem,
+      data: new Date(m.internal_date * 1000),
+      assunto: m.assunto,
+      corpo: m.corpo_html || m.corpo_texto.replace(/\n/g, '<br>'),
+      anexos: m.anexos ? m.anexos.map((a: any) => a.nome) : []
+    };
+  }
+
+  private extrairNomeEmail(de: string): string {
+    if (!de) return 'Desconhecido';
+    const match = de.match(/^(.*?)\s*</);
+    if (match && match[1]) {
+      return match[1].replace(/["']/g, '').trim();
+    }
+    return de.trim();
+  }
+
+  private obterIniciais(nome: string): string {
+    if (!nome) return '?';
+    const partes = nome.split(' ').filter(p => p.length > 0);
+    if (partes.length === 1) return partes[0].substring(0, 2).toUpperCase();
+    return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
   }
 
   abrirHistorico(titulo: any) {
