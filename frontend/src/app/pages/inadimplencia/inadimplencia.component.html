@@ -1633,8 +1633,581 @@
                     </div>
                   </div>
                   
-                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
-                    <h5 class="text-secondary text-center mb-0"><i class="fa-solid fa-person-digging me-2"></i> Dashboard em construção...</h5>
+                  <!-- Aba ACR: Títulos em Atraso -->
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2" *ngIf="pendenciasAcrTab() === 'atrasados'">
+                    <div class="row g-4">
+                      <div class="col-12">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0 fw-semibold text-secondary">Títulos em Atraso</h6>
+                            <div class="config-toolbar mb-0">
+                              <div class="search-box">
+                                <i class="fa-solid fa-search text-muted position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+                                <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
+                                  [(ngModel)]="searchAcrAtrasados" (ngModelChange)="pageAcrAtrasados = 1"
+                                  style="padding-left: 28px;">
+                              </div>
+                            </div>
+                          </div>
+                          <table class="saas-table w-100 mt-2">
+                            <thead>
+                              <tr>
+                                <th>Título</th>
+                                <th>Cliente</th>
+                                <th>Vencimento</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-center">AÇÕES</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let item of paginatedAcrAtrasados">
+                                <td>{{ item.titulo || '-' }}</td>
+                                <td>{{ item.cliente }}</td>
+                                <td>{{ (item.vencimento | date:'dd/MM/yyyy') || '-' }}</td>
+                                <td class="text-end"><span class="text-warning fw-semibold" style="color: #f59e0b !important;">{{ item.valor | currency:'BRL' }}</span></td>
+                                <td class="text-center text-nowrap">
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Tratativas" (click)="abrirTratativas(item)">
+                                    <i class="fa-solid fa-clipboard-list" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Mensagens" (click)="abrirMensagens(item)">
+                                    <i class="fa-solid fa-comments" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1" title="Visualizar Histórico" (click)="abrirHistorico(item)">
+                                    <i class="fa-solid fa-timeline" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                </td>
+                              </tr>
+                              <tr *ngIf="paginatedAcrAtrasados.length === 0">
+                                <td colspan="5" class="text-center text-muted py-3">Nenhum título encontrado.</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <nav aria-label="Page navigation" class="mt-3" *ngIf="totalPagesAcrAtrasados > 1">
+                            <ul class="pagination pagination-sm justify-content-end mb-0">
+                              <li class="page-item" [class.disabled]="pageAcrAtrasados === 1">
+                                <button class="page-link" (click)="pageAcrAtrasados = pageAcrAtrasados - 1">Anterior</button>
+                              </li>
+                              <li class="page-item disabled"><span class="page-link">Pág {{pageAcrAtrasados}} de {{totalPagesAcrAtrasados}}</span></li>
+                              <li class="page-item" [class.disabled]="pageAcrAtrasados === totalPagesAcrAtrasados">
+                                <button class="page-link" (click)="pageAcrAtrasados = pageAcrAtrasados + 1">Próxima</button>
+                              </li>
+                            </ul>
+                          </nav>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Aba ACR: Títulos Protestados -->
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2" *ngIf="pendenciasAcrTab() === 'protestados'">
+                    <div class="row g-4">
+                      <div class="col-12">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0 fw-semibold text-secondary">Títulos Protestados</h6>
+                            <div class="config-toolbar mb-0">
+                              <div class="search-box">
+                                <i class="fa-solid fa-search text-muted position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+                                <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
+                                  [(ngModel)]="searchAcrProtestados" (ngModelChange)="pageAcrProtestados = 1"
+                                  style="padding-left: 28px;">
+                              </div>
+                            </div>
+                          </div>
+                          <table class="saas-table w-100 mt-2">
+                            <thead>
+                              <tr>
+                                <th>Título</th>
+                                <th>Cliente</th>
+                                <th>Vencimento</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-center">AÇÕES</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let item of paginatedAcrProtestados">
+                                <td>{{ item.titulo || '-' }}</td>
+                                <td>{{ item.cliente }}</td>
+                                <td>{{ (item.vencimento | date:'dd/MM/yyyy') || '-' }}</td>
+                                <td class="text-end"><span class="text-danger fw-semibold" >{{ item.valor | currency:'BRL' }}</span></td>
+                                <td class="text-center text-nowrap">
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Tratativas" (click)="abrirTratativas(item)">
+                                    <i class="fa-solid fa-clipboard-list" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Mensagens" (click)="abrirMensagens(item)">
+                                    <i class="fa-solid fa-comments" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1" title="Visualizar Histórico" (click)="abrirHistorico(item)">
+                                    <i class="fa-solid fa-timeline" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                </td>
+                              </tr>
+                              <tr *ngIf="paginatedAcrProtestados.length === 0">
+                                <td colspan="5" class="text-center text-muted py-3">Nenhum título encontrado.</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <nav aria-label="Page navigation" class="mt-3" *ngIf="totalPagesAcrProtestados > 1">
+                            <ul class="pagination pagination-sm justify-content-end mb-0">
+                              <li class="page-item" [class.disabled]="pageAcrProtestados === 1">
+                                <button class="page-link" (click)="pageAcrProtestados = pageAcrProtestados - 1">Anterior</button>
+                              </li>
+                              <li class="page-item disabled"><span class="page-link">Pág {{pageAcrProtestados}} de {{totalPagesAcrProtestados}}</span></li>
+                              <li class="page-item" [class.disabled]="pageAcrProtestados === totalPagesAcrProtestados">
+                                <button class="page-link" (click)="pageAcrProtestados = pageAcrProtestados + 1">Próxima</button>
+                              </li>
+                            </ul>
+                          </nav>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Aba ACR: Títulos Sem Data de Entrega -->
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2" *ngIf="pendenciasAcrTab() === 'sem_data_entrega'">
+                    <div class="row g-4">
+                      <div class="col-12">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0 fw-semibold text-secondary">Títulos Sem Data de Entrega</h6>
+                            <div class="config-toolbar mb-0">
+                              <div class="search-box">
+                                <i class="fa-solid fa-search text-muted position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+                                <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
+                                  [(ngModel)]="searchAcrSemEntrega" (ngModelChange)="pageAcrSemEntrega = 1"
+                                  style="padding-left: 28px;">
+                              </div>
+                            </div>
+                          </div>
+                          <table class="saas-table w-100 mt-2">
+                            <thead>
+                              <tr>
+                                <th>Título</th>
+                                <th>Cliente</th>
+                                <th>Vencimento</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-center">AÇÕES</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let item of paginatedAcrSemEntrega">
+                                <td>{{ item.titulo || '-' }}</td>
+                                <td>{{ item.cliente }}</td>
+                                <td>{{ (item.vencimento | date:'dd/MM/yyyy') || '-' }}</td>
+                                <td class="text-end"><span class="text-warning fw-semibold" style="color: #f59e0b !important;">{{ item.valor | currency:'BRL' }}</span></td>
+                                <td class="text-center text-nowrap">
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Tratativas" (click)="abrirTratativas(item)">
+                                    <i class="fa-solid fa-clipboard-list" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Mensagens" (click)="abrirMensagens(item)">
+                                    <i class="fa-solid fa-comments" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1" title="Visualizar Histórico" (click)="abrirHistorico(item)">
+                                    <i class="fa-solid fa-timeline" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                </td>
+                              </tr>
+                              <tr *ngIf="paginatedAcrSemEntrega.length === 0">
+                                <td colspan="5" class="text-center text-muted py-3">Nenhum título encontrado.</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <nav aria-label="Page navigation" class="mt-3" *ngIf="totalPagesAcrSemEntrega > 1">
+                            <ul class="pagination pagination-sm justify-content-end mb-0">
+                              <li class="page-item" [class.disabled]="pageAcrSemEntrega === 1">
+                                <button class="page-link" (click)="pageAcrSemEntrega = pageAcrSemEntrega - 1">Anterior</button>
+                              </li>
+                              <li class="page-item disabled"><span class="page-link">Pág {{pageAcrSemEntrega}} de {{totalPagesAcrSemEntrega}}</span></li>
+                              <li class="page-item" [class.disabled]="pageAcrSemEntrega === totalPagesAcrSemEntrega">
+                                <button class="page-link" (click)="pageAcrSemEntrega = pageAcrSemEntrega + 1">Próxima</button>
+                              </li>
+                            </ul>
+                          </nav>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Aba ACR: Títulos com Devolução -->
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2" *ngIf="pendenciasAcrTab() === 'devolucao'">
+                    <div class="row g-4">
+                      <div class="col-12">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0 fw-semibold text-secondary">Títulos com Devolução</h6>
+                            <div class="config-toolbar mb-0">
+                              <div class="search-box">
+                                <i class="fa-solid fa-search text-muted position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+                                <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
+                                  [(ngModel)]="searchAcrDevolucao" (ngModelChange)="pageAcrDevolucao = 1"
+                                  style="padding-left: 28px;">
+                              </div>
+                            </div>
+                          </div>
+                          <table class="saas-table w-100 mt-2">
+                            <thead>
+                              <tr>
+                                <th>Título</th>
+                                <th>Cliente</th>
+                                <th>Vencimento</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-center">AÇÕES</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let item of paginatedAcrDevolucao">
+                                <td>{{ item.titulo || '-' }}</td>
+                                <td>{{ item.cliente }}</td>
+                                <td>{{ (item.vencimento | date:'dd/MM/yyyy') || '-' }}</td>
+                                <td class="text-end"><span class="text-danger fw-semibold" >{{ item.valor | currency:'BRL' }}</span></td>
+                                <td class="text-center text-nowrap">
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Tratativas" (click)="abrirTratativas(item)">
+                                    <i class="fa-solid fa-clipboard-list" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Mensagens" (click)="abrirMensagens(item)">
+                                    <i class="fa-solid fa-comments" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1" title="Visualizar Histórico" (click)="abrirHistorico(item)">
+                                    <i class="fa-solid fa-timeline" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                </td>
+                              </tr>
+                              <tr *ngIf="paginatedAcrDevolucao.length === 0">
+                                <td colspan="5" class="text-center text-muted py-3">Nenhum título encontrado.</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <nav aria-label="Page navigation" class="mt-3" *ngIf="totalPagesAcrDevolucao > 1">
+                            <ul class="pagination pagination-sm justify-content-end mb-0">
+                              <li class="page-item" [class.disabled]="pageAcrDevolucao === 1">
+                                <button class="page-link" (click)="pageAcrDevolucao = pageAcrDevolucao - 1">Anterior</button>
+                              </li>
+                              <li class="page-item disabled"><span class="page-link">Pág {{pageAcrDevolucao}} de {{totalPagesAcrDevolucao}}</span></li>
+                              <li class="page-item" [class.disabled]="pageAcrDevolucao === totalPagesAcrDevolucao">
+                                <button class="page-link" (click)="pageAcrDevolucao = pageAcrDevolucao + 1">Próxima</button>
+                              </li>
+                            </ul>
+                          </nav>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Aba ACR: Títulos em Acordo -->
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2" *ngIf="pendenciasAcrTab() === 'acordo'">
+                    <div class="row g-4">
+                      <div class="col-12">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0 fw-semibold text-secondary">Títulos em Acordo</h6>
+                            <div class="config-toolbar mb-0">
+                              <div class="search-box">
+                                <i class="fa-solid fa-search text-muted position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+                                <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
+                                  [(ngModel)]="searchAcrAcordo" (ngModelChange)="pageAcrAcordo = 1"
+                                  style="padding-left: 28px;">
+                              </div>
+                            </div>
+                          </div>
+                          <table class="saas-table w-100 mt-2">
+                            <thead>
+                              <tr>
+                                <th>Título</th>
+                                <th>Cliente</th>
+                                <th>Vencimento</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-center">AÇÕES</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let item of paginatedAcrAcordo">
+                                <td>{{ item.titulo || '-' }}</td>
+                                <td>{{ item.cliente }}</td>
+                                <td>{{ (item.vencimento | date:'dd/MM/yyyy') || '-' }}</td>
+                                <td class="text-end"><span class="text-primary fw-semibold" >{{ item.valor | currency:'BRL' }}</span></td>
+                                <td class="text-center text-nowrap">
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Tratativas" (click)="abrirTratativas(item)">
+                                    <i class="fa-solid fa-clipboard-list" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Mensagens" (click)="abrirMensagens(item)">
+                                    <i class="fa-solid fa-comments" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1" title="Visualizar Histórico" (click)="abrirHistorico(item)">
+                                    <i class="fa-solid fa-timeline" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                </td>
+                              </tr>
+                              <tr *ngIf="paginatedAcrAcordo.length === 0">
+                                <td colspan="5" class="text-center text-muted py-3">Nenhum título encontrado.</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <nav aria-label="Page navigation" class="mt-3" *ngIf="totalPagesAcrAcordo > 1">
+                            <ul class="pagination pagination-sm justify-content-end mb-0">
+                              <li class="page-item" [class.disabled]="pageAcrAcordo === 1">
+                                <button class="page-link" (click)="pageAcrAcordo = pageAcrAcordo - 1">Anterior</button>
+                              </li>
+                              <li class="page-item disabled"><span class="page-link">Pág {{pageAcrAcordo}} de {{totalPagesAcrAcordo}}</span></li>
+                              <li class="page-item" [class.disabled]="pageAcrAcordo === totalPagesAcrAcordo">
+                                <button class="page-link" (click)="pageAcrAcordo = pageAcrAcordo + 1">Próxima</button>
+                              </li>
+                            </ul>
+                          </nav>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Aba ACR: Títulos AN -->
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2" *ngIf="pendenciasAcrTab() === 'an'">
+                    <div class="row g-4">
+                      <div class="col-12">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0 fw-semibold text-secondary">Títulos AN</h6>
+                            <div class="config-toolbar mb-0">
+                              <div class="search-box">
+                                <i class="fa-solid fa-search text-muted position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+                                <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
+                                  [(ngModel)]="searchAcrAN" (ngModelChange)="pageAcrAN = 1"
+                                  style="padding-left: 28px;">
+                              </div>
+                            </div>
+                          </div>
+                          <table class="saas-table w-100 mt-2">
+                            <thead>
+                              <tr>
+                                <th>Título</th>
+                                <th>Cliente</th>
+                                <th>Vencimento</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-center">AÇÕES</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let item of paginatedAcrAN">
+                                <td>{{ item.titulo || '-' }}</td>
+                                <td>{{ item.cliente }}</td>
+                                <td>{{ (item.vencimento | date:'dd/MM/yyyy') || '-' }}</td>
+                                <td class="text-end"><span class="text-secondary fw-semibold" >{{ item.valor | currency:'BRL' }}</span></td>
+                                <td class="text-center text-nowrap">
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Tratativas" (click)="abrirTratativas(item)">
+                                    <i class="fa-solid fa-clipboard-list" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Mensagens" (click)="abrirMensagens(item)">
+                                    <i class="fa-solid fa-comments" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1" title="Visualizar Histórico" (click)="abrirHistorico(item)">
+                                    <i class="fa-solid fa-timeline" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                </td>
+                              </tr>
+                              <tr *ngIf="paginatedAcrAN.length === 0">
+                                <td colspan="5" class="text-center text-muted py-3">Nenhum título encontrado.</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <nav aria-label="Page navigation" class="mt-3" *ngIf="totalPagesAcrAN > 1">
+                            <ul class="pagination pagination-sm justify-content-end mb-0">
+                              <li class="page-item" [class.disabled]="pageAcrAN === 1">
+                                <button class="page-link" (click)="pageAcrAN = pageAcrAN - 1">Anterior</button>
+                              </li>
+                              <li class="page-item disabled"><span class="page-link">Pág {{pageAcrAN}} de {{totalPagesAcrAN}}</span></li>
+                              <li class="page-item" [class.disabled]="pageAcrAN === totalPagesAcrAN">
+                                <button class="page-link" (click)="pageAcrAN = pageAcrAN + 1">Próxima</button>
+                              </li>
+                            </ul>
+                          </nav>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Aba ACR: Títulos AD -->
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2" *ngIf="pendenciasAcrTab() === 'ad'">
+                    <div class="row g-4">
+                      <div class="col-12">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0 fw-semibold text-secondary">Títulos AD</h6>
+                            <div class="config-toolbar mb-0">
+                              <div class="search-box">
+                                <i class="fa-solid fa-search text-muted position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+                                <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
+                                  [(ngModel)]="searchAcrAD" (ngModelChange)="pageAcrAD = 1"
+                                  style="padding-left: 28px;">
+                              </div>
+                            </div>
+                          </div>
+                          <table class="saas-table w-100 mt-2">
+                            <thead>
+                              <tr>
+                                <th>Título</th>
+                                <th>Cliente</th>
+                                <th>Vencimento</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-center">AÇÕES</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let item of paginatedAcrAD">
+                                <td>{{ item.titulo || '-' }}</td>
+                                <td>{{ item.cliente }}</td>
+                                <td>{{ (item.vencimento | date:'dd/MM/yyyy') || '-' }}</td>
+                                <td class="text-end"><span class="text-secondary fw-semibold" >{{ item.valor | currency:'BRL' }}</span></td>
+                                <td class="text-center text-nowrap">
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Tratativas" (click)="abrirTratativas(item)">
+                                    <i class="fa-solid fa-clipboard-list" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Mensagens" (click)="abrirMensagens(item)">
+                                    <i class="fa-solid fa-comments" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1" title="Visualizar Histórico" (click)="abrirHistorico(item)">
+                                    <i class="fa-solid fa-timeline" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                </td>
+                              </tr>
+                              <tr *ngIf="paginatedAcrAD.length === 0">
+                                <td colspan="5" class="text-center text-muted py-3">Nenhum título encontrado.</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <nav aria-label="Page navigation" class="mt-3" *ngIf="totalPagesAcrAD > 1">
+                            <ul class="pagination pagination-sm justify-content-end mb-0">
+                              <li class="page-item" [class.disabled]="pageAcrAD === 1">
+                                <button class="page-link" (click)="pageAcrAD = pageAcrAD - 1">Anterior</button>
+                              </li>
+                              <li class="page-item disabled"><span class="page-link">Pág {{pageAcrAD}} de {{totalPagesAcrAD}}</span></li>
+                              <li class="page-item" [class.disabled]="pageAcrAD === totalPagesAcrAD">
+                                <button class="page-link" (click)="pageAcrAD = pageAcrAD + 1">Próxima</button>
+                              </li>
+                            </ul>
+                          </nav>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Aba ACR: Títulos RJ -->
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2" *ngIf="pendenciasAcrTab() === 'rj'">
+                    <div class="row g-4">
+                      <div class="col-12">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0 fw-semibold text-secondary">Títulos RJ</h6>
+                            <div class="config-toolbar mb-0">
+                              <div class="search-box">
+                                <i class="fa-solid fa-search text-muted position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+                                <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
+                                  [(ngModel)]="searchAcrRJ" (ngModelChange)="pageAcrRJ = 1"
+                                  style="padding-left: 28px;">
+                              </div>
+                            </div>
+                          </div>
+                          <table class="saas-table w-100 mt-2">
+                            <thead>
+                              <tr>
+                                <th>Título</th>
+                                <th>Cliente</th>
+                                <th>Vencimento</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-center">AÇÕES</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let item of paginatedAcrRJ">
+                                <td>{{ item.titulo || '-' }}</td>
+                                <td>{{ item.cliente }}</td>
+                                <td>{{ (item.vencimento | date:'dd/MM/yyyy') || '-' }}</td>
+                                <td class="text-end"><span class="text-secondary fw-semibold" >{{ item.valor | currency:'BRL' }}</span></td>
+                                <td class="text-center text-nowrap">
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Tratativas" (click)="abrirTratativas(item)">
+                                    <i class="fa-solid fa-clipboard-list" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Mensagens" (click)="abrirMensagens(item)">
+                                    <i class="fa-solid fa-comments" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1" title="Visualizar Histórico" (click)="abrirHistorico(item)">
+                                    <i class="fa-solid fa-timeline" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                </td>
+                              </tr>
+                              <tr *ngIf="paginatedAcrRJ.length === 0">
+                                <td colspan="5" class="text-center text-muted py-3">Nenhum título encontrado.</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <nav aria-label="Page navigation" class="mt-3" *ngIf="totalPagesAcrRJ > 1">
+                            <ul class="pagination pagination-sm justify-content-end mb-0">
+                              <li class="page-item" [class.disabled]="pageAcrRJ === 1">
+                                <button class="page-link" (click)="pageAcrRJ = pageAcrRJ - 1">Anterior</button>
+                              </li>
+                              <li class="page-item disabled"><span class="page-link">Pág {{pageAcrRJ}} de {{totalPagesAcrRJ}}</span></li>
+                              <li class="page-item" [class.disabled]="pageAcrRJ === totalPagesAcrRJ">
+                                <button class="page-link" (click)="pageAcrRJ = pageAcrRJ + 1">Próxima</button>
+                              </li>
+                            </ul>
+                          </nav>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Aba ACR: Títulos PR -->
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2" *ngIf="pendenciasAcrTab() === 'pr'">
+                    <div class="row g-4">
+                      <div class="col-12">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm">
+                          <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0 fw-semibold text-secondary">Títulos PR</h6>
+                            <div class="config-toolbar mb-0">
+                              <div class="search-box">
+                                <i class="fa-solid fa-search text-muted position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%);"></i>
+                                <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
+                                  [(ngModel)]="searchAcrPR" (ngModelChange)="pageAcrPR = 1"
+                                  style="padding-left: 28px;">
+                              </div>
+                            </div>
+                          </div>
+                          <table class="saas-table w-100 mt-2">
+                            <thead>
+                              <tr>
+                                <th>Título</th>
+                                <th>Cliente</th>
+                                <th>Vencimento</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-center">AÇÕES</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let item of paginatedAcrPR">
+                                <td>{{ item.titulo || '-' }}</td>
+                                <td>{{ item.cliente }}</td>
+                                <td>{{ (item.vencimento | date:'dd/MM/yyyy') || '-' }}</td>
+                                <td class="text-end"><span class="text-secondary fw-semibold" >{{ item.valor | currency:'BRL' }}</span></td>
+                                <td class="text-center text-nowrap">
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Tratativas" (click)="abrirTratativas(item)">
+                                    <i class="fa-solid fa-clipboard-list" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1 me-1" title="Visualizar Mensagens" (click)="abrirMensagens(item)">
+                                    <i class="fa-solid fa-comments" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                  <button class="btn btn-sm bg-secondary bg-opacity-10 text-secondary border-0 p-1" title="Visualizar Histórico" (click)="abrirHistorico(item)">
+                                    <i class="fa-solid fa-timeline" style="font-size: 1.1rem;"></i>
+                                  </button>
+                                </td>
+                              </tr>
+                              <tr *ngIf="paginatedAcrPR.length === 0">
+                                <td colspan="5" class="text-center text-muted py-3">Nenhum título encontrado.</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <nav aria-label="Page navigation" class="mt-3" *ngIf="totalPagesAcrPR > 1">
+                            <ul class="pagination pagination-sm justify-content-end mb-0">
+                              <li class="page-item" [class.disabled]="pageAcrPR === 1">
+                                <button class="page-link" (click)="pageAcrPR = pageAcrPR - 1">Anterior</button>
+                              </li>
+                              <li class="page-item disabled"><span class="page-link">Pág {{pageAcrPR}} de {{totalPagesAcrPR}}</span></li>
+                              <li class="page-item" [class.disabled]="pageAcrPR === totalPagesAcrPR">
+                                <button class="page-link" (click)="pageAcrPR = pageAcrPR + 1">Próxima</button>
+                              </li>
+                            </ul>
+                          </nav>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
