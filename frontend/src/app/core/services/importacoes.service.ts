@@ -244,13 +244,21 @@ export class ImportacoesService {
           throw new Error("Não foi possível ler a stream.");
         }
         
+        // Um chunk pode terminar no meio de uma linha NDJSON: o pedaço final incompleto
+        // fica no buffer e é completado pelo próximo chunk (ou processado ao fim da stream).
+        let buffer = '';
+
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
-          
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
-          
+          if (done) {
+            buffer += decoder.decode();
+          } else {
+            buffer += decoder.decode(value, { stream: true });
+          }
+
+          const lines = buffer.split('\n');
+          buffer = done ? '' : (lines.pop() ?? '');
+
           for (const line of lines) {
             if (line.trim()) {
               try {
@@ -265,6 +273,8 @@ export class ImportacoesService {
               }
             }
           }
+
+          if (done) break;
         }
         
         this.zone.run(() => observer.complete());

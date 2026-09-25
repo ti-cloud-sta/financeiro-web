@@ -16,6 +16,7 @@ docker compose up -d --build
 docker compose up -d --build frontend
 docker compose up -d --build backend
 
+<<<<<<< HEAD
 
 
 =============================================
@@ -28,3 +29,9 @@ design e lógica, não esqueça nada, nao perca nem pule
 arquivos e não perca o foco.
 
 coloque nas suas premissas as regras que estao na pasta [rules](file;file:///c%3A/Users/JOE/Documents/GitHub/financeiro-web/.agents/rules) 
+=======
+============================================
+
+ssh
+'eUR+atgNpMO&0I?
+>>>>>>> upstream/main

@@ -24,8 +24,8 @@ export class UsersService {
     return this.http.patch(`${this.API_URL}/users/${userId}/status`, { bloqueado });
   }
 
-  grantAdmin(userId: string | number): Observable<any> {
-    return this.http.patch(`${this.API_URL}/users/${userId}/admin`, { admin: true });
+  setAdmin(userId: string | number, admin: boolean): Observable<any> {
+    return this.http.patch(`${this.API_URL}/users/${userId}/admin`, { admin });
   }
 
   register(userData: any): Observable<User> {

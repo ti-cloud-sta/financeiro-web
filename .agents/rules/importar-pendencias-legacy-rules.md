@@ -9,7 +9,7 @@ Este documento descreve as regras de negócio originais do endpoint de importaç
   - Faltasse a Data de Vencimento (coluna P).
   - Faltasse as informações do Cliente (código ou nome).
 - **Cadastro Automático (Upsert):** Se um código ou nome de cliente (e matriz) fosse lido e ainda não existisse no banco de dados do sistema, eles eram criados e vinculados automaticamente durante a varredura da linha.
-- **Prevenção de Duplicidade Simples (Regra Legada):** O sistema validava a existência baseando-se na chave composta de `Unidade + Série + Título + Parcela`. Se a pendência já existisse com estes atributos, a linha era ignorada para evitar duplicação em banco. *(Nota de Atualização: A regra atual considera `Unidade + Série + Título + Parcela + Espécie + Carteira` para permitir coexistência de espécies diferentes no mesmo título e atualizações de saldo/carteira, conforme detalhado em `CONTEXTO_MODULOS.md` e `AGENTS.md`)*.
+- **Prevenção de Duplicidade Simples (Regra Legada):** O sistema validava a existência baseando-se na chave composta de `Unidade + Série + Título + Parcela`. Se a pendência já existisse com estes atributos, a linha era ignorada para evitar duplicação em banco. *(Nota de Atualização: A regra atual considera `Unidade + Série + Título + Parcela + Espécie + Carteira` para permitir coexistência de espécies diferentes no mesmo título e atualizações de saldo/carteira, conforme detalhado em `context/modulo-inadimplencia.md`)*.
 
 ## 2. Regras de Classificação e Triagem Automática
 Durante a importação, cada nota era classificada (designada a uma **Fase** e **Status**) baseada na primeira regra que retornasse verdadeiro dentre a cascata abaixo:

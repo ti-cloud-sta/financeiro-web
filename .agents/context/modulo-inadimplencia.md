@@ -40,8 +40,13 @@ Quando um título já cadastrado reaparece em uma nova importação:
 - **Retorno de Título (Reabertura)**: Se uma pendência constava como `encerrado = 'S'` por ausência em importação prévia e retorna na planilha atual, seu status é revertido para `encerrado = 'N'`.
 - **Baixa Automática por Ausência (Rastreamento por ID)**:
   - Durante o processamento da planilha, todos os IDs encontrados são acumulados em uma lista (`ids_processados_planilha`).
-  - Títulos ativos no banco (`encerrado = 'N'`) que não constarem no novo arquivo são marcados automaticamente com `encerrado = 'S'`, gerando o histórico *"Pendência finalizada"* (assinado pelo usuário sistema, id 14).
+  - Títulos ativos no banco (`encerrado = 'N'`) com vencimento até a data de corte (`calcular_data_corte_vencimento`) que não constarem no novo arquivo são marcados automaticamente com `encerrado = 'S'`, gerando o histórico *"Pendência finalizada"* (assinado pelo usuário sistema, id 14).
   - A checagem por ID impede baixas indevidas cruzadas entre diferentes espécies do mesmo título.
+
+### Importação via API (Datasul):
+- **Endpoint**: `POST /api/v1/importacoes/inadimplencia/importar-pendencias/datasul` (JWT obrigatório, header `Authorization: Bearer <token>`). Body: `{"pendencias": [ ... ]}`, onde cada item traz os mesmos campos das colunas da planilha (`estabelecimento`, `especie`, `serie`, `titulo`, `parcela`, `nrPedidoCliente`, `tipoPedido`, `codigoCliente`, `nomeCliente`, `codigoMatriz`, `portador`, `carteira`, `dtEmissao`, `dtEntrega`, `dtVencimento`, `valorOriginal`, `valorSaldo`). Retorna o mesmo resumo JSON da planilha (sem streaming).
+- **Mesmas regras**: planilha e Datasul passam pelo mesmo método `InadimplenciaService._processar_linhas_pendencias` — qualquer regra nova de importação (ex.: data de corte, baixa por ausência) deve ser feita ali, nunca duplicada. A carga do Datasul deve ser sempre a base completa de títulos em aberto, senão a baixa por ausência encerra o que ficou de fora.
+- **Registro**: grava uma importação com `tipo = "Importação DATASUL"` (`TIPO_IMPORTACAO_DATASUL`), `nomeArquivo = DATASUL_<data_hora>` e extensão `json`. Tudo roda em uma única transação: se falhar, nem a importação nem as pendências são gravadas. A tela "Atualização de Dados" lista os tipos `PENDENCIAS` e `Importação DATASUL` (o filtro `categoria` de `/importacoes` aceita vários tipos separados por vírgula).
 
 ---
 
@@ -51,11 +56,11 @@ Quando um título já cadastrado reaparece em uma nova importação:
 - Quando um card é arrastado da coluna "FINALIZADO" para outra fase (coluna), o frontend intercepta a ação e abre obrigatoriamente o modal `pendencia-detalhe-modal`.
 - O usuário deve selecionar um "Novo Status" neste modal antes de persistir o movimento.
 
-### Lista de 19 Opções Padronizadas de Status:
-Todos os select boxes de status (filtro Kanban, modal de detalhes e modal de mudança de fase) utilizam a constante estática e alfabética `STATUS_OPTIONS`:
+### Lista de 18 Opções Padronizadas de Status:
+Todos os select boxes de status (filtro Kanban, modal de detalhes e modal de mudança de fase) utilizam a constante estática e alfabética `STATUS_OPTIONS` (`CART-DES` não existe mais — foi simplificado para `DES`):
 ```typescript
 [
-  "ACORDO", "AD", "AN", "ANALISAR", "ATRASADO", "CART-DES", "COMISSAO", 
+  "ACORDO", "AD", "AN", "ANALISAR", "ATRASADO", "COMISSAO", 
   "DES", "DEVOLUCAO", "EXPORTACAO", "MARTINS", "MERCADINHO", "OK", 
   "PERDAS", "PR", "PRORROGADO", "PROTESTADO", "RJ", "SEM DATA DE ENTREGA"
 ]

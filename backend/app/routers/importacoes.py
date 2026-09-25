@@ -13,8 +13,8 @@ from app.services.dashboard_service import DashboardService
 from app.services.inadimplencia_service import InadimplenciaService
 from app.repositories.categoria_repository import CategoriaRepository
 from app.repositories.colaborador_repository import ColaboradorRepository
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, Field
+from typing import List, Optional, Union
 from datetime import date
 from app.routers.plano_saude_ia import router as plano_saude_ia_router
 import logging
@@ -48,7 +48,8 @@ def get_importacoes(
 def listar_pendencias_inadimplencia(
     data_inicio: Optional[date] = Query(None, description="Filtra vencimento >= data_inicio (YYYY-MM-DD)"),
     data_fim: Optional[date] = Query(None, description="Filtra vencimento <= data_fim (YYYY-MM-DD)"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     try:
         return InadimplenciaService(db).listar_pendencias(data_inicio, data_fim)
@@ -56,7 +57,10 @@ def listar_pendencias_inadimplencia(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/inadimplencia/janela-regra-dia")
-def obter_janela_regra_dia_inadimplencia(db: Session = Depends(get_db)):
+def obter_janela_regra_dia_inadimplencia(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
         return InadimplenciaService(db).obter_janela_regra_dia()
     except Exception as e:
@@ -108,7 +112,11 @@ class EditarTratativaPayload(BaseModel):
     conteudo: str
 
 @router.get("/inadimplencia/pendencias/{id_nf}/tratativas")
-def listar_tratativas_pendencia(id_nf: int, db: Session = Depends(get_db)):
+def listar_tratativas_pendencia(
+    id_nf: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
         return InadimplenciaService(db).listar_tratativas(id_nf)
     except LookupError as le:
@@ -133,7 +141,12 @@ def criar_tratativa_pendencia(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/inadimplencia/tratativas/{id_tratativa}")
-def editar_tratativa_pendencia(id_tratativa: int, payload: EditarTratativaPayload, db: Session = Depends(get_db)):
+def editar_tratativa_pendencia(
+    id_tratativa: int,
+    payload: EditarTratativaPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
         return InadimplenciaService(db).editar_tratativa(id_tratativa, payload.conteudo)
     except ValueError as ve:
@@ -148,7 +161,11 @@ class CriarHistoricoPayload(BaseModel):
     observacao: str
 
 @router.get("/inadimplencia/pendencias/{id_nf}/historico")
-def listar_historico_pendencia(id_nf: int, db: Session = Depends(get_db)):
+def listar_historico_pendencia(
+    id_nf: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
         return InadimplenciaService(db).listar_historico(id_nf)
     except LookupError as le:
@@ -293,6 +310,47 @@ async def importar_pendencias_inadimplencia(
         return StreamingResponse(resultado_generator, media_type="application/x-ndjson")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+class PendenciaDatasulItem(BaseModel):
+    """Uma linha de pendência - mesmos campos das colunas da planilha 'Base pendencias.xlsx' (aba Resumo)."""
+    estabelecimento: Optional[int] = Field(None, description="Coluna A - Est (código da unidade)")
+    especie: Optional[str] = Field(None, description="Coluna B - Esp (DP, AD, AN, PR, RJ). Linhas sem espécie são ignoradas")
+    serie: Optional[int] = Field(None, description="Coluna C - Ser")
+    titulo: Optional[Union[str, int]] = Field(None, description="Coluna D - Título. Envie como texto para preservar zeros à esquerda (ex.: '0017356')")
+    parcela: Optional[float] = Field(None, description="Coluna E - /P")
+    nrPedidoCliente: Optional[int] = Field(None, description="Coluna F - Nr Pedcli")
+    tipoPedido: Optional[str] = Field(None, description="Coluna G - Tipo Pedido (PV, ER, E1, PX)")
+    codigoCliente: Optional[int] = Field(None, description="Coluna H - Cliente (obrigatório junto com nomeCliente)")
+    nomeCliente: Optional[str] = Field(None, description="Coluna J - Nome Cliente")
+    codigoMatriz: Optional[int] = Field(None, description="Coluna K - Cliente Matriz")
+    portador: Optional[int] = Field(None, description="Coluna L - Port")
+    carteira: Optional[str] = Field(None, description="Coluna M - Cart (DEV, CAR, DES, SIM, VIN)")
+    dtEmissao: Optional[date] = Field(None, description="Coluna N - Emissão (YYYY-MM-DD)")
+    dtEntrega: Optional[date] = Field(None, description="Coluna O - Dt Entrega (YYYY-MM-DD)")
+    dtVencimento: Optional[date] = Field(None, description="Coluna P - Vencto (YYYY-MM-DD). Linhas sem vencimento são ignoradas")
+    valorOriginal: Optional[float] = Field(None, description="Coluna T - Val Original")
+    valorSaldo: Optional[float] = Field(None, description="Coluna U - Saldo")
+
+class ImportarPendenciasDatasulPayload(BaseModel):
+    pendencias: List[PendenciaDatasulItem] = Field(..., min_length=1)
+
+@router.post("/inadimplencia/importar-pendencias/datasul")
+def importar_pendencias_datasul(
+    payload: ImportarPendenciasDatasulPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Recebe as pendências de outros sistemas (Datasul) e aplica exatamente as mesmas regras da
+    importação por planilha - inclusive a baixa automática das pendências ativas que não vierem
+    na carga. Grava uma importação do tipo "Importação DATASUL" junto com os dados (transação única).
+    """
+    try:
+        linhas = [item.model_dump() for item in payload.pendencias]
+        return InadimplenciaService(db).importar_pendencias_datasul(linhas, current_user.iduser)
+    except Exception as e:
+        logger.error("Erro na importação de pendências DATASUL: %s", e)
+        raise HTTPException(status_code=500, detail=f"Falha no processamento: {e}")
 
 @router.delete("/{id_importacao}")
 def excluir_importacao(

@@ -11,7 +11,9 @@ class ImportacaoRepository:
         query = self.db.query(Importacao)
         
         if categoria:
-            query = query.filter(Importacao.tipo.ilike(f"{categoria}%"))
+            # Aceita vários tipos separados por vírgula (ex.: "PENDENCIAS,Importação DATASUL")
+            categorias = [c.strip() for c in categoria.split(",") if c.strip()]
+            query = query.filter(or_(*[Importacao.tipo.ilike(f"{c}%") for c in categorias]))
             
         if search:
             query = query.filter(

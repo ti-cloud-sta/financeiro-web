@@ -2,7 +2,8 @@ import datetime
 import math
 import io
 import json
-from typing import Optional, Tuple, List
+import logging
+from typing import Iterable, Iterator, List, Optional, Tuple
 import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func, cast, Date, desc
@@ -15,9 +16,12 @@ from app.models.tratativa import Tratativa
 from app.models.cliente_representante import ClienteRepresentante
 from app.models.colaborador import Colaborador
 from app.models.historico_pendencia import HistoricoPendencia
+from app.models.importacao import Importacao
 from app.models.pendencia_mensagem import PendenciaMensagem
 from app.models.user import User
 from app.services.importacao_service import ImportacaoService
+
+logger = logging.getLogger("santamaria")
 
 # Excel armazena datas como número de dias a partir de 1899-12-30 (compatibilidade com o bug histórico do Lotus 1-2-3)
 EXCEL_EPOCH = datetime.date(1899, 12, 30)
@@ -29,9 +33,12 @@ WEEKDAY_NOMES = [
 
 # Mesmas fases usadas como colunas do Kanban de Pendências (tela) e mesmos status
 # disponíveis no select do modal de detalhes - mantidos em sincronia com o frontend.
+# Tipo gravado em importacoes.tipo para cargas recebidas do Datasul via API
+TIPO_IMPORTACAO_DATASUL = "Importação DATASUL"
+
 FASE_OPTIONS = ["PENDENCIAS", "LOGISTICA", "FISCAL", "COMERCIAL", "FINANCEIRO", "FINALIZADO"]
 STATUS_OPTIONS = [
-    "ACORDO", "AD", "AN", "ANALISAR", "ATRASADO", "CART-DES", "COMISSAO", "DES",
+    "ACORDO", "AD", "AN", "ANALISAR", "ATRASADO", "COMISSAO", "DES",
     "DEVOLUCAO", "EXPORTACAO", "MARTINS", "MERCADINHO", "OK", "PERDAS",
     "PR", "PRORROGADO", "PROTESTADO", "RJ", "SEM DATA DE ENTREGA"
 ]
@@ -178,7 +185,7 @@ class InadimplenciaService:
         self._cache_unidades: dict[int, Optional[int]] = {}
 
     def importar_pendencias(self, conteudo: bytes, nome_arquivo: str, id_user: Optional[int] = None):
-        import json
+        """Importação via planilha (aba Resumo). Faz streaming NDJSON do progresso."""
         try:
             df = pd.read_excel(io.BytesIO(conteudo), sheet_name="Resumo", header=0)
         except Exception as exc:
@@ -189,20 +196,6 @@ class InadimplenciaService:
             yield json.dumps({"erro": f"A planilha precisa ter pelo menos {self.MIN_COLUNAS} colunas (até a coluna U). Colunas encontradas: {df.shape[1]}."}) + "\n"
             return
 
-        total_com_especie = 0
-        importadas = 0
-        prorrogadas = 0
-        atualizadas = 0
-        ignoradas_sem_cliente = 0
-        ignoradas_sem_vencimento = 0
-        ignoradas_nao_vencidas = 0
-        ignoradas_duplicadas = 0
-        sem_unidade_encontrada = 0
-        clientes_criados = 0
-        matrizes_criadas = 0
-
-        data_corte = calcular_data_corte_vencimento(datetime.date.today())
-        ids_processados_planilha: set[int] = set()
         extensao = nome_arquivo.rsplit(".", 1)[-1].lower() if "." in nome_arquivo else "xlsx"
 
         try:
@@ -217,350 +210,446 @@ class InadimplenciaService:
             yield json.dumps({"erro": f"Erro ao registrar importação: {e}"}) + "\n"
             return
 
-        total_rows = len(df)
-        
+        linhas = (self._linha_planilha_para_dict(row) for _, row in df.iterrows())
         try:
-            for idx, row in df.iterrows():
-                especie = _clean_str(row.iloc[self.COL_ESPECIE])
-                if especie:
-                    especie = especie.upper()
-                if not especie:
-                    continue  # linha em branco / separador / rodapé do relatório
-
-                total_com_especie += 1
-
-                codigo_estabelecimento = _to_int(row.iloc[self.COL_ESTABELECIMENTO])
-                id_unidade = self._buscar_unidade(codigo_estabelecimento)
-                if codigo_estabelecimento is not None and id_unidade is None:
-                    sem_unidade_encontrada += 1
-
-                serie = _to_int(row.iloc[self.COL_SERIE])
-                titulo = _clean_titulo(row.iloc[self.COL_TITULO])
-                parcela = _to_float(row.iloc[self.COL_PARCELA])
-
-
-                vencimento = _excel_serial_to_date(row.iloc[self.COL_VENCIMENTO])
-                if vencimento is None:
-                    ignoradas_sem_vencimento += 1
-                    continue
-
-                venc_data = vencimento.date() if isinstance(vencimento, datetime.datetime) else vencimento
-                if venc_data > data_corte:
-                    ignoradas_nao_vencidas += 1
-                    continue
-
-
-                tipo_pedido = _clean_str(row.iloc[self.COL_TIPO_PEDIDO])
-                if tipo_pedido:
-                    tipo_pedido = tipo_pedido.upper()
-                carteira = _clean_str(row.iloc[self.COL_CARTEIRA])
-                if carteira:
-                    carteira = carteira.upper()
-                data_entrega = _excel_serial_to_date(row.iloc[self.COL_DATA_ENTREGA])
-                valor_original = _to_float(row.iloc[self.COL_VALOR_ORIGINAL])
-                saldo = _to_float(row.iloc[self.COL_SALDO])
-
-                codigo_cliente = _to_int(row.iloc[self.COL_CLIENTE_CODIGO])
-                nome_cliente = _clean_str(row.iloc[self.COL_NOME_CLIENTE])
-
-                if codigo_cliente is None or not nome_cliente:
-                    ignoradas_sem_cliente += 1
-                    continue
-
-                id_cliente, criado_cliente = self._obter_ou_criar_cliente(codigo_cliente, nome_cliente)
-                if criado_cliente:
-                    clientes_criados += 1
-
-                codigo_matriz = _to_int(row.iloc[self.COL_MATRIZ_CODIGO])
-                id_matriz = None
-                if codigo_matriz is not None:
-                    id_matriz, criado_matriz = self._obter_ou_criar_matriz(codigo_matriz)
-                    if criado_matriz:
-                        matrizes_criadas += 1
-
-                pendencia_existente = self._obter_pendencia_existente(
-                    id_unidade=id_unidade,
-                    serie=serie,
-                    titulo=titulo,
-                    parcela=parcela,
-                    especie=especie,
-                    carteira=carteira,
-                    ids_ja_processados=ids_processados_planilha
-                )
-                if pendencia_existente:
-                    ids_processados_planilha.add(pendencia_existente.idnfpendencias)
-                    mudancas = []
-                    mudou_saldo = False
-                    mudou_carteira = False
-
-                    # 1. Verifica vencimento e prorrogação
-                    venc_db = pendencia_existente.dtVencimento
-                    if isinstance(venc_db, datetime.datetime):
-                        venc_db = venc_db.date()
-                    elif isinstance(venc_db, str):
-                        try:
-                            venc_db = datetime.datetime.strptime(venc_db.split('T')[0].split(' ')[0], '%Y-%m-%d').date()
-                        except:
-                            venc_db = None
-                            
-                    venc_excel = vencimento
-                    if isinstance(venc_excel, datetime.datetime):
-                        venc_excel = venc_excel.date()
-
-                    is_prorrogacao = (venc_db is not None and venc_excel is not None and venc_excel > venc_db)
-                    if is_prorrogacao:
-                        data_inicial_str = venc_db.strftime('%d/%m/%Y')
-                        data_nova_str = venc_excel.strftime('%d/%m/%Y')
-                        mudancas.append(f"Vencimento: de {data_inicial_str} para {data_nova_str}")
-                        pendencia_existente.dtVencimento = venc_excel
-                        pendencia_existente.encerrado = 'P'
-                    elif venc_db is not None and venc_excel is not None and venc_excel != venc_db:
-                        data_inicial_str = venc_db.strftime('%d/%m/%Y')
-                        data_nova_str = venc_excel.strftime('%d/%m/%Y')
-                        mudancas.append(f"Vencimento: de {data_inicial_str} para {data_nova_str}")
-                        pendencia_existente.dtVencimento = venc_excel
-
-                    # 2. Verifica Saldo
-                    saldo_db = pendencia_existente.valorSaldo
-                    if saldo is not None and (saldo_db is None or round(float(saldo), 2) != round(float(saldo_db), 2)):
-                        saldo_ant_str = f"R$ {float(saldo_db):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if saldo_db is not None else "R$ 0,00"
-                        saldo_novo_str = f"R$ {float(saldo):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                        mudancas.append(f"Saldo: de {saldo_ant_str} para {saldo_novo_str}")
-                        pendencia_existente.valorSaldo = saldo
-                        mudou_saldo = True
-
-                    # 3. Verifica Carteira (Coluna M)
-                    carteira_ant = pendencia_existente.carteira
-                    if carteira and carteira != carteira_ant:
-                        mudancas.append(f"Carteira: de {carteira_ant or '-'} para {carteira}")
-                        pendencia_existente.carteira = carteira
-                        mudou_carteira = True
-                        # A mudança de carteira reinicia a classificação manual para a view aplicar as novas regras
-                        pendencia_existente.fase = None
-                        pendencia_existente.status = None
-
-                    # 4. Outras atualizações cadastrais
-                    entrega_db = pendencia_existente.dtEntrega
-                    if isinstance(entrega_db, datetime.datetime):
-                        entrega_db = entrega_db.date()
-                    elif isinstance(entrega_db, str):
-                        try:
-                            entrega_db = datetime.datetime.strptime(entrega_db.split('T')[0].split(' ')[0], '%Y-%m-%d').date()
-                        except:
-                            entrega_db = None
-
-                    if data_entrega is not None and data_entrega != entrega_db:
-                        entrega_ant_str = entrega_db.strftime('%d/%m/%Y') if entrega_db else "Sem Data"
-                        entrega_nova_str = data_entrega.strftime('%d/%m/%Y')
-                        mudancas.append(f"Data de Entrega: de {entrega_ant_str} para {entrega_nova_str}")
-                        pendencia_existente.dtEntrega = data_entrega
-
-                    val_orig_db = pendencia_existente.valorOriginal
-                    if valor_original is not None and (val_orig_db is None or round(float(valor_original), 2) != round(float(val_orig_db), 2)):
-                        orig_ant_str = f"R$ {float(val_orig_db):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if val_orig_db is not None else "R$ 0,00"
-                        orig_novo_str = f"R$ {float(valor_original):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                        mudancas.append(f"Valor Original: de {orig_ant_str} para {orig_novo_str}")
-                        pendencia_existente.valorOriginal = valor_original
-
-                    if tipo_pedido and tipo_pedido != pendencia_existente.tipoPedido:
-                        mudancas.append(f"Tipo Pedido: de {pendencia_existente.tipoPedido or '-'} para {tipo_pedido}")
-                        pendencia_existente.tipoPedido = tipo_pedido
-
-                    portador_novo = _to_int(row.iloc[self.COL_PORTADOR])
-                    if portador_novo is not None and portador_novo != pendencia_existente.portador:
-                        mudancas.append(f"Portador: de {pendencia_existente.portador or '-'} para {portador_novo}")
-                        pendencia_existente.portador = portador_novo
-
-                    nr_ped_novo = _to_int(row.iloc[self.COL_NR_PEDIDO_CLIENTE])
-                    if nr_ped_novo is not None and nr_ped_novo != pendencia_existente.nrPedidoCliente:
-                        mudancas.append(f"Nº Pedido: de {pendencia_existente.nrPedidoCliente or '-'} para {nr_ped_novo}")
-                        pendencia_existente.nrPedidoCliente = nr_ped_novo
-
-                    emissao_nova = _excel_serial_to_date(row.iloc[self.COL_EMISSAO])
-                    emissao_db = pendencia_existente.dtEmissao
-                    if isinstance(emissao_db, datetime.datetime):
-                        emissao_db = emissao_db.date()
-                    if emissao_nova is not None and emissao_nova != emissao_db:
-                        emissao_ant_str = emissao_db.strftime('%d/%m/%Y') if emissao_db else "Sem Data"
-                        emissao_nova_str = emissao_nova.strftime('%d/%m/%Y')
-                        mudancas.append(f"Emissão: de {emissao_ant_str} para {emissao_nova_str}")
-                        pendencia_existente.dtEmissao = emissao_nova
-
-                    if id_cliente is not None and id_cliente != pendencia_existente.idCliente:
-                        pendencia_existente.idCliente = id_cliente
-
-                    if id_matriz is not None and id_matriz != pendencia_existente.idClienteMatriz:
-                        pendencia_existente.idClienteMatriz = id_matriz
-
-                    # Se a pendência estava marcada como encerrada por ausência anterior mas voltou na planilha
-                    if not is_prorrogacao and pendencia_existente.encerrado == 'S':
-                        pendencia_existente.encerrado = 'N'
-                        mudancas.append("Status de encerramento reaberto para ativo")
-
-                    # Efetivação e gravação de histórico
-                    pendencia_existente.idImportacoes = importacao.idImportacoes
-                    self.db.flush()
-
-                    if is_prorrogacao:
-                        descricao_hist = "Título prorrogado. Alterações: " + "; ".join(mudancas)
-                        self._novo_historico(
-                            pendencia_existente.idnfpendencias,
-                            "Título Prorrogado",
-                            descricao_hist,
-                            14 # system
-                        )
-                        self._novo_historico(
-                            pendencia_existente.idnfpendencias,
-                            "Resolução",
-                            "Pendência finalizada devido à prorrogação do título.",
-                            14 # system
-                        )
-                        prorrogadas += 1
-                    elif len(mudancas) > 0:
-
-
-                        # Histórico de Saldo se mudou
-                        if mudou_saldo:
-                            self._novo_historico(
-                                pendencia_existente.idnfpendencias,
-                                "Atualização de Saldo",
-                                f"Saldo atualizado de {saldo_ant_str} para {saldo_novo_str} na planilha '{nome_arquivo}'.",
-                                14 # system
-                            )
-
-                        # Histórico de Carteira se mudou
-                        if mudou_carteira:
-                            self._novo_historico(
-                                pendencia_existente.idnfpendencias,
-                                "Atualização de Carteira",
-                                f"Carteira alterada de {carteira_ant or '-'} para {carteira} na planilha '{nome_arquivo}'.",
-                                14 # system
-                            )
-
-                        # Outras alterações cadastrais
-                        outras_mudancas = [m for m in mudancas if not m.startswith("Saldo:") and not m.startswith("Carteira:")]
-                        if outras_mudancas:
-                            self._novo_historico(
-                                pendencia_existente.idnfpendencias,
-                                "Atualização Cadastral",
-                                f"Dados atualizados na planilha '{nome_arquivo}': " + "; ".join(outras_mudancas),
-                                14 # system
-                            )
-
-                        # Reclassificação via View após a alteração de carteira ou saldo
-                        if mudou_carteira or mudou_saldo:
-                            vw = self.db.query(VwNfPendenciaFase).filter_by(idnfpendencias=pendencia_existente.idnfpendencias).first()
-                            if vw:
-                                self._novo_historico(
-                                    pendencia_existente.idnfpendencias,
-                                    "Classificação",
-                                    f"Titulo reclassificado como pendência {vw.fase} e status {vw.status}.",
-                                    14 # system
-                                )
-
-                        atualizadas += 1
-                    else:
-                        ignoradas_duplicadas += 1
-                else:
-                    nf = NfPendencia(
-                        idUnidade=id_unidade,
-                        idImportacoes=importacao.idImportacoes,
-                        especie=especie,
-                        serie=serie,
-                        titulo=titulo,
-                        parccela=parcela,
-                        nrPedidoCliente=_to_int(row.iloc[self.COL_NR_PEDIDO_CLIENTE]),
-                        tipoPedido=tipo_pedido,
-                        idCliente=id_cliente,
-                        idClienteMatriz=id_matriz,
-                        portador=_to_int(row.iloc[self.COL_PORTADOR]),
-                        carteira=carteira,
-                        dtEmissao=_excel_serial_to_date(row.iloc[self.COL_EMISSAO]),
-                        dtEntrega=data_entrega,
-                        dtVencimento=vencimento,
-                        valorOriginal=valor_original,
-                        valorSaldo=saldo,
-                        encerrado='N'
-                    )
-                    self.db.add(nf)
-                    self.db.flush()
-                    ids_processados_planilha.add(nf.idnfpendencias)
-                    self._novo_historico(
-                        nf.idnfpendencias,
-                        "Pendencia Importada",
-                        f"Título {titulo} importado da planilha '{nome_arquivo}'.",
-                        id_user,
-                    )
-                    
-                    # Consulta a view para pegar fase e status e gravar novo histórico
-                    vw = self.db.query(VwNfPendenciaFase).filter_by(idnfpendencias=nf.idnfpendencias).first()
-                    if vw:
-                        self._novo_historico(
-                            nf.idnfpendencias,
-                            "Classificação",
-                            f"Titulo classificado como pendência {vw.fase} e status {vw.status}.",
-                            14
-                        )
-                        
-                    importadas += 1
-
-                # Batch commit every 50 records
-                if total_com_especie % 50 == 0:
-                    self.db.commit()
-                    yield json.dumps({
-                        "progresso": int(idx),
-                        "total": total_rows,
-                        "importadas": importadas,
-                        "prorrogadas": prorrogadas,
-                        "atualizadas": atualizadas,
-                        "ignoradas_duplicadas": ignoradas_duplicadas,
-                        "ignoradas_nao_vencidas": ignoradas_nao_vencidas
-                    }) + "\n"
-
-            baixadas = 0
-            if total_com_especie > 0:
-                pendencias_ativas = self.db.query(NfPendencia).filter(
-                    (NfPendencia.encerrado == 'N') | (NfPendencia.encerrado == None),
-                    NfPendencia.dtVencimento <= data_corte
-                ).all()
-                for p_ativa in pendencias_ativas:
-                    if p_ativa.idnfpendencias not in ids_processados_planilha:
-                        p_ativa.encerrado = 'S'
-                        p_ativa.idImportacoes = importacao.idImportacoes
-                        self.db.flush()
-                        self._novo_historico(
-                            p_ativa.idnfpendencias,
-                            "Pendência finalizada",
-                            "Pendência finalizada",
-                            14 # system
-                        )
-                        baixadas += 1
-
-            # Final commit
-            self.db.commit()
-            
-            yield json.dumps({
-                "sucesso": True,
-                "arquivo": nome_arquivo,
-                "idImportacao": importacao.idImportacoes,
-                "totalLinhasComEspecie": total_com_especie,
-                "importadas": importadas,
-                "prorrogadas": prorrogadas,
-                "atualizadas": atualizadas,
-                "baixadas": baixadas,
-                "ignoradasSemCliente": ignoradas_sem_cliente,
-                "ignoradasSemVencimento": ignoradas_sem_vencimento,
-                "ignoradasNaoVencidas": ignoradas_nao_vencidas,
-                "ignoradasDuplicadas": ignoradas_duplicadas,
-                "semUnidadeEncontrada": sem_unidade_encontrada,
-                "clientesCriados": clientes_criados,
-                "matrizesCriadas": matrizes_criadas,
-            }) + "\n"
+            for evento in self._processar_linhas_pendencias(
+                linhas=linhas,
+                total_linhas=len(df),
+                importacao=importacao,
+                origem=f"planilha '{nome_arquivo}'",
+                id_user=id_user,
+                commit_em_lotes=True,
+            ):
+                yield json.dumps(evento) + "\n"
         except Exception as e:
             import traceback
             traceback.print_exc()
             self.db.rollback()
             yield json.dumps({"erro": f"Falha no processamento: {str(e)}"}) + "\n"
+
+    def importar_pendencias_datasul(self, linhas: list[dict], id_user: Optional[int] = None) -> dict:
+        """
+        Importação recebida de outros sistemas (Datasul) via API. Cada item de `linhas` traz
+        os mesmos campos das colunas da planilha (ver _linha_planilha_para_dict) e passa
+        exatamente pelas mesmas regras da importação por planilha.
+
+        Tudo roda em uma única transação: a importação do tipo TIPO_IMPORTACAO_DATASUL só é
+        efetivada junto com os dados das pendências - se algo falhar, nada é gravado.
+        """
+        agora = datetime.datetime.now()
+        importacao = Importacao(
+            nomeArquivo=f"DATASUL_{agora:%Y%m%d_%H%M%S}",
+            extensaoArquivo="json",
+            tipo=TIPO_IMPORTACAO_DATASUL,
+            idUserInc=id_user,
+        )
+        self.db.add(importacao)
+        self.db.flush()  # gera o idImportacoes para vincular às pendências
+
+        try:
+            resultado: dict = {}
+            for evento in self._processar_linhas_pendencias(
+                linhas=linhas,
+                total_linhas=len(linhas),
+                importacao=importacao,
+                origem="integração DATASUL",
+                id_user=id_user,
+                commit_em_lotes=False,
+            ):
+                resultado = evento
+            return resultado
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def _linha_planilha_para_dict(self, row) -> dict:
+        """Converte uma linha do DataFrame (layout fixo por coluna) para os campos nomeados."""
+        return {
+            "estabelecimento": row.iloc[self.COL_ESTABELECIMENTO],
+            "especie": row.iloc[self.COL_ESPECIE],
+            "serie": row.iloc[self.COL_SERIE],
+            "titulo": row.iloc[self.COL_TITULO],
+            "parcela": row.iloc[self.COL_PARCELA],
+            "nrPedidoCliente": row.iloc[self.COL_NR_PEDIDO_CLIENTE],
+            "tipoPedido": row.iloc[self.COL_TIPO_PEDIDO],
+            "codigoCliente": row.iloc[self.COL_CLIENTE_CODIGO],
+            "nomeCliente": row.iloc[self.COL_NOME_CLIENTE],
+            "codigoMatriz": row.iloc[self.COL_MATRIZ_CODIGO],
+            "portador": row.iloc[self.COL_PORTADOR],
+            "carteira": row.iloc[self.COL_CARTEIRA],
+            "dtEmissao": row.iloc[self.COL_EMISSAO],
+            "dtEntrega": row.iloc[self.COL_DATA_ENTREGA],
+            "dtVencimento": row.iloc[self.COL_VENCIMENTO],
+            "valorOriginal": row.iloc[self.COL_VALOR_ORIGINAL],
+            "valorSaldo": row.iloc[self.COL_SALDO],
+        }
+
+    def _processar_linhas_pendencias(
+        self,
+        linhas: Iterable[dict],
+        total_linhas: int,
+        importacao: Importacao,
+        origem: str,
+        id_user: Optional[int],
+        commit_em_lotes: bool,
+    ) -> Iterator[dict]:
+        """
+        Regras comuns de importação de pendências (planilha e Datasul). Gera eventos de
+        progresso a cada 50 linhas e, por último, o resumo final. `origem` é usada nos textos
+        do histórico (ex.: "planilha 'Base.xlsx'", "integração DATASUL").
+        Exceções sobem para quem chama, que decide o rollback.
+        """
+        total_com_especie = 0
+        importadas = 0
+        prorrogadas = 0
+        atualizadas = 0
+        ignoradas_sem_cliente = 0
+        ignoradas_sem_vencimento = 0
+        ignoradas_nao_vencidas = 0
+        ignoradas_duplicadas = 0
+        sem_unidade_encontrada = 0
+        clientes_criados = 0
+        matrizes_criadas = 0
+
+        data_corte = calcular_data_corte_vencimento(datetime.date.today())
+        ids_processados_planilha: set[int] = set()
+
+        for linhas_lidas, linha in enumerate(linhas):
+            # Progresso a cada 50 linhas lidas (e commit em lote, quando habilitado). Fica no
+            # início do laço para contar também as linhas ignoradas pelos `continue` abaixo.
+            if linhas_lidas and linhas_lidas % 50 == 0:
+                if commit_em_lotes:
+                    self.db.commit()
+                yield {
+                    "progresso": linhas_lidas,
+                    "total": total_linhas,
+                    "importadas": importadas,
+                    "prorrogadas": prorrogadas,
+                    "atualizadas": atualizadas,
+                    "ignoradas_duplicadas": ignoradas_duplicadas,
+                    "ignoradas_nao_vencidas": ignoradas_nao_vencidas
+                }
+
+            especie = _clean_str(linha.get("especie"))
+            if especie:
+                especie = especie.upper()
+            if not especie:
+                continue  # linha em branco / separador / rodapé do relatório
+
+            total_com_especie += 1
+
+            codigo_estabelecimento = _to_int(linha.get("estabelecimento"))
+            id_unidade = self._buscar_unidade(codigo_estabelecimento)
+            if codigo_estabelecimento is not None and id_unidade is None:
+                sem_unidade_encontrada += 1
+
+            serie = _to_int(linha.get("serie"))
+            titulo = _clean_titulo(linha.get("titulo"))
+            parcela = _to_float(linha.get("parcela"))
+
+
+            vencimento = _excel_serial_to_date(linha.get("dtVencimento"))
+            if vencimento is None:
+                ignoradas_sem_vencimento += 1
+                continue
+
+            venc_data = vencimento.date() if isinstance(vencimento, datetime.datetime) else vencimento
+            if venc_data > data_corte:
+                ignoradas_nao_vencidas += 1
+                continue
+
+            tipo_pedido = _clean_str(linha.get("tipoPedido"))
+            if tipo_pedido:
+                tipo_pedido = tipo_pedido.upper()
+            carteira = _clean_str(linha.get("carteira"))
+            if carteira:
+                carteira = carteira.upper()
+            data_entrega = _excel_serial_to_date(linha.get("dtEntrega"))
+            valor_original = _to_float(linha.get("valorOriginal"))
+            saldo = _to_float(linha.get("valorSaldo"))
+
+            codigo_cliente = _to_int(linha.get("codigoCliente"))
+            nome_cliente = _clean_str(linha.get("nomeCliente"))
+
+            if codigo_cliente is None or not nome_cliente:
+                ignoradas_sem_cliente += 1
+                continue
+
+            id_cliente, criado_cliente = self._obter_ou_criar_cliente(codigo_cliente, nome_cliente)
+            if criado_cliente:
+                clientes_criados += 1
+
+            codigo_matriz = _to_int(linha.get("codigoMatriz"))
+            id_matriz = None
+            if codigo_matriz is not None:
+                id_matriz, criado_matriz = self._obter_ou_criar_matriz(codigo_matriz)
+                if criado_matriz:
+                    matrizes_criadas += 1
+
+            pendencia_existente = self._obter_pendencia_existente(
+                id_unidade=id_unidade,
+                serie=serie,
+                titulo=titulo,
+                parcela=parcela,
+                especie=especie,
+                carteira=carteira,
+                ids_ja_processados=ids_processados_planilha
+            )
+            if pendencia_existente:
+                ids_processados_planilha.add(pendencia_existente.idnfpendencias)
+                mudancas = []
+                mudou_saldo = False
+                mudou_carteira = False
+
+                # 1. Verifica vencimento e prorrogação
+                venc_db = pendencia_existente.dtVencimento
+                if isinstance(venc_db, datetime.datetime):
+                    venc_db = venc_db.date()
+                elif isinstance(venc_db, str):
+                    try:
+                        venc_db = datetime.datetime.strptime(venc_db.split('T')[0].split(' ')[0], '%Y-%m-%d').date()
+                    except:
+                        venc_db = None
+                        
+                venc_excel = vencimento
+                if isinstance(venc_excel, datetime.datetime):
+                    venc_excel = venc_excel.date()
+
+                is_prorrogacao = (venc_db is not None and venc_excel is not None and venc_excel > venc_db)
+                if is_prorrogacao:
+                    data_inicial_str = venc_db.strftime('%d/%m/%Y')
+                    data_nova_str = venc_excel.strftime('%d/%m/%Y')
+                    mudancas.append(f"Vencimento: de {data_inicial_str} para {data_nova_str}")
+                    pendencia_existente.dtVencimento = venc_excel
+                    pendencia_existente.encerrado = 'P'
+                elif venc_db is not None and venc_excel is not None and venc_excel != venc_db:
+                    data_inicial_str = venc_db.strftime('%d/%m/%Y')
+                    data_nova_str = venc_excel.strftime('%d/%m/%Y')
+                    mudancas.append(f"Vencimento: de {data_inicial_str} para {data_nova_str}")
+                    pendencia_existente.dtVencimento = venc_excel
+
+                # 2. Verifica Saldo
+                saldo_db = pendencia_existente.valorSaldo
+                if saldo is not None and (saldo_db is None or round(float(saldo), 2) != round(float(saldo_db), 2)):
+                    saldo_ant_str = f"R$ {float(saldo_db):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if saldo_db is not None else "R$ 0,00"
+                    saldo_novo_str = f"R$ {float(saldo):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                    mudancas.append(f"Saldo: de {saldo_ant_str} para {saldo_novo_str}")
+                    pendencia_existente.valorSaldo = saldo
+                    mudou_saldo = True
+
+                # 3. Verifica Carteira (Coluna M)
+                carteira_ant = pendencia_existente.carteira
+                if carteira and carteira != carteira_ant:
+                    mudancas.append(f"Carteira: de {carteira_ant or '-'} para {carteira}")
+                    pendencia_existente.carteira = carteira
+                    mudou_carteira = True
+                    # A mudança de carteira reinicia a classificação manual para a view aplicar as novas regras
+                    pendencia_existente.fase = None
+                    pendencia_existente.status = None
+
+                # 4. Outras atualizações cadastrais
+                entrega_db = pendencia_existente.dtEntrega
+                if isinstance(entrega_db, datetime.datetime):
+                    entrega_db = entrega_db.date()
+                elif isinstance(entrega_db, str):
+                    try:
+                        entrega_db = datetime.datetime.strptime(entrega_db.split('T')[0].split(' ')[0], '%Y-%m-%d').date()
+                    except:
+                        entrega_db = None
+
+                if data_entrega is not None and data_entrega != entrega_db:
+                    entrega_ant_str = entrega_db.strftime('%d/%m/%Y') if entrega_db else "Sem Data"
+                    entrega_nova_str = data_entrega.strftime('%d/%m/%Y')
+                    mudancas.append(f"Data de Entrega: de {entrega_ant_str} para {entrega_nova_str}")
+                    pendencia_existente.dtEntrega = data_entrega
+
+                val_orig_db = pendencia_existente.valorOriginal
+                if valor_original is not None and (val_orig_db is None or round(float(valor_original), 2) != round(float(val_orig_db), 2)):
+                    orig_ant_str = f"R$ {float(val_orig_db):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if val_orig_db is not None else "R$ 0,00"
+                    orig_novo_str = f"R$ {float(valor_original):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                    mudancas.append(f"Valor Original: de {orig_ant_str} para {orig_novo_str}")
+                    pendencia_existente.valorOriginal = valor_original
+
+                if tipo_pedido and tipo_pedido != pendencia_existente.tipoPedido:
+                    mudancas.append(f"Tipo Pedido: de {pendencia_existente.tipoPedido or '-'} para {tipo_pedido}")
+                    pendencia_existente.tipoPedido = tipo_pedido
+
+                portador_novo = _to_int(linha.get("portador"))
+                if portador_novo is not None and portador_novo != pendencia_existente.portador:
+                    mudancas.append(f"Portador: de {pendencia_existente.portador or '-'} para {portador_novo}")
+                    pendencia_existente.portador = portador_novo
+
+                nr_ped_novo = _to_int(linha.get("nrPedidoCliente"))
+                if nr_ped_novo is not None and nr_ped_novo != pendencia_existente.nrPedidoCliente:
+                    mudancas.append(f"Nº Pedido: de {pendencia_existente.nrPedidoCliente or '-'} para {nr_ped_novo}")
+                    pendencia_existente.nrPedidoCliente = nr_ped_novo
+
+                emissao_nova = _excel_serial_to_date(linha.get("dtEmissao"))
+                emissao_db = pendencia_existente.dtEmissao
+                if isinstance(emissao_db, datetime.datetime):
+                    emissao_db = emissao_db.date()
+                if emissao_nova is not None and emissao_nova != emissao_db:
+                    emissao_ant_str = emissao_db.strftime('%d/%m/%Y') if emissao_db else "Sem Data"
+                    emissao_nova_str = emissao_nova.strftime('%d/%m/%Y')
+                    mudancas.append(f"Emissão: de {emissao_ant_str} para {emissao_nova_str}")
+                    pendencia_existente.dtEmissao = emissao_nova
+
+                if id_cliente is not None and id_cliente != pendencia_existente.idCliente:
+                    pendencia_existente.idCliente = id_cliente
+
+                if id_matriz is not None and id_matriz != pendencia_existente.idClienteMatriz:
+                    pendencia_existente.idClienteMatriz = id_matriz
+
+                # Se a pendência estava marcada como encerrada por ausência anterior mas voltou na planilha
+                if not is_prorrogacao and pendencia_existente.encerrado == 'S':
+                    pendencia_existente.encerrado = 'N'
+                    mudancas.append("Status de encerramento reaberto para ativo")
+
+                # Efetivação e gravação de histórico
+                pendencia_existente.idImportacoes = importacao.idImportacoes
+                self.db.flush()
+
+                if is_prorrogacao:
+                    descricao_hist = "Título prorrogado. Alterações: " + "; ".join(mudancas)
+                    self._novo_historico(
+                        pendencia_existente.idnfpendencias,
+                        "Título Prorrogado",
+                        descricao_hist,
+                        14 # system
+                    )
+                    self._novo_historico(
+                        pendencia_existente.idnfpendencias,
+                        "Resolução",
+                        "Pendência finalizada devido à prorrogação do título.",
+                        14 # system
+                    )
+                    prorrogadas += 1
+                elif len(mudancas) > 0:
+
+                    # Histórico de Saldo se mudou
+                    if mudou_saldo:
+                        self._novo_historico(
+                            pendencia_existente.idnfpendencias,
+                            "Atualização de Saldo",
+                            f"Saldo atualizado de {saldo_ant_str} para {saldo_novo_str} na {origem}.",
+                            14 # system
+                        )
+
+                    # Histórico de Carteira se mudou
+                    if mudou_carteira:
+                        self._novo_historico(
+                            pendencia_existente.idnfpendencias,
+                            "Atualização de Carteira",
+                            f"Carteira alterada de {carteira_ant or '-'} para {carteira} na {origem}.",
+                            14 # system
+                        )
+
+                    # Outras alterações cadastrais
+                    outras_mudancas = [m for m in mudancas if not m.startswith("Saldo:") and not m.startswith("Carteira:")]
+                    if outras_mudancas:
+                        self._novo_historico(
+                            pendencia_existente.idnfpendencias,
+                            "Atualização Cadastral",
+                            f"Dados atualizados na {origem}: " + "; ".join(outras_mudancas),
+                            14 # system
+                        )
+
+                    # Reclassificação via View após a alteração de carteira ou saldo
+                    if mudou_carteira or mudou_saldo:
+                        vw = self.db.query(VwNfPendenciaFase).filter_by(idnfpendencias=pendencia_existente.idnfpendencias).first()
+                        if vw:
+                            self._novo_historico(
+                                pendencia_existente.idnfpendencias,
+                                "Classificação",
+                                f"Titulo reclassificado como pendência {vw.fase} e status {vw.status}.",
+                                14 # system
+                            )
+
+                    atualizadas += 1
+                else:
+                    ignoradas_duplicadas += 1
+            else:
+                nf = NfPendencia(
+                    idUnidade=id_unidade,
+                    idImportacoes=importacao.idImportacoes,
+                    especie=especie,
+                    serie=serie,
+                    titulo=titulo,
+                    parccela=parcela,
+                    nrPedidoCliente=_to_int(linha.get("nrPedidoCliente")),
+                    tipoPedido=tipo_pedido,
+                    idCliente=id_cliente,
+                    idClienteMatriz=id_matriz,
+                    portador=_to_int(linha.get("portador")),
+                    carteira=carteira,
+                    dtEmissao=_excel_serial_to_date(linha.get("dtEmissao")),
+                    dtEntrega=data_entrega,
+                    dtVencimento=vencimento,
+                    valorOriginal=valor_original,
+                    valorSaldo=saldo,
+                    encerrado='N'
+                )
+                self.db.add(nf)
+                self.db.flush()
+                ids_processados_planilha.add(nf.idnfpendencias)
+                self._novo_historico(
+                    nf.idnfpendencias,
+                    "Pendencia Importada",
+                    f"Título {titulo} importado da {origem}.",
+                    id_user,
+                )
+                
+                # Consulta a view para pegar fase e status e gravar novo histórico
+                vw = self.db.query(VwNfPendenciaFase).filter_by(idnfpendencias=nf.idnfpendencias).first()
+                if vw:
+                    self._novo_historico(
+                        nf.idnfpendencias,
+                        "Classificação",
+                        f"Titulo classificado como pendência {vw.fase} e status {vw.status}.",
+                        14
+                    )
+                    
+                importadas += 1
+
+        baixadas = 0
+        if total_com_especie > 0:
+            pendencias_ativas = self.db.query(NfPendencia).filter(
+                (NfPendencia.encerrado == 'N') | (NfPendencia.encerrado == None),
+                NfPendencia.dtVencimento <= data_corte
+            ).all()
+            for p_ativa in pendencias_ativas:
+                if p_ativa.idnfpendencias not in ids_processados_planilha:
+                    p_ativa.encerrado = 'S'
+                    p_ativa.idImportacoes = importacao.idImportacoes
+                    self.db.flush()
+                    self._novo_historico(
+                        p_ativa.idnfpendencias,
+                        "Pendência finalizada",
+                        "Pendência finalizada",
+                        14 # system
+                    )
+                    baixadas += 1
+
+        # Final commit
+        self.db.commit()
+        
+        yield {
+            "sucesso": True,
+            "arquivo": importacao.nomeArquivo,
+            "idImportacao": importacao.idImportacoes,
+            "totalLinhasComEspecie": total_com_especie,
+            "importadas": importadas,
+            "prorrogadas": prorrogadas,
+            "atualizadas": atualizadas,
+            "baixadas": baixadas,
+            "ignoradasSemCliente": ignoradas_sem_cliente,
+            "ignoradasSemVencimento": ignoradas_sem_vencimento,
+            "ignoradasNaoVencidas": ignoradas_nao_vencidas,
+            "ignoradasDuplicadas": ignoradas_duplicadas,
+            "semUnidadeEncontrada": sem_unidade_encontrada,
+            "clientesCriados": clientes_criados,
+            "matrizesCriadas": matrizes_criadas,
+        }
 
     def listar_pendencias(
         self,

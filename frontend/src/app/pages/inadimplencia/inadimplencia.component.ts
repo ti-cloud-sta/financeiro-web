@@ -94,7 +94,7 @@ export class InadimplenciaComponent implements OnInit {
   }
 
   // ----------------------------------------------------
-  // AtualizaÃƒÂ§ÃƒÂ£o de Dados
+  // Atualização de Dados
   // ----------------------------------------------------
   @ViewChild('atualizacaoFileInput') atualizacaoFileInput!: ElementRef<HTMLInputElement>;
   @ViewChild(PendenciasComponent) pendenciasComponent?: PendenciasComponent;
@@ -116,9 +116,9 @@ export class InadimplenciaComponent implements OnInit {
   });
 
   carregarHistoricoAtualizacao() {
-    this.importacoesService.listar(1, 50, undefined, 'PENDENCIAS').subscribe({
+    this.importacoesService.listar(1, 50, undefined, 'PENDENCIAS,Importação DATASUL').subscribe({
       next: (res) => this.atualizacaoHistory.set(res.items || []),
-      error: (err) => console.error('Erro ao carregar historico de atualizaÃƒÂ§ÃƒÂµes de dados:', err)
+      error: (err) => console.error('Erro ao carregar historico de atualizações de dados:', err)
     });
   }
 
@@ -246,7 +246,7 @@ export class InadimplenciaComponent implements OnInit {
   }
 
   // ----------------------------------------------------
-  // Confirm/Alert Modal (genÃƒÂ©rico)
+  // Confirm/Alert Modal (genérico)
   // ----------------------------------------------------
   isConfirmModalOpen = false;
   confirmTitle = '';
@@ -815,12 +815,15 @@ export class InadimplenciaComponent implements OnInit {
         const textColor = isDark ? '#e2e8f0' : '#475569';
         const splitLineColor = isDark ? '#334155' : '#e2e8f0';
 
+        // "Pagos fora do prazo" fica zerado de propósito: ainda não temos a informação de
+        // pagamento dos títulos para saber se foram quitados ou não, só os meses no eixo.
+        const atrasoAnualZerado = (res.evolucaoAtraso.labels || []).map(() => 0);
         this.chartOptionsAtrasoAnual = {
           tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
           grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
           xAxis: { type: 'category', data: res.evolucaoAtraso.labels, axisLabel: { color: textColor } },
           yAxis: { type: 'value', splitLine: { show: false }, axisLabel: { color: textColor } },
-          series: [{ name: 'Vencidos', type: 'line', data: res.evolucaoAtraso.values, label: { show: true, position: 'top', fontSize: 11, fontWeight: '600', color: '#64748b' }, itemStyle: { color: this.colors[2] }, areaStyle: { opacity: 0.1 } }]
+          series: [{ name: 'Vencidos', type: 'line', data: atrasoAnualZerado, label: { show: true, position: 'top', fontSize: 11, fontWeight: '600', color: '#64748b' }, itemStyle: { color: this.colors[2] }, areaStyle: { opacity: 0.1 } }]
         };
 
         this.chartOptionsProtestos = {
