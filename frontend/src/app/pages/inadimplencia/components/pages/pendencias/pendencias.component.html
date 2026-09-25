@@ -77,17 +77,20 @@
             </div>
 
             <!-- Botão Mensagem em Lote -->
-            <div class="filter-group d-flex align-items-end">
+            <div class="filter-group period-filter-group ms-auto d-flex flex-column">
+                <label class="filter-label mb-2 d-none d-md-block">&nbsp;</label>
                 <app-button
                     variant="primary"
                     size="sm"
                     icon="fa-solid fa-paper-plane"
                     [disabled]="selectedCards.length === 0"
                     (clicked)="abrirModalLote()">
-                    Mensagem em Lote
-                    @if (selectedCards.length > 0) {
-                    <span class="badge bg-white text-primary fw-bold ms-1" style="font-size: 0.75rem; border-radius: 10px;">{{ selectedCards.length }}</span>
-                    }
+                    <div class="d-flex align-items-center text-nowrap">
+                        Mensagem em Lote
+                        @if (selectedCards.length > 0) {
+                        <span class="badge bg-white text-primary fw-bold ms-2" style="font-size: 0.75rem; border-radius: 10px;">{{ selectedCards.length }}</span>
+                        }
+                    </div>
                 </app-button>
             </div>
 
