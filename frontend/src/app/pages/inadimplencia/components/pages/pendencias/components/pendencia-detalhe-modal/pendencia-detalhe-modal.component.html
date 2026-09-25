@@ -232,7 +232,9 @@
               <div class="chat-bubble">
                 <div class="chat-bubble-header">
                   <span class="chat-author">{{ msg.autor }}</span>
-                  <span class="chat-time">{{ msg.data | date:'dd/MM HH:mm' }}</span>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="chat-time">{{ msg.data | date:'dd/MM HH:mm' }}</span>
+                  </div>
                 </div>
                 @if (msg.assunto) {
                 <div class="chat-subject"><i class="fa-solid fa-tag me-1"></i>{{ msg.assunto }}</div>
@@ -261,6 +263,12 @@
         </div>
 
         <div class="compose-panel">
+          @if (composeReplyMessageId) {
+          <div class="compose-reply-indicator d-flex justify-content-between align-items-center p-2 mb-2 rounded" style="background-color: #f8fafc; border-left: 3px solid var(--bs-primary);">
+            <span class="small text-muted"><i class="fa-solid fa-reply me-1"></i> Respondendo ao e-mail na conversa</span>
+            <button type="button" class="btn-close" style="font-size: 0.65rem;" (click)="cancelarResposta()" title="Cancelar resposta"></button>
+          </div>
+          }
           <div class="compose-row">
             <input type="text" class="form-control form-control-sm" placeholder="Assunto do e-mail"
               [(ngModel)]="composeAssunto">
@@ -290,13 +298,18 @@
               </div>
             </div>
           </div>
-          <div class="compose-templates">
-            <span class="template-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Modelos Rápidos:</span>
-            <button type="button" class="template-chip" (click)="aplicarTemplate('cobranca')">Cobrança</button>
-            <button type="button" class="template-chip" (click)="aplicarTemplate('recobranca')">Recobrança</button>
-            <button type="button" class="template-chip" (click)="aplicarTemplate('protesto')">Protesto</button>
-            <button type="button" class="template-chip" (click)="aplicarTemplate('sem_data')">Sem Data Entrega</button>
-            <button type="button" class="template-chip" (click)="aplicarTemplate('devolucao')">Devolução</button>
+          <div class="compose-templates d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center flex-wrap gap-2">
+              <span class="template-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Modelos Rápidos:</span>
+              <button type="button" class="template-chip" (click)="aplicarTemplate('cobranca')">Cobrança</button>
+              <button type="button" class="template-chip" (click)="aplicarTemplate('recobranca')">Recobrança</button>
+              <button type="button" class="template-chip" (click)="aplicarTemplate('protesto')">Protesto</button>
+              <button type="button" class="template-chip" (click)="aplicarTemplate('sem_data')">Sem Data Entrega</button>
+              <button type="button" class="template-chip" (click)="aplicarTemplate('devolucao')">Devolução</button>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm ms-auto" title="Responder a Todos da Conversa" (click)="iniciarRespostaGlobal()" [disabled]="!mensagens || mensagens.length === 0">
+              <i class="fa-solid fa-reply-all me-1"></i> Responder a Todos
+            </button>
           </div>
 
           <div class="compose-toolbar">

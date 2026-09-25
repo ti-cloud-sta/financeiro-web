@@ -44,6 +44,8 @@ class GmailService:
         assunto: str,
         corpo_html: str,
         copia: Optional[str] = None,
+        reply_message_id: Optional[str] = None,
+        reply_thread_id: Optional[str] = None,
         anexos: Optional[List[UploadFile]] = None,
         remetente_email: Optional[str] = None,
     ) -> Dict[str, Any]:
@@ -85,6 +87,36 @@ class GmailService:
         msg_raiz["Subject"] = assunto.strip()
         if copia and copia.strip():
             msg_raiz["Cc"] = copia.strip()
+            
+        rfc_message_id = None
+        if reply_message_id:
+            # Para clientes externos, o In-Reply-To precisa ser o formato RFC 2822 (<...>)
+            if reply_message_id.startswith("<") and reply_message_id.endswith(">"):
+                rfc_message_id = reply_message_id
+            else:
+                try:
+                    with httpx.Client(timeout=5.0) as client:
+                        res = client.get(
+                            f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{reply_message_id}",
+                            params={"format": "metadata", "metadataHeaders": "Message-ID"},
+                            headers={"Authorization": f"Bearer {access_token}"}
+                        )
+                        if res.status_code == 200:
+                            headers = res.json().get("payload", {}).get("headers", [])
+                            for h in headers:
+                                if h.get("name", "").lower() == "message-id":
+                                    rfc_message_id = h.get("value")
+                                    break
+                except Exception as e:
+                    logger.warning("Falha ao buscar Message-ID RFC 2822 para a mensagem %s: %s", reply_message_id, e)
+            
+            if rfc_message_id:
+                msg_raiz["In-Reply-To"] = rfc_message_id
+                msg_raiz["References"] = rfc_message_id
+            else:
+                # Fallback, mas pode quebrar a thread em clientes externos
+                msg_raiz["In-Reply-To"] = reply_message_id
+                msg_raiz["References"] = reply_message_id
 
         # Parte texto puro
         plain_text = html_to_plain_text(corpo_html) or " "
@@ -145,6 +177,8 @@ class GmailService:
             "Content-Type": "application/json",
         }
         payload = {"raw": raw_b64}
+        if reply_thread_id:
+            payload["threadId"] = reply_thread_id
 
         try:
             # Timeout separado: conexão curta, escrita longa (para anexos grandes), leitura moderada

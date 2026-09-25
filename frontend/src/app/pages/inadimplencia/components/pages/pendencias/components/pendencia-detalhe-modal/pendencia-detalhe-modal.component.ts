@@ -44,6 +44,11 @@ export interface MensagemChat {
   assunto?: string;
   corpo: string;
   anexos: string[];
+  messageId?: string;
+  threadId?: string;
+  deOriginal?: string;
+  paraOriginal?: string;
+  copiaOriginal?: string;
 }
 
 export interface EventoHistorico {
@@ -129,6 +134,8 @@ export class PendenciaDetalheModalComponent implements OnChanges {
   composeDestinatarios = '';
   composeCopias: string[] = [];
   composeCopiaInput = '';
+  composeReplyMessageId?: string;
+  composeReplyThreadId?: string;
   arquivosSelecionados: File[] = [];
   isEnviandoEmail = false;
   @ViewChild('composeBody') composeBodyRef?: ElementRef<HTMLDivElement>;
@@ -387,7 +394,12 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
       data: new Date(m.internal_date * 1000),
       assunto: m.assunto,
       corpo: m.corpo_html || m.corpo_texto.replace(/\n/g, '<br>'),
-      anexos: m.anexos.map(a => a.nome)
+      anexos: m.anexos.map(a => a.nome),
+      messageId: m.id,
+      threadId: m.thread_id,
+      deOriginal: m.de,
+      paraOriginal: m.para,
+      copiaOriginal: m.copia
     };
   }
 
@@ -542,6 +554,8 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
     this.composeDestinatarios = '';
     this.composeCopias = [];
     this.composeCopiaInput = '';
+    this.composeReplyMessageId = undefined;
+    this.composeReplyThreadId = undefined;
     this.arquivosSelecionados = [];
     if (this.composeBodyRef) {
       this.composeBodyRef.nativeElement.innerHTML = '';
@@ -601,6 +615,84 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
   // ------------------------------------------------------------
   // Ações da aba Mensagens (Google OAuth e Envio de E-mail)
   // ------------------------------------------------------------
+  private extrairEmailsParaCC(emails?: string): string[] {
+    if (!emails) return [];
+    const conectado = (this.googleAuthService.emailConectado() || '').toLowerCase();
+    return emails
+      .split(/[,;]/)
+      .map(e => e.trim())
+      .filter(e => {
+        if (!e) return false;
+        // Não coloca o próprio usuário em cópia
+        if (conectado && e.toLowerCase().includes(conectado)) return false;
+        return true;
+      });
+  }
+
+  iniciarRespostaGlobal() {
+    if (!this.mensagens || this.mensagens.length === 0) {
+      this.mostrarAlerta('Aviso', 'Não há mensagens nesta conversa para responder.', 'primary');
+      return;
+    }
+    
+    // Pega a última mensagem para basear o To principal e assunto
+    const lastMsg = this.mensagens[this.mensagens.length - 1];
+
+    this.composeReplyMessageId = lastMsg.messageId;
+    this.composeReplyThreadId = lastMsg.threadId;
+
+    let todosParticipantes: string[] = [];
+
+    // Agrega todos os participantes de TODAS as mensagens da conversa
+    for (const msg of this.mensagens) {
+      const de = this.extrairEmailsParaCC(msg.deOriginal);
+      const para = this.extrairEmailsParaCC(msg.paraOriginal);
+      const cc = this.extrairEmailsParaCC(msg.copiaOriginal);
+      todosParticipantes = [...todosParticipantes, ...de, ...para, ...cc];
+    }
+
+    if (lastMsg.minhaMensagem) {
+      // Se eu mandei a última, o Para principal continua sendo quem eu enviei originalmente
+      this.composeDestinatarios = lastMsg.paraOriginal || '';
+      
+      // Remove o Destinatário principal da lista de CC
+      const destinatariosPrincipais = this.extrairEmailsParaCC(lastMsg.paraOriginal);
+      todosParticipantes = todosParticipantes.filter(email => !destinatariosPrincipais.includes(email));
+    } else {
+      // Se outra pessoa mandou, o Para principal é o rementente da última mensagem
+      this.composeDestinatarios = lastMsg.deOriginal || '';
+      
+      // Remove o remetente principal da lista de CC
+      const remetentePrincipal = this.extrairEmailsParaCC(lastMsg.deOriginal);
+      todosParticipantes = todosParticipantes.filter(email => !remetentePrincipal.includes(email));
+    }
+
+    // Dedup e joga no input de CC
+    const ccsUnicos = Array.from(new Set(todosParticipantes));
+    this.composeCopias = [];
+    this.composeCopiaInput = ccsUnicos.join(', ');
+    this.adicionarCopia();
+
+    if (lastMsg.assunto && !lastMsg.assunto.toLowerCase().startsWith('re:')) {
+      this.composeAssunto = 'Re: ' + lastMsg.assunto;
+    } else if (lastMsg.assunto) {
+      this.composeAssunto = lastMsg.assunto;
+    }
+
+    setTimeout(() => {
+      this.composeBodyRef?.nativeElement.scrollIntoView({ behavior: 'smooth' });
+      this.composeBodyRef?.nativeElement.focus();
+    }, 100);
+  }
+
+  cancelarResposta() {
+    this.composeReplyMessageId = undefined;
+    this.composeReplyThreadId = undefined;
+    this.composeDestinatarios = '';
+    this.composeCopias = [];
+    this.sugerirAssunto();
+  }
+
   aplicarFormatacao(comando: 'bold' | 'italic' | 'underline' | 'insertUnorderedList') {
     if (this.composeBodyRef) {
       const el = this.composeBodyRef.nativeElement;
@@ -717,6 +809,12 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
     for (const file of this.arquivosSelecionados) {
       formData.append('anexos', file, file.name);
     }
+    if (this.composeReplyMessageId) {
+      formData.append('reply_message_id', this.composeReplyMessageId);
+    }
+    if (this.composeReplyThreadId) {
+      formData.append('reply_thread_id', this.composeReplyThreadId);
+    }
 
     const idNf = Number(this.card.id);
     this.importacoesService.enviarEmailPendencia(idNf, formData).subscribe({
@@ -728,6 +826,8 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
         this.composeDestinatarios = '';
         this.composeCopias = [];
         this.composeCopiaInput = '';
+        this.composeReplyMessageId = undefined;
+        this.composeReplyThreadId = undefined;
         this.arquivosSelecionados = [];
         if (this.composeBodyRef) {
           this.composeBodyRef.nativeElement.innerHTML = '';

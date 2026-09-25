@@ -842,6 +842,8 @@ class InadimplenciaService:
         assunto: str,
         corpo: str,
         copia: Optional[str] = None,
+        reply_message_id: Optional[str] = None,
+        reply_thread_id: Optional[str] = None,
         anexos: Optional[list] = None,
         user: Optional[User] = None,
     ) -> dict:
@@ -871,6 +873,8 @@ class InadimplenciaService:
             assunto=assunto,
             corpo_html=corpo,
             copia=copia,
+            reply_message_id=reply_message_id,
+            reply_thread_id=reply_thread_id,
             anexos=anexos,
             remetente_email=user.email if user else None,
         )
@@ -1103,6 +1107,7 @@ class InadimplenciaService:
                         
                         de = _get_header(hdrs, "From")
                         para = _get_header(hdrs, "To")
+                        copia = _get_header(hdrs, "Cc")
                         assunto = _get_header(hdrs, "Subject")
                         
                         corpo_html, corpo_texto = _extrair_corpo(payload)
@@ -1117,7 +1122,7 @@ class InadimplenciaService:
                             thread_id=thread_id,
                             de=de,
                             para=para,
-                            copia="",
+                            copia=copia,
                             assunto=assunto,
                             conteudo=corpo_html or corpo_texto.replace("\n", "<br>"),
                             anexos=anexos,
@@ -1167,6 +1172,7 @@ class InadimplenciaService:
                 "thread_id": m.thread_id,
                 "de": m.de,
                 "para": m.para,
+                "copia": m.copia,
                 "assunto": m.assunto,
                 "data": m.dataEnvio.strftime("%a, %d %b %Y %H:%M:%S +0000") if m.dataEnvio else "",
                 "internal_date": ts,
