@@ -1855,7 +1855,35 @@ class InadimplenciaService:
                 "fase": g.fase,
                 "status": g.status
             }
-            for g in grid_acordos_db
+        ]
+
+        grid_pendencias_db = (
+            self.db.query(
+                VwNfPendenciaFase.idnfpendencias,
+                VwNfPendenciaFase.titulo,
+                Cliente.nome.label('cliente_nome'),
+                VwNfPendenciaFase.dtVencimento,
+                VwNfPendenciaFase.valorSaldo,
+                VwNfPendenciaFase.fase,
+                VwNfPendenciaFase.status
+            )
+            .outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente)
+            .filter(VwNfPendenciaFase.fase == 'PENDENCIAS')
+            .order_by(VwNfPendenciaFase.dtVencimento.asc())
+            .limit(1000)
+            .all()
+        )
+        grid_pendencias = [
+            {
+                "id": g.idnfpendencias,
+                "titulo": g.titulo,
+                "cliente": g.cliente_nome,
+                "vencimento": g.dtVencimento.isoformat() if g.dtVencimento else None,
+                "valor": float(g.valorSaldo or 0),
+                "fase": g.fase,
+                "status": g.status
+            }
+            for g in grid_pendencias_db
         ]
 
         kpi_sem_entrega = sum(item['valor'] for item in grid_sem_entrega)
@@ -1987,6 +2015,7 @@ class InadimplenciaService:
             "gridSemEntrega": grid_sem_entrega,
             "gridDevolucao": grid_devolucao,
             "gridAcordos": grid_acordos,
+            "gridPendencias": grid_pendencias,
 
             "kpiTotalAcordos": float(kpi_total_acordos),
             "rankingAcordos": ranking_acordos,

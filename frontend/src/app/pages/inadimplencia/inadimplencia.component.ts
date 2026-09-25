@@ -792,6 +792,25 @@ export class InadimplenciaComponent implements OnInit {
           };
         });
 
+        // Pendências ACR (AN, AD, RJ, PR)
+        const acrPendencias = (res.gridPendencias || []).map((x: any) => {
+          const statusColorMap: Record<string, string> = {
+            'AN': 'danger',
+            'AD': 'warning',
+            'RJ': 'primary',
+            'PR': 'info'
+          };
+          return {
+            ...x,
+            statusColor: statusColorMap[x.status] || 'secondary'
+          };
+        });
+        
+        this.gridAN = acrPendencias.filter(t => t.status === 'AN');
+        this.gridAD = acrPendencias.filter(t => t.status === 'AD');
+        this.gridRJ = acrPendencias.filter(t => t.status === 'RJ');
+        this.gridPR = acrPendencias.filter(t => t.status === 'PR');
+
         const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         const textColor = isDark ? '#e2e8f0' : '#475569';
         const splitLineColor = isDark ? '#334155' : '#e2e8f0';
