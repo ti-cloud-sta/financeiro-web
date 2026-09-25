@@ -321,20 +321,49 @@ export class InadimplenciaComponent implements OnInit {
   chartOptionsGerenteFaixas: any;
   maioresAtrasos: any[] = [];
   
-  // Paginação Visão Geral (Financeiro)
-  searchFinanceiro = '';
-  pageFinanceiro = 1;
+  // Paginação Visão Geral (Financeiro) - Atrasados
+  searchFinanceiroAtrasado = '';
+  pageFinanceiroAtrasado = 1;
 
-  get paginatedFinanceiro() {
-    const s = this.searchFinanceiro.toLowerCase();
-    const filtered = s ? this.maioresAtrasos.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s)) : this.maioresAtrasos;
-    const start = (this.pageFinanceiro - 1) * this.pageSize;
+  get paginatedFinanceiroAtrasado() {
+    const s = this.searchFinanceiroAtrasado.toLowerCase();
+    let filtered = this.maioresAtrasos.filter(t => t.status === 'ATRASADO');
+    if (s) {
+      filtered = filtered.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s));
+    }
+    const start = (this.pageFinanceiroAtrasado - 1) * this.pageSize;
     return filtered.slice(start, start + this.pageSize);
   }
 
-  get totalPagesFinanceiro() {
-    const s = this.searchFinanceiro.toLowerCase();
-    const filtered = s ? this.maioresAtrasos.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s)) : this.maioresAtrasos;
+  get totalPagesFinanceiroAtrasado() {
+    const s = this.searchFinanceiroAtrasado.toLowerCase();
+    let filtered = this.maioresAtrasos.filter(t => t.status === 'ATRASADO');
+    if (s) {
+      filtered = filtered.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s));
+    }
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
+  // Paginação Visão Geral (Financeiro) - Protestados
+  searchFinanceiroProtestado = '';
+  pageFinanceiroProtestado = 1;
+
+  get paginatedFinanceiroProtestado() {
+    const s = this.searchFinanceiroProtestado.toLowerCase();
+    let filtered = this.maioresAtrasos.filter(t => t.status === 'PROTESTADO');
+    if (s) {
+      filtered = filtered.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s));
+    }
+    const start = (this.pageFinanceiroProtestado - 1) * this.pageSize;
+    return filtered.slice(start, start + this.pageSize);
+  }
+
+  get totalPagesFinanceiroProtestado() {
+    const s = this.searchFinanceiroProtestado.toLowerCase();
+    let filtered = this.maioresAtrasos.filter(t => t.status === 'PROTESTADO');
+    if (s) {
+      filtered = filtered.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s));
+    }
     return Math.ceil(filtered.length / this.pageSize) || 1;
   }
 
