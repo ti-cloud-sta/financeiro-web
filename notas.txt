@@ -15,3 +15,16 @@ docker compose up -d --build
 #ou isolado
 docker compose up -d --build frontend
 docker compose up -d --build backend
+
+
+
+=============================================
+
+leia a documentação do projeto completo e faça uma verificação nos arquivos 
+para enteder a logica.
+eu nao quero sugestões, quero que vc analise e guarde na sua memória o que for 
+necessario para continuar a desenvolver principalmente relacionado a arquiteture, 
+design e lógica, não esqueça nada, nao perca nem pule 
+arquivos e não perca o foco.
+
+coloque nas suas premissas as regras que estao na pasta [rules](file;file:///c%3A/Users/JOE/Documents/GitHub/financeiro-web/.agents/rules) 
