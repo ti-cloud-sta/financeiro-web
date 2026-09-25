@@ -66,6 +66,12 @@
                     Comercial
                   </button>
                 </li>
+                <li class="nav-item">
+                  <button class="config-nav-link" [class.active]="dashboardTab() === 'pendencias-acr'"
+                    (click)="setDashboardTab('pendencias-acr')">
+                    Pendências ACR
+                  </button>
+                </li>
               </ul>
             </div>
             <div class="dashboard-content px-2 pb-3 pt-0 px-md-4 pb-md-4 pt-md-1" style="flex-grow: 1;">
@@ -1591,6 +1597,47 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- DASHBOARD: PENDÊNCIAS ACR -->
+                <div *ngIf="dashboardTab() === 'pendencias-acr'">
+                  <!-- Sub-navegação do Pendências ACR -->
+                  <div class="mb-4 d-flex justify-content-start" style="overflow-x: auto;">
+                    <div class="btn-group text-nowrap" role="group">
+                      <button type="button" class="btn btn-outline-primary"
+                        [class.active]="pendenciasAcrTab() === 'atrasados'" (click)="pendenciasAcrTab.set('atrasados')"
+                        style="border-radius: 20px 0 0 20px; padding: 0.375rem 1rem; font-size: 0.875rem;">Atrasados</button>
+                      <button type="button" class="btn btn-outline-primary"
+                        [class.active]="pendenciasAcrTab() === 'protestados'" (click)="pendenciasAcrTab.set('protestados')"
+                        style="padding: 0.375rem 1rem; font-size: 0.875rem;">Protestados</button>
+                      <button type="button" class="btn btn-outline-primary"
+                        [class.active]="pendenciasAcrTab() === 'sem_data_entrega'" (click)="pendenciasAcrTab.set('sem_data_entrega')"
+                        style="padding: 0.375rem 1rem; font-size: 0.875rem;">Sem Data de Entrega</button>
+                      <button type="button" class="btn btn-outline-primary"
+                        [class.active]="pendenciasAcrTab() === 'devolucao'" (click)="pendenciasAcrTab.set('devolucao')"
+                        style="padding: 0.375rem 1rem; font-size: 0.875rem;">Devolução</button>
+                      <button type="button" class="btn btn-outline-primary"
+                        [class.active]="pendenciasAcrTab() === 'acordo'" (click)="pendenciasAcrTab.set('acordo')"
+                        style="padding: 0.375rem 1rem; font-size: 0.875rem;">Acordo</button>
+                      <button type="button" class="btn btn-outline-primary"
+                        [class.active]="pendenciasAcrTab() === 'an'" (click)="pendenciasAcrTab.set('an')"
+                        style="padding: 0.375rem 1rem; font-size: 0.875rem;">AN</button>
+                      <button type="button" class="btn btn-outline-primary"
+                        [class.active]="pendenciasAcrTab() === 'ad'" (click)="pendenciasAcrTab.set('ad')"
+                        style="padding: 0.375rem 1rem; font-size: 0.875rem;">AD</button>
+                      <button type="button" class="btn btn-outline-primary"
+                        [class.active]="pendenciasAcrTab() === 'rj'" (click)="pendenciasAcrTab.set('rj')"
+                        style="padding: 0.375rem 1rem; font-size: 0.875rem;">RJ</button>
+                      <button type="button" class="btn btn-outline-primary"
+                        [class.active]="pendenciasAcrTab() === 'pr'" (click)="pendenciasAcrTab.set('pr')"
+                        style="border-radius: 0 20px 20px 0; padding: 0.375rem 1rem; font-size: 0.875rem;">PR</button>
+                    </div>
+                  </div>
+                  
+                  <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
+                    <h5 class="text-secondary text-center mb-0"><i class="fa-solid fa-person-digging me-2"></i> Dashboard em construção...</h5>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>

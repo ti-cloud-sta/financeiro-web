@@ -33,8 +33,9 @@ export class InadimplenciaComponent implements OnInit {
 
   isSidebarCollapsed = false;
   activeTab = 'dashboards';
-  dashboardTab = signal<'visao-geral' | 'financeiro' | 'logistica' | 'comercial'>('visao-geral');
+  dashboardTab = signal<'visao-geral' | 'financeiro' | 'logistica' | 'comercial' | 'pendencias-acr'>('visao-geral');
   financeiroTab = signal<'gerencial' | 'gerente'>('gerencial');
+  pendenciasAcrTab = signal<'atrasados' | 'protestados' | 'sem_data_entrega' | 'devolucao' | 'acordo' | 'an' | 'ad' | 'rj' | 'pr'>('atrasados');
 
   // Modal Tratativas
   isTratativasModalOpen = false;
@@ -71,7 +72,7 @@ export class InadimplenciaComponent implements OnInit {
     }
   }
 
-  setDashboardTab(tab: 'visao-geral' | 'financeiro' | 'logistica' | 'comercial') {
+  setDashboardTab(tab: 'visao-geral' | 'financeiro' | 'logistica' | 'comercial' | 'pendencias-acr') {
     this.dashboardTab.set(tab);
     
     this.isDashboardLoading.set(true);
