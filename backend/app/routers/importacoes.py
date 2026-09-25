@@ -196,6 +196,8 @@ def enviar_email_pendencia(
     assunto: str = Form(..., description="Assunto do e-mail"),
     corpo: str = Form(..., description="Corpo do e-mail formatado em HTML"),
     copia: Optional[str] = Form(None, description="E-mails em cópia"),
+    reply_message_id: Optional[str] = Form(None, description="ID da mensagem para resposta (Thread)"),
+    reply_thread_id: Optional[str] = Form(None, description="ID do Thread (Gmail API)"),
     anexos: List[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -211,6 +213,8 @@ def enviar_email_pendencia(
             assunto=assunto,
             corpo=corpo,
             copia=copia,
+            reply_message_id=reply_message_id,
+            reply_thread_id=reply_thread_id,
             anexos=anexos,
             user=current_user,
         )

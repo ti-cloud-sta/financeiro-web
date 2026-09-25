@@ -83,6 +83,7 @@ export interface MensagemThreadApi {
   thread_id: string;
   de: string;
   para: string;
+  copia?: string;
   assunto: string;
   data: string;
   internal_date: number;

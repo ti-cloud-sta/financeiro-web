@@ -44,6 +44,11 @@ export interface MensagemChat {
   assunto?: string;
   corpo: string;
   anexos: string[];
+  messageId?: string;
+  threadId?: string;
+  deOriginal?: string;
+  paraOriginal?: string;
+  copiaOriginal?: string;
 }
 
 export interface EventoHistorico {
@@ -129,6 +134,8 @@ export class PendenciaDetalheModalComponent implements OnChanges {
   composeDestinatarios = '';
   composeCopias: string[] = [];
   composeCopiaInput = '';
+  composeReplyMessageId?: string;
+  composeReplyThreadId?: string;
   arquivosSelecionados: File[] = [];
   isEnviandoEmail = false;
   @ViewChild('composeBody') composeBodyRef?: ElementRef<HTMLDivElement>;
@@ -229,6 +236,36 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     document.addEventListener('assinatura-erro', handler, { once: true });
   }
 
+  montarTabelaTitulosHtml(): string {
+    if (!this.card) return '';
+    const saldo = (this.card.valorSaldo || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const venc = this.card.dtVencimento ? new Date(this.card.dtVencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-';
+    const parc = this.card.parccela || '-';
+    
+    return `<table style="width: 100%; border-collapse: collapse; margin: 12px 0; font-family: sans-serif; font-size: 13px;">
+      <thead>
+        <tr style="background-color: #f3f4f6; border-bottom: 2px solid #e5e7eb; text-align: left;">
+          <th style="padding: 8px 10px; font-weight: 600; color: #374151;">Título</th>
+          <th style="padding: 8px 10px; font-weight: 600; color: #374151;">Parcela</th>
+          <th style="padding: 8px 10px; font-weight: 600; color: #374151;">Vencimento</th>
+          <th style="padding: 8px 10px; font-weight: 600; color: #374151; text-align: right;">Saldo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom: 1px solid #e5e7eb;">
+          <td style="padding: 8px 10px; font-weight: 500; color: #111827;">${this.card.title}</td>
+          <td style="padding: 8px 10px; color: #4b5563;">${parc}</td>
+          <td style="padding: 8px 10px; color: #4b5563;">${venc}</td>
+          <td style="padding: 8px 10px; font-weight: 600; color: #b91c1c; text-align: right; font-variant-numeric: tabular-nums;">${saldo}</td>
+        </tr>
+        <tr style="background-color: #f9fafb; font-weight: bold; border-top: 2px solid #d1d5db;">
+          <td colspan="3" style="padding: 10px; text-align: right; color: #111827;">Total Consolidado:</td>
+          <td style="padding: 10px; text-align: right; color: #b91c1c; font-variant-numeric: tabular-nums;">${saldo}</td>
+        </tr>
+      </tbody>
+    </table>`;
+  }
+
   aplicarTemplate(tipo: 'cobranca' | 'recobranca' | 'protesto' | 'sem_data' | 'devolucao') {
     if (!this.composeBodyRef || !this.card) return;
 
@@ -237,6 +274,8 @@ export class PendenciaDetalheModalComponent implements OnChanges {
     const dataVenc = this.card.dtVencimento ? new Date(this.card.dtVencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-';
     const parcela = this.card.parccela || '-';
     const assinaturaHtml = `<br><br><img src="${this.ASSINATURA_URL}" alt="Assinatura" style="max-width: 580px; width: 100%; height: auto; display: block;">`;
+    const tabelaTitulos = this.montarTabelaTitulosHtml();
+    const clienteRef = `<b>${this.card.fullClientName || this.card.clientName}</b>`;
 
     this.sugerirAssunto(tipo);
 
@@ -244,34 +283,44 @@ export class PendenciaDetalheModalComponent implements OnChanges {
 
     switch (tipo) {
       case 'cobranca':
-        textoHtml = `Prezado(a) cliente <b>${this.card.fullClientName || this.card.clientName}</b>,<br><br>
-Consta em nosso sistema o título <b>${this.card.title}</b> (Parcela: ${parcela}) no valor de <b>${valorFormatado}</b>, com vencimento original em <b>${dataVenc}</b>, que se encontra pendente de regularização.<br><br>
-Caso o pagamento já tenha sido efetuado, por favor, desconsidere esta mensagem e nos envie o comprovante para que possamos baixar no sistema. Se houve algum contratempo ou dificuldade para emissão do boleto, estamos à disposição para ajudar.<br><br>
+        textoHtml = `Prezado(a) cliente ${clienteRef},<br><br>
+Consta em nosso sistema o seguinte título pendente de regularização no valor de <b>${valorFormatado}</b>:<br>
+${tabelaTitulos}
+<br>
+Caso o pagamento já tenha sido efetuado, por favor, desconsidere esta mensagem e nos envie o comprovante para que possamos realizar a baixa no sistema. Se houver algum contratempo ou se necessitar do boleto atualizado, estamos à disposição para ajudar.<br><br>
 Atenciosamente,${assinaturaHtml}`;
         break;
       case 'recobranca':
-        textoHtml = `Prezado(a) cliente <b>${this.card.fullClientName || this.card.clientName}</b>,<br><br>
-Até o momento, não identificamos o pagamento referente ao título <b>${this.card.title}</b> (Parcela: ${parcela}) no valor de <b>${valorFormatado}</b>, vencido no dia <b>${dataVenc}</b>.<br><br>
-Pedimos a gentileza de nos enviar o comprovante caso o pagamento já tenha ocorrido. Caso contrário, solicitamos uma previsão para a regularização desta pendência ou que entre em contato conosco para verificarmos uma possível negociação.<br><br>
-No aguardo de um retorno,<br>Atenciosamente,${assinaturaHtml}`;
+        textoHtml = `Prezado(a) cliente ${clienteRef},<br><br>
+Até o momento, não identificamos o pagamento referente ao título pendente listado abaixo no valor de <b>${valorFormatado}</b>:<br>
+${tabelaTitulos}
+<br>
+Pedimos a gentileza de nos enviar o comprovante caso a quitação já tenha ocorrido. Caso contrário, solicitamos uma previsão de pagamento para regularização da pendência ou que entre em contato conosco para verificarmos uma proposta de acordo.<br><br>
+No aguardo de seu retorno,<br>Atenciosamente,${assinaturaHtml}`;
         break;
       case 'protesto':
-        textoHtml = `Prezado(a) cliente <b>${this.card.fullClientName || this.card.clientName}</b>,<br><br>
-Informamos que o título <b>${this.card.title}</b> (Parcela: ${parcela}), no valor de <b>${valorFormatado}</b> e vencido em <b>${dataVenc}</b>, continua pendente de pagamento em nosso sistema.<br><br>
-Como não obtivemos retorno nas tentativas de contato anteriores, comunicamos que, caso a pendência não seja regularizada (ou não nos seja enviado o comprovante) nos próximos 2 dias úteis, o título será automaticamente encaminhado ao cartório para <b>protesto</b> e inclusão nos órgãos de proteção ao crédito.<br><br>
-Para evitar os transtornos e custas cartoriais, solicitamos a regularização imediata.<br><br>
+        textoHtml = `Prezado(a) cliente ${clienteRef},<br><br>
+Informamos que o título abaixo discriminado, no valor de <b>${valorFormatado}</b>, continua pendente de pagamento em nosso sistema:<br>
+${tabelaTitulos}
+<br>
+Como não obtivemos retorno nas notificações anteriores, comunicamos que, caso a pendência não seja regularizada (ou o respectivo comprovante enviado) no prazo de <b>2 dias úteis</b>, o título será encaminhado ao cartório competente para <b>protesto</b> e apontamento nos órgãos de proteção ao crédito.<br><br>
+Para evitar transtornos e custos adicionais cartoriais, solicitamos a regularização imediata.<br><br>
 Atenciosamente,${assinaturaHtml}`;
         break;
       case 'sem_data':
         textoHtml = `Prezados do setor Logística,<br><br>
-Estamos realizando um acompanhamento de nossa carteira e verificamos que a mercadoria referente ao título <b>${this.card.title}</b> (Valor: <b>${valorFormatado}</b>) ainda não possui a confirmação e data exata de entrega registrada em nosso sistema.<br><br>
-Poderia, por gentileza, nos confirmar quando será entregue? Essa informação é muito importante para nosso controle de qualidade e faturamento.<br><br>
+Estamos realizando o acompanhamento das entregas de nossa carteira e verificamos que a nota/título abaixo relacionado (valor <b>${valorFormatado}</b>) ainda não possui a confirmação da data exata de entrega registrada:<br>
+${tabelaTitulos}
+<br>
+Poderiam, por gentileza, nos confirmar quando será entregue? Essa informação é muito importante para nosso controle de qualidade e faturamento.<br><br>
 Agradecemos a colaboração.<br>Atenciosamente,${assinaturaHtml}`;
         break;
       case 'devolucao':
         textoHtml = `Prezados do setor Logística,<br><br>
-Identificamos em nosso sistema que houve uma ocorrência de devolução envolvendo a nota fiscal/título <b>${this.card.title}</b> no valor de <b>${valorFormatado}</b>.<br><br>
-Para que possamos dar andamento correto aos trâmites financeiros internamente, solicitamos que nos informe brevemente a posição referente a essa nota.<br><br>
+Identificamos em nosso sistema que houve uma ocorrência de devolução envolvendo o seguinte título (valor <b>${valorFormatado}</b>):<br>
+${tabelaTitulos}
+<br>
+Para que possamos dar andamento correto aos trâmites financeiros internamente, solicitamos que nos informem brevemente a posição referente a essa nota.<br><br>
 Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml}`;
         break;
     }
@@ -387,7 +436,12 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
       data: new Date(m.internal_date * 1000),
       assunto: m.assunto,
       corpo: m.corpo_html || m.corpo_texto.replace(/\n/g, '<br>'),
-      anexos: m.anexos.map(a => a.nome)
+      anexos: m.anexos.map(a => a.nome),
+      messageId: m.id,
+      threadId: m.thread_id,
+      deOriginal: m.de,
+      paraOriginal: m.para,
+      copiaOriginal: m.copia
     };
   }
 
@@ -542,6 +596,8 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
     this.composeDestinatarios = '';
     this.composeCopias = [];
     this.composeCopiaInput = '';
+    this.composeReplyMessageId = undefined;
+    this.composeReplyThreadId = undefined;
     this.arquivosSelecionados = [];
     if (this.composeBodyRef) {
       this.composeBodyRef.nativeElement.innerHTML = '';
@@ -601,6 +657,84 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
   // ------------------------------------------------------------
   // Ações da aba Mensagens (Google OAuth e Envio de E-mail)
   // ------------------------------------------------------------
+  private extrairEmailsParaCC(emails?: string): string[] {
+    if (!emails) return [];
+    const conectado = (this.googleAuthService.emailConectado() || '').toLowerCase();
+    return emails
+      .split(/[,;]/)
+      .map(e => e.trim())
+      .filter(e => {
+        if (!e) return false;
+        // Não coloca o próprio usuário em cópia
+        if (conectado && e.toLowerCase().includes(conectado)) return false;
+        return true;
+      });
+  }
+
+  iniciarRespostaGlobal() {
+    if (!this.mensagens || this.mensagens.length === 0) {
+      this.mostrarAlerta('Aviso', 'Não há mensagens nesta conversa para responder.', 'primary');
+      return;
+    }
+    
+    // Pega a última mensagem para basear o To principal e assunto
+    const lastMsg = this.mensagens[this.mensagens.length - 1];
+
+    this.composeReplyMessageId = lastMsg.messageId;
+    this.composeReplyThreadId = lastMsg.threadId;
+
+    let todosParticipantes: string[] = [];
+
+    // Agrega todos os participantes de TODAS as mensagens da conversa
+    for (const msg of this.mensagens) {
+      const de = this.extrairEmailsParaCC(msg.deOriginal);
+      const para = this.extrairEmailsParaCC(msg.paraOriginal);
+      const cc = this.extrairEmailsParaCC(msg.copiaOriginal);
+      todosParticipantes = [...todosParticipantes, ...de, ...para, ...cc];
+    }
+
+    if (lastMsg.minhaMensagem) {
+      // Se eu mandei a última, o Para principal continua sendo quem eu enviei originalmente
+      this.composeDestinatarios = lastMsg.paraOriginal || '';
+      
+      // Remove o Destinatário principal da lista de CC
+      const destinatariosPrincipais = this.extrairEmailsParaCC(lastMsg.paraOriginal);
+      todosParticipantes = todosParticipantes.filter(email => !destinatariosPrincipais.includes(email));
+    } else {
+      // Se outra pessoa mandou, o Para principal é o rementente da última mensagem
+      this.composeDestinatarios = lastMsg.deOriginal || '';
+      
+      // Remove o remetente principal da lista de CC
+      const remetentePrincipal = this.extrairEmailsParaCC(lastMsg.deOriginal);
+      todosParticipantes = todosParticipantes.filter(email => !remetentePrincipal.includes(email));
+    }
+
+    // Dedup e joga no input de CC
+    const ccsUnicos = Array.from(new Set(todosParticipantes));
+    this.composeCopias = [];
+    this.composeCopiaInput = ccsUnicos.join(', ');
+    this.adicionarCopia();
+
+    if (lastMsg.assunto && !lastMsg.assunto.toLowerCase().startsWith('re:')) {
+      this.composeAssunto = 'Re: ' + lastMsg.assunto;
+    } else if (lastMsg.assunto) {
+      this.composeAssunto = lastMsg.assunto;
+    }
+
+    setTimeout(() => {
+      this.composeBodyRef?.nativeElement.scrollIntoView({ behavior: 'smooth' });
+      this.composeBodyRef?.nativeElement.focus();
+    }, 100);
+  }
+
+  cancelarResposta() {
+    this.composeReplyMessageId = undefined;
+    this.composeReplyThreadId = undefined;
+    this.composeDestinatarios = '';
+    this.composeCopias = [];
+    this.sugerirAssunto();
+  }
+
   aplicarFormatacao(comando: 'bold' | 'italic' | 'underline' | 'insertUnorderedList') {
     if (this.composeBodyRef) {
       const el = this.composeBodyRef.nativeElement;
@@ -717,6 +851,12 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
     for (const file of this.arquivosSelecionados) {
       formData.append('anexos', file, file.name);
     }
+    if (this.composeReplyMessageId) {
+      formData.append('reply_message_id', this.composeReplyMessageId);
+    }
+    if (this.composeReplyThreadId) {
+      formData.append('reply_thread_id', this.composeReplyThreadId);
+    }
 
     const idNf = Number(this.card.id);
     this.importacoesService.enviarEmailPendencia(idNf, formData).subscribe({
@@ -728,6 +868,8 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
         this.composeDestinatarios = '';
         this.composeCopias = [];
         this.composeCopiaInput = '';
+        this.composeReplyMessageId = undefined;
+        this.composeReplyThreadId = undefined;
         this.arquivosSelecionados = [];
         if (this.composeBodyRef) {
           this.composeBodyRef.nativeElement.innerHTML = '';

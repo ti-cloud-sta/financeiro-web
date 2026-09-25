@@ -33,8 +33,9 @@ export class InadimplenciaComponent implements OnInit {
 
   isSidebarCollapsed = false;
   activeTab = 'dashboards';
-  dashboardTab = signal<'visao-geral' | 'financeiro' | 'logistica' | 'comercial'>('visao-geral');
+  dashboardTab = signal<'visao-geral' | 'financeiro' | 'logistica' | 'comercial' | 'pendencias-acr'>('visao-geral');
   financeiroTab = signal<'gerencial' | 'gerente'>('gerencial');
+  pendenciasAcrTab = signal<'atrasados' | 'protestados' | 'sem_data_entrega' | 'devolucao' | 'acordo' | 'an' | 'ad' | 'rj' | 'pr'>('atrasados');
 
   // Modal Tratativas
   isTratativasModalOpen = false;
@@ -71,7 +72,7 @@ export class InadimplenciaComponent implements OnInit {
     }
   }
 
-  setDashboardTab(tab: 'visao-geral' | 'financeiro' | 'logistica' | 'comercial') {
+  setDashboardTab(tab: 'visao-geral' | 'financeiro' | 'logistica' | 'comercial' | 'pendencias-acr') {
     this.dashboardTab.set(tab);
     
     this.isDashboardLoading.set(true);
@@ -321,20 +322,49 @@ export class InadimplenciaComponent implements OnInit {
   chartOptionsGerenteFaixas: any;
   maioresAtrasos: any[] = [];
   
-  // Paginação Visão Geral (Financeiro)
-  searchFinanceiro = '';
-  pageFinanceiro = 1;
+  // Paginação Visão Geral (Financeiro) - Atrasados
+  searchFinanceiroAtrasado = '';
+  pageFinanceiroAtrasado = 1;
 
-  get paginatedFinanceiro() {
-    const s = this.searchFinanceiro.toLowerCase();
-    const filtered = s ? this.maioresAtrasos.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s)) : this.maioresAtrasos;
-    const start = (this.pageFinanceiro - 1) * this.pageSize;
+  get paginatedFinanceiroAtrasado() {
+    const s = this.searchFinanceiroAtrasado.toLowerCase();
+    let filtered = this.maioresAtrasos.filter(t => t.status === 'ATRASADO');
+    if (s) {
+      filtered = filtered.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s));
+    }
+    const start = (this.pageFinanceiroAtrasado - 1) * this.pageSize;
     return filtered.slice(start, start + this.pageSize);
   }
 
-  get totalPagesFinanceiro() {
-    const s = this.searchFinanceiro.toLowerCase();
-    const filtered = s ? this.maioresAtrasos.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s)) : this.maioresAtrasos;
+  get totalPagesFinanceiroAtrasado() {
+    const s = this.searchFinanceiroAtrasado.toLowerCase();
+    let filtered = this.maioresAtrasos.filter(t => t.status === 'ATRASADO');
+    if (s) {
+      filtered = filtered.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s));
+    }
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
+  // Paginação Visão Geral (Financeiro) - Protestados
+  searchFinanceiroProtestado = '';
+  pageFinanceiroProtestado = 1;
+
+  get paginatedFinanceiroProtestado() {
+    const s = this.searchFinanceiroProtestado.toLowerCase();
+    let filtered = this.maioresAtrasos.filter(t => t.status === 'PROTESTADO');
+    if (s) {
+      filtered = filtered.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s));
+    }
+    const start = (this.pageFinanceiroProtestado - 1) * this.pageSize;
+    return filtered.slice(start, start + this.pageSize);
+  }
+
+  get totalPagesFinanceiroProtestado() {
+    const s = this.searchFinanceiroProtestado.toLowerCase();
+    let filtered = this.maioresAtrasos.filter(t => t.status === 'PROTESTADO');
+    if (s) {
+      filtered = filtered.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s));
+    }
     return Math.ceil(filtered.length / this.pageSize) || 1;
   }
 
@@ -426,6 +456,123 @@ export class InadimplenciaComponent implements OnInit {
     const filtered = s ? this.gridAcordos.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridAcordos;
     return Math.ceil(filtered.length / this.pageSize) || 1;
   }
+
+  // ==========================================
+  // ESTADOS E PAGINAÇÃO PARA PENDÊNCIAS ACR
+  // ==========================================
+  searchAcrAtrasados = ''; pageAcrAtrasados = 1;
+  get paginatedAcrAtrasados() {
+    const s = this.searchAcrAtrasados.toLowerCase();
+    let filtered = this.maioresAtrasos.filter(t => t.status === 'ATRASADO');
+    if (s) filtered = filtered.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s));
+    return filtered.slice((this.pageAcrAtrasados - 1) * this.pageSize, this.pageAcrAtrasados * this.pageSize);
+  }
+  get totalPagesAcrAtrasados() {
+    const s = this.searchAcrAtrasados.toLowerCase();
+    let filtered = this.maioresAtrasos.filter(t => t.status === 'ATRASADO');
+    if (s) filtered = filtered.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s));
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
+  searchAcrProtestados = ''; pageAcrProtestados = 1;
+  get paginatedAcrProtestados() {
+    const s = this.searchAcrProtestados.toLowerCase();
+    let filtered = this.maioresAtrasos.filter(t => t.status === 'PROTESTADO' || t.status === 'CARTÓRIO');
+    if (s) filtered = filtered.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s));
+    return filtered.slice((this.pageAcrProtestados - 1) * this.pageSize, this.pageAcrProtestados * this.pageSize);
+  }
+  get totalPagesAcrProtestados() {
+    const s = this.searchAcrProtestados.toLowerCase();
+    let filtered = this.maioresAtrasos.filter(t => t.status === 'PROTESTADO' || t.status === 'CARTÓRIO');
+    if (s) filtered = filtered.filter(t => t.titulo.toLowerCase().includes(s) || t.cliente.toLowerCase().includes(s));
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
+  searchAcrSemEntrega = ''; pageAcrSemEntrega = 1;
+  get paginatedAcrSemEntrega() {
+    const s = this.searchAcrSemEntrega.toLowerCase();
+    const filtered = s ? this.gridSemEntrega.filter(g => g.titulo.toLowerCase().includes(s) || g.cliente.toLowerCase().includes(s)) : this.gridSemEntrega;
+    return filtered.slice((this.pageAcrSemEntrega - 1) * this.pageSize, this.pageAcrSemEntrega * this.pageSize);
+  }
+  get totalPagesAcrSemEntrega() {
+    const s = this.searchAcrSemEntrega.toLowerCase();
+    const filtered = s ? this.gridSemEntrega.filter(g => g.titulo.toLowerCase().includes(s) || g.cliente.toLowerCase().includes(s)) : this.gridSemEntrega;
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
+  searchAcrDevolucao = ''; pageAcrDevolucao = 1;
+  get paginatedAcrDevolucao() {
+    const s = this.searchAcrDevolucao.toLowerCase();
+    const filtered = s ? this.gridDevolucao.filter(g => g.titulo.toLowerCase().includes(s) || g.cliente.toLowerCase().includes(s)) : this.gridDevolucao;
+    return filtered.slice((this.pageAcrDevolucao - 1) * this.pageSize, this.pageAcrDevolucao * this.pageSize);
+  }
+  get totalPagesAcrDevolucao() {
+    const s = this.searchAcrDevolucao.toLowerCase();
+    const filtered = s ? this.gridDevolucao.filter(g => g.titulo.toLowerCase().includes(s) || g.cliente.toLowerCase().includes(s)) : this.gridDevolucao;
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
+  searchAcrAcordo = ''; pageAcrAcordo = 1;
+  get paginatedAcrAcordo() {
+    const s = this.searchAcrAcordo.toLowerCase();
+    const filtered = s ? this.gridAcordos.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridAcordos;
+    return filtered.slice((this.pageAcrAcordo - 1) * this.pageSize, this.pageAcrAcordo * this.pageSize);
+  }
+  get totalPagesAcrAcordo() {
+    const s = this.searchAcrAcordo.toLowerCase();
+    const filtered = s ? this.gridAcordos.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridAcordos;
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
+  // Os próximos (AN, AD, RJ, PR) não têm fonte de dados clara ainda, então ficam vazios
+  gridAN: any[] = []; searchAcrAN = ''; pageAcrAN = 1;
+  get paginatedAcrAN() {
+    const s = this.searchAcrAN.toLowerCase();
+    const filtered = s ? this.gridAN.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridAN;
+    return filtered.slice((this.pageAcrAN - 1) * this.pageSize, this.pageAcrAN * this.pageSize);
+  }
+  get totalPagesAcrAN() {
+    const s = this.searchAcrAN.toLowerCase();
+    const filtered = s ? this.gridAN.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridAN;
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
+  gridAD: any[] = []; searchAcrAD = ''; pageAcrAD = 1;
+  get paginatedAcrAD() {
+    const s = this.searchAcrAD.toLowerCase();
+    const filtered = s ? this.gridAD.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridAD;
+    return filtered.slice((this.pageAcrAD - 1) * this.pageSize, this.pageAcrAD * this.pageSize);
+  }
+  get totalPagesAcrAD() {
+    const s = this.searchAcrAD.toLowerCase();
+    const filtered = s ? this.gridAD.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridAD;
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
+  gridRJ: any[] = []; searchAcrRJ = ''; pageAcrRJ = 1;
+  get paginatedAcrRJ() {
+    const s = this.searchAcrRJ.toLowerCase();
+    const filtered = s ? this.gridRJ.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridRJ;
+    return filtered.slice((this.pageAcrRJ - 1) * this.pageSize, this.pageAcrRJ * this.pageSize);
+  }
+  get totalPagesAcrRJ() {
+    const s = this.searchAcrRJ.toLowerCase();
+    const filtered = s ? this.gridRJ.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridRJ;
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
+  gridPR: any[] = []; searchAcrPR = ''; pageAcrPR = 1;
+  get paginatedAcrPR() {
+    const s = this.searchAcrPR.toLowerCase();
+    const filtered = s ? this.gridPR.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridPR;
+    return filtered.slice((this.pageAcrPR - 1) * this.pageSize, this.pageAcrPR * this.pageSize);
+  }
+  get totalPagesAcrPR() {
+    const s = this.searchAcrPR.toLowerCase();
+    const filtered = s ? this.gridPR.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridPR;
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
 
   carregarDashboardVisaoGeral() {
     this.isDashboardLoading.set(true);
@@ -644,6 +791,25 @@ export class InadimplenciaComponent implements OnInit {
             isCartorio: x.status === 'CARTÓRIO' || x.status === 'PROTESTADO'
           };
         });
+
+        // Pendências ACR (AN, AD, RJ, PR)
+        const acrPendencias = (res.gridPendencias || []).map((x: any) => {
+          const statusColorMap: Record<string, string> = {
+            'AN': 'danger',
+            'AD': 'warning',
+            'RJ': 'primary',
+            'PR': 'info'
+          };
+          return {
+            ...x,
+            statusColor: statusColorMap[x.status] || 'secondary'
+          };
+        });
+        
+        this.gridAN = acrPendencias.filter((t: any) => t.status === 'AN');
+        this.gridAD = acrPendencias.filter((t: any) => t.status === 'AD');
+        this.gridRJ = acrPendencias.filter((t: any) => t.status === 'RJ');
+        this.gridPR = acrPendencias.filter((t: any) => t.status === 'PR');
 
         const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         const textColor = isDark ? '#e2e8f0' : '#475569';
