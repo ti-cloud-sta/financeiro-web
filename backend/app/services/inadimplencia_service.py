@@ -1849,6 +1849,24 @@ class InadimplenciaService:
         )
         ranking_acordos = [{"titulo": r.titulo, "cliente": r.cliente_nome, "valor": float(r.valorSaldo or 0)} for r in top_acordos_db]
 
+        # 8b. Dashboard Fiscal
+        kpi_total_fiscal = self.db.query(func.sum(VwNfPendenciaFase.valorSaldo)).filter(
+            VwNfPendenciaFase.fase == 'FISCAL'
+        ).scalar() or 0
+
+        top_fiscal_db = (
+            self.db.query(
+                VwNfPendenciaFase.titulo,
+                Cliente.nome.label('cliente_nome'),
+                VwNfPendenciaFase.valorSaldo
+            )
+            .outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente)
+            .filter(VwNfPendenciaFase.fase == 'FISCAL')
+            .order_by(desc(VwNfPendenciaFase.valorSaldo))
+            .limit(5).all()
+        )
+        ranking_fiscal = [{"titulo": r.titulo, "cliente": r.cliente_nome, "valor": float(r.valorSaldo or 0)} for r in top_fiscal_db]
+
         # 9. Grid de Títulos em Atraso (Todos os títulos da fase FINANCEIRO)
         grid_financeiro_db = (
             self.db.query(
@@ -1944,6 +1962,36 @@ class InadimplenciaService:
                 "fase": g.fase,
                 "status": g.status
             }
+            for g in grid_acordos_db
+        ]
+
+        grid_fiscal_db = (
+            self.db.query(
+                VwNfPendenciaFase.idnfpendencias,
+                VwNfPendenciaFase.titulo,
+                Cliente.nome.label('cliente_nome'),
+                VwNfPendenciaFase.dtVencimento,
+                VwNfPendenciaFase.valorSaldo,
+                VwNfPendenciaFase.fase,
+                VwNfPendenciaFase.status
+            )
+            .outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente)
+            .filter(VwNfPendenciaFase.fase == 'FISCAL')
+            .order_by(VwNfPendenciaFase.dtVencimento.asc())
+            .limit(1000)
+            .all()
+        )
+        grid_fiscal = [
+            {
+                "id": g.idnfpendencias,
+                "titulo": g.titulo,
+                "cliente": g.cliente_nome,
+                "vencimento": g.dtVencimento.isoformat() if g.dtVencimento else None,
+                "valor": float(g.valorSaldo or 0),
+                "fase": g.fase,
+                "status": g.status
+            }
+            for g in grid_fiscal_db
         ]
 
         grid_pendencias_db = (
@@ -1977,17 +2025,19 @@ class InadimplenciaService:
 
         kpi_sem_entrega = sum(item['valor'] for item in grid_sem_entrega)
         kpi_devolucao = sum(item['valor'] for item in grid_devolucao)
-        # 10. Evolução Logística (Mês a Mês)
+        # 10. Evolução Logística, Financeira, Comercial (Mês a Mês)
         meses_logistica_labels = []
-        valores_sem_entrega = []
-        valores_devolucao = []
-        
         meses_labels = []
-        meses_valores_atraso = []
-        meses_valores_protesto = []
-        valores_acordos = []
+        
+        valores_sem_entrega = [0] * 6
+        valores_devolucao = [0] * 6
+        meses_valores_atraso = [0] * 6
+        meses_valores_protesto = [0] * 6
+        valores_acordos = [0] * 6
+        valores_fiscal = [0] * 6
         
         meses_nomes = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+        month_to_index = {}
         
         for i in range(5, -1, -1):
             m = hoje.month - i
@@ -1996,64 +2046,50 @@ class InadimplenciaService:
                 m += 12
                 y -= 1
             label_mes = f"{meses_nomes[m-1]}/{str(y)[2:]}"
+            idx = 5 - i
             meses_logistica_labels.append(label_mes)
-            
-            count_sem_entrega = self.db.query(func.count(func.distinct(VwNfPendenciaFase.idnfpendencias))).join(
-                HistoricoPendencia, HistoricoPendencia.idNfPendencias == VwNfPendenciaFase.idnfpendencias
-            ).filter(
-                HistoricoPendencia.fase == 'LOGISTICA',
-                HistoricoPendencia.status == 'SEM DATA DE ENTREGA',
-                HistoricoPendencia.dtVencimento < cast(HistoricoPendencia.createdAt, Date),
-                func.extract('year', HistoricoPendencia.createdAt) == y,
-                func.extract('month', HistoricoPendencia.createdAt) == m
-            ).scalar() or 0
-            
-            count_devolucao = self.db.query(func.count(func.distinct(VwNfPendenciaFase.idnfpendencias))).join(
-                HistoricoPendencia, HistoricoPendencia.idNfPendencias == VwNfPendenciaFase.idnfpendencias
-            ).filter(
-                HistoricoPendencia.fase == 'LOGISTICA',
-                or_(HistoricoPendencia.status == 'DEVOLUÇÃO', HistoricoPendencia.status == 'DEVOLUCAO'),
-                HistoricoPendencia.dtVencimento < cast(HistoricoPendencia.createdAt, Date),
-                func.extract('year', HistoricoPendencia.createdAt) == y,
-                func.extract('month', HistoricoPendencia.createdAt) == m
-            ).scalar() or 0
-            
-            valores_sem_entrega.append(count_sem_entrega)
-            valores_devolucao.append(count_devolucao)
-            
-            # Evolução Financeira / Comercial
-            count_protesto = self.db.query(func.count(func.distinct(VwNfPendenciaFase.idnfpendencias))).join(
-                HistoricoPendencia, HistoricoPendencia.idNfPendencias == VwNfPendenciaFase.idnfpendencias
-            ).filter(
-                HistoricoPendencia.fase == 'FINANCEIRO',
-                HistoricoPendencia.status == 'PROTESTADO',
-                HistoricoPendencia.dtVencimento < cast(HistoricoPendencia.createdAt, Date),
-                func.extract('year', HistoricoPendencia.createdAt) == y,
-                func.extract('month', HistoricoPendencia.createdAt) == m
-            ).scalar() or 0
-
-            count_atraso = self.db.query(func.count(func.distinct(VwNfPendenciaFase.idnfpendencias))).join(
-                HistoricoPendencia, HistoricoPendencia.idNfPendencias == VwNfPendenciaFase.idnfpendencias
-            ).filter(
-                HistoricoPendencia.fase == 'FINANCEIRO',
-                HistoricoPendencia.status == 'ATRASADO',
-                HistoricoPendencia.dtVencimento < cast(HistoricoPendencia.createdAt, Date),
-                func.extract('year', HistoricoPendencia.createdAt) == y,
-                func.extract('month', HistoricoPendencia.createdAt) == m
-            ).scalar() or 0
-
-            count_acordo = self.db.query(func.count(func.distinct(VwNfPendenciaFase.idnfpendencias))).join(
-                HistoricoPendencia, HistoricoPendencia.idNfPendencias == VwNfPendenciaFase.idnfpendencias
-            ).filter(
-                HistoricoPendencia.status == 'ACORDO',
-                func.extract('year', HistoricoPendencia.createdAt) == y,
-                func.extract('month', HistoricoPendencia.createdAt) == m
-            ).scalar() or 0
-
             meses_labels.append(label_mes)
-            meses_valores_atraso.append(count_atraso)
-            meses_valores_protesto.append(count_protesto)
-            valores_acordos.append(count_acordo)
+            month_to_index[(y, m)] = idx
+            
+        def preencher_bins(status_list=None, fase=None, bin_array=None, check_vencimento=False):
+            q_base = self.db.query(VwNfPendenciaFase.idnfpendencias)
+            if status_list:
+                q_base = q_base.filter(VwNfPendenciaFase.status.in_(status_list))
+            if fase:
+                q_base = q_base.filter(VwNfPendenciaFase.fase == fase)
+                
+            ids_db = q_base.all()
+            ids = [r[0] for r in ids_db]
+            if not ids:
+                return
+            
+            query = self.db.query(
+                HistoricoPendencia.idNfPendencias,
+                func.max(HistoricoPendencia.createdAt).label('max_date')
+            ).filter(HistoricoPendencia.idNfPendencias.in_(ids))
+            
+            if status_list:
+                query = query.filter(HistoricoPendencia.status.in_(status_list))
+            if fase:
+                query = query.filter(HistoricoPendencia.fase == fase)
+                
+            if check_vencimento:
+                query = query.filter(HistoricoPendencia.dtVencimento < cast(HistoricoPendencia.createdAt, Date))
+                
+            max_dates = query.group_by(HistoricoPendencia.idNfPendencias).all()
+            
+            for row in max_dates:
+                if row.max_date:
+                    ry, rm = row.max_date.year, row.max_date.month
+                    if (ry, rm) in month_to_index:
+                        bin_array[month_to_index[(ry, rm)]] += 1
+                        
+        preencher_bins(status_list=['SEM DATA DE ENTREGA'], bin_array=valores_sem_entrega, check_vencimento=True)
+        preencher_bins(status_list=['DEVOLUÇÃO', 'DEVOLUCAO'], bin_array=valores_devolucao, check_vencimento=True)
+        preencher_bins(status_list=['PROTESTADO', 'CARTÓRIO'], bin_array=meses_valores_protesto, check_vencimento=True)
+        preencher_bins(status_list=['ATRASADO'], bin_array=meses_valores_atraso, check_vencimento=True)
+        preencher_bins(status_list=['ACORDO'], bin_array=valores_acordos, check_vencimento=False)
+        preencher_bins(fase='FISCAL', bin_array=valores_fiscal, check_vencimento=False)
 
         # 11. Composição da Carteira
         composicao_db = self.db.query(VwNfPendenciaFase.status, func.count(VwNfPendenciaFase.idnfpendencias)).filter(
@@ -2061,6 +2097,37 @@ class InadimplenciaService:
         ).group_by(VwNfPendenciaFase.status).all()
         
         composicao_carteira = [{"name": r[0] or 'Indefinido', "value": r[1]} for r in composicao_db]
+
+        
+        grid_vencidos_geral_db = (
+            self.db.query(
+                VwNfPendenciaFase.idnfpendencias.label('id'),
+                VwNfPendenciaFase.titulo,
+                Cliente.nome.label('cliente_nome'),
+                VwNfPendenciaFase.dtVencimento,
+                VwNfPendenciaFase.valorSaldo,
+                VwNfPendenciaFase.fase,
+                VwNfPendenciaFase.status
+            )
+            .outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente)
+            .filter(
+                VwNfPendenciaFase.dtVencimento < hoje_datetime
+            )
+            .order_by(VwNfPendenciaFase.dtVencimento.asc())
+            .all()
+        )
+        
+        grid_vencidos_geral = [
+            {
+                "id": r.id,
+                "titulo": r.titulo,
+                "cliente": r.cliente_nome,
+                "vencimento": r.dtVencimento.isoformat() if r.dtVencimento else None,
+                "valor": float(r.valorSaldo or 0),
+                "fase": r.fase,
+                "status": r.status
+            } for r in grid_vencidos_geral_db
+        ]
 
         return {
             "kpiVencido": float(kpi_vencido),
@@ -2111,5 +2178,14 @@ class InadimplenciaService:
             "evolucaoAcordos": {
                 "labels": meses_logistica_labels,
                 "values": valores_acordos
+            },
+
+            "kpiTotalFiscal": float(kpi_total_fiscal),
+            "rankingFiscal": ranking_fiscal,
+            "gridFiscal": grid_fiscal,
+            "gridVencidosGeral": grid_vencidos_geral,
+            "evolucaoFiscal": {
+                "labels": meses_logistica_labels,
+                "values": valores_fiscal
             }
         }

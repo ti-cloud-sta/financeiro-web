@@ -33,9 +33,9 @@ export class InadimplenciaComponent implements OnInit {
 
   isSidebarCollapsed = false;
   activeTab = 'dashboards';
-  dashboardTab = signal<'visao-geral' | 'financeiro' | 'logistica' | 'comercial' | 'pendencias-acr'>('visao-geral');
+  dashboardTab = signal<'visao-geral' | 'financeiro' | 'logistica' | 'comercial' | 'fiscal' | 'pendencias-acr'>('visao-geral');
   financeiroTab = signal<'gerencial' | 'gerente'>('gerencial');
-  pendenciasAcrTab = signal<'atrasados' | 'protestados' | 'sem_data_entrega' | 'devolucao' | 'acordo' | 'an' | 'ad' | 'rj' | 'pr'>('atrasados');
+  pendenciasAcrTab = signal<'atrasados' | 'protestados' | 'sem_data_entrega' | 'devolucao' | 'acordo' | 'an' | 'ad' | 'rj' | 'pr' | 'variados'>('atrasados');
 
   // Modal Tratativas
   isTratativasModalOpen = false;
@@ -72,7 +72,7 @@ export class InadimplenciaComponent implements OnInit {
     }
   }
 
-  setDashboardTab(tab: 'visao-geral' | 'financeiro' | 'logistica' | 'comercial' | 'pendencias-acr') {
+  setDashboardTab(tab: 'visao-geral' | 'financeiro' | 'logistica' | 'comercial' | 'fiscal' | 'pendencias-acr') {
     this.dashboardTab.set(tab);
     
     this.isDashboardLoading.set(true);
@@ -89,6 +89,8 @@ export class InadimplenciaComponent implements OnInit {
         this._loadLogisticaData();
       } else if (tab === 'comercial') {
         this._loadComercialData();
+      } else if (tab === 'fiscal') {
+        this._loadFiscalData();
       }
     }, 600);
   }
@@ -457,6 +459,27 @@ export class InadimplenciaComponent implements OnInit {
     return Math.ceil(filtered.length / this.pageSize) || 1;
   }
 
+  // Fiscal
+  kpiTotalFiscal = 0;
+  rankingFiscal: any[] = [];
+  chartOptionsFiscal: any;
+  gridFiscal: any[] = [];
+  searchFiscal = '';
+  pageFiscal = 1;
+
+  get paginatedFiscal() {
+    const s = this.searchFiscal.toLowerCase();
+    const filtered = s ? this.gridFiscal.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridFiscal;
+    const start = (this.pageFiscal - 1) * this.pageSize;
+    return filtered.slice(start, start + this.pageSize);
+  }
+
+  get totalPagesFiscal() {
+    const s = this.searchFiscal.toLowerCase();
+    const filtered = s ? this.gridFiscal.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridFiscal;
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
   // ==========================================
   // ESTADOS E PAGINAÇÃO PARA PENDÊNCIAS ACR
   // ==========================================
@@ -573,6 +596,22 @@ export class InadimplenciaComponent implements OnInit {
     return Math.ceil(filtered.length / this.pageSize) || 1;
   }
 
+  // Variados
+  gridVariados: any[] = [];
+  searchAcrVariados = '';
+  pageAcrVariados = 1;
+  get paginatedAcrVariados() {
+    const s = this.searchAcrVariados.toLowerCase();
+    const filtered = s ? this.gridVariados.filter(g => (g.titulo?.toLowerCase().includes(s)) || (g.cliente?.toLowerCase().includes(s))) : this.gridVariados;
+    return filtered.slice((this.pageAcrVariados - 1) * this.pageSize, this.pageAcrVariados * this.pageSize);
+  }
+  get totalPagesAcrVariados() {
+    const s = this.searchAcrVariados.toLowerCase();
+    const filtered = s ? this.gridVariados.filter(g => (g.titulo?.toLowerCase().includes(s)) || (g.cliente?.toLowerCase().includes(s))) : this.gridVariados;
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
+
 
   carregarDashboardVisaoGeral() {
     this.isDashboardLoading.set(true);
@@ -581,6 +620,7 @@ export class InadimplenciaComponent implements OnInit {
       this._loadFinanceiroData();
       this._loadLogisticaData();
       this._loadComercialData();
+      this._loadFiscalData();
     }, 600);
   }
 
@@ -811,6 +851,34 @@ export class InadimplenciaComponent implements OnInit {
         this.gridRJ = acrPendencias.filter((t: any) => t.status === 'RJ');
         this.gridPR = acrPendencias.filter((t: any) => t.status === 'PR');
 
+        // Preencher Variados com todos os vencidos gerais que não estão em nenhuma das listas anteriores
+        const todosVencidos = res.gridVencidosGeral || [];
+        const idsUsados = new Set<number>();
+        
+        // Coleta os IDs mapeados nas abas ACR
+        this.maioresAtrasos.filter(t => t.status === 'ATRASADO').forEach(t => idsUsados.add(t.id));
+        this.maioresAtrasos.filter(t => t.status === 'PROTESTADO' || t.status === 'CARTÓRIO').forEach(t => idsUsados.add(t.id));
+        this.gridSemEntrega.forEach(t => idsUsados.add(t.id));
+        this.gridDevolucao.forEach(t => idsUsados.add(t.id));
+        this.gridAcordos.forEach(t => idsUsados.add(t.id));
+        this.gridAN.forEach(t => idsUsados.add(t.id));
+        this.gridAD.forEach(t => idsUsados.add(t.id));
+        this.gridRJ.forEach(t => idsUsados.add(t.id));
+        this.gridPR.forEach(t => idsUsados.add(t.id));
+
+        this.gridVariados = todosVencidos.filter((t: any) => !idsUsados.has(t.id)).map((x: any) => {
+          const statusColorMap: Record<string, string> = {
+            'AN': 'danger', 'AD': 'warning', 'RJ': 'primary', 'PR': 'info',
+            'ATRASADO': 'warning', 'PROTESTADO': 'danger', 'ACORDO': 'primary',
+            'DEVOLUCAO': 'warning', 'SEM DATA DE ENTREGA': 'warning'
+          };
+          return {
+            ...x,
+            statusColor: statusColorMap[x.status] || 'secondary'
+          };
+        });
+
+
         const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         const textColor = isDark ? '#e2e8f0' : '#475569';
         const splitLineColor = isDark ? '#334155' : '#e2e8f0';
@@ -981,6 +1049,41 @@ export class InadimplenciaComponent implements OnInit {
         };
       },
       error: (err) => console.error('Erro ao carregar dados do dashboard comercial:', err)
+    });
+  }
+
+  carregarDashboardFiscal() {
+    this.isDashboardLoading.set(true);
+    setTimeout(() => {
+      this.isDashboardLoading.set(false);
+      this._loadFiscalData();
+    }, 600);
+  }
+
+  private _loadFiscalData() {
+    this.importacoesService.obterDashboardVisaoGeral().subscribe({
+      next: (res) => {
+        this.kpiTotalFiscal = res.kpiTotalFiscal;
+        
+        this.rankingFiscal = res.rankingFiscal;
+
+        this.gridFiscal = (res.gridFiscal || []).map((x: any) => ({
+          ...x,
+          statusColor: 'primary' // Pode mudar conforme necessário
+        }));
+
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const textColor = isDark ? '#e2e8f0' : '#475569';
+
+        this.chartOptionsFiscal = {
+          tooltip: { trigger: 'axis' },
+          grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+          xAxis: { type: 'category', data: res.evolucaoFiscal.labels, axisLabel: { color: textColor } },
+          yAxis: { type: 'value', splitLine: { show: false }, axisLabel: { color: textColor } },
+          series: [{ name: 'Fiscal (Ocorrências)', type: 'line', data: res.evolucaoFiscal.values, label: { show: true, position: 'top', fontSize: 11, fontWeight: '600', color: '#64748b' }, itemStyle: { color: this.colors[3] }, areaStyle: { opacity: 0.1 } }]
+        };
+      },
+      error: (err) => console.error('Erro ao carregar dados do dashboard fiscal:', err)
     });
   }
 }
