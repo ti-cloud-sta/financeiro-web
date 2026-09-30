@@ -110,13 +110,10 @@ class DespesasViagensService:
             if nome_original.lower() != colab.nome.lower():
                 self.alias_repo.create_or_update(colab.idColaborador, nome_original)
 
-            # Prioridade da data: campo data individual da despesa > dataCompetencia do form
+            # A data de competência definida no modal é SEMPRE o critério de agrupamento.
+            # A data interna do documento (d.data) é apenas informativa e não deve
+            # sobrescrever a competência contábil definida pelo usuário na importação.
             data_mov = data_competencia_obj
-            if d.data:
-                try:
-                    data_mov = datetime.strptime(d.data, "%Y-%m-%d")
-                except ValueError:
-                    pass
 
             nova_mov = Movimentacao(
                 idCategoria=cat.idCategorias,
