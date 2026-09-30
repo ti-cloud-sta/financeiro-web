@@ -23,3 +23,16 @@
 
 // 4. Overrides do sistema de tema Light/Dark
 @import 'styles/theme_overrides';
+
+// =======================================================
+// Fix global: ng-select dropdown com appendTo="body"
+// =======================================================
+body > .ng-dropdown-panel {
+  z-index: 9999 !important;
+
+  .ng-dropdown-panel-items {
+    max-height: 220px !important;
+    overflow-y: scroll !important;
+  }
+}
+

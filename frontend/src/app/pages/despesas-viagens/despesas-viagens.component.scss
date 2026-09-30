@@ -1656,3 +1656,8 @@
     }
   }
 }
+::ng-deep .custom-ng-select .ng-dropdown-panel-items { max-height: 240px !important; overflow-y: auto !important; }
+
+
+::ng-deep .ng-dropdown-panel-items { max-height: 240px !important; overflow-y: auto !important; }
+

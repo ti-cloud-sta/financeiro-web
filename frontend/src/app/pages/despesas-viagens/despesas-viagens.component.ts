@@ -677,10 +677,10 @@ export class DespesasViagensComponent implements OnInit {
   searchDespesaTerm = signal<string>('');
   mostrarDivergenciaOnly = signal<boolean>(false);
   isAddingDespesa = signal<boolean>(false);
-  editingRowIndex = signal<number | null>(null);
+  editingDespesa = signal<any>(null);
 
-  editColaborador = signal<string>('');
-  editCategoria = signal<string>('');
+  editColaborador = signal<any>(null);
+  editCategoria = signal<any>(null);
   editValor = signal<number>(0);
 
   newDespesaColaborador = signal<string>('');
@@ -774,26 +774,56 @@ export class DespesasViagensComponent implements OnInit {
     this._saveDraft();
   }
 
-  startEdit(index: number, despesa: any) {
-    this.editingRowIndex.set(index);
-    this.editColaborador.set(despesa.colaborador);
-    this.editCategoria.set(despesa.categoria);
+  startEdit(despesa: any) {
+    this.editingDespesa.set(despesa);
+    
+    // Busca pelo ID se disponivel, senao pelo nome
+    const colab = this.listaColaboradoresGeral.find(c => 
+      (despesa.idColaborador && c.idColaborador === despesa.idColaborador) ||
+      (!despesa.idColaborador && c.nome === despesa.colaborador)
+    );
+    this.editColaborador.set(colab || null);
+    
+    const cat = this.listaCategoriasGeral.find(c => 
+      (despesa.idCategoria && c.idCategorias === despesa.idCategoria) ||
+      (!despesa.idCategoria && c.nome === despesa.categoria)
+    );
+    this.editCategoria.set(cat || null);
+    
     this.editValor.set(despesa.valor);
   }
 
   cancelEdit() {
-    this.editingRowIndex.set(null);
+    this.editingDespesa.set(null);
   }
 
-  saveEdit(index: number) {
-    this.despesasExtraidas[index].colaborador = this.editColaborador();
-    this.despesasExtraidas[index].categoria = this.editCategoria();
-    this.despesasExtraidas[index].valor = this.editValor();
-    // Assuming edit means they fixed it manually
-    this.despesasExtraidas[index].pessoa_encontrada = true; 
-    this.despesasExtraidas[index].categoria_encontrada = true;
+  saveEdit(despesaToEdit: any) {
+    const colabObj = this.editColaborador();
+    const catObj = this.editCategoria();
+    
+    if (!colabObj) {
+      this.showErrorToast("Por favor, selecione um colaborador na lista antes de salvar.");
+      return;
+    }
+
+    // Muta o objeto diretamente (referência segura, sem depender de índice)
+    if (colabObj.idColaborador) {
+      despesaToEdit.colaborador = colabObj.nome;
+      despesaToEdit.idColaborador = colabObj.idColaborador;
+      despesaToEdit.pessoa_encontrada = true; 
+    }
+    
+    if (catObj && catObj.idCategorias) {
+      despesaToEdit.categoria = catObj.nome;
+      despesaToEdit.idCategoria = catObj.idCategorias;
+      despesaToEdit.categoria_encontrada = true;
+    }
+
+    despesaToEdit.valor = this.editValor();
+    
+    // Força detecção de mudança recriando a referência do array
     this.despesasExtraidas = [...this.despesasExtraidas];
-    this.editingRowIndex.set(null);
+    this.editingDespesa.set(null);
     this._saveDraft();
   }
 
@@ -1197,6 +1227,11 @@ export class DespesasViagensComponent implements OnInit {
         const comValues = bf.comercial.map((v: number) => -v);
         const mktValues = bf.marketing;
 
+        let maxAbs = 0;
+        bf.comercial.forEach((v: number) => { if (v > maxAbs) maxAbs = v; });
+        bf.marketing.forEach((v: number) => { if (v > maxAbs) maxAbs = v; });
+        const axisBound = maxAbs > 0 ? Math.ceil(maxAbs * 1.1) : 100;
+
         this.chartAnaliticoButterfly = {
           color: ['#3b82f6', '#ec4899'],
           tooltip: {
@@ -1216,9 +1251,11 @@ export class DespesasViagensComponent implements OnInit {
             top: 0,
             textStyle: { fontSize: 11, color: themeColors.text }
           },
-          grid: { top: 30, left: 10, right: 10, bottom: 10, containLabel: true },
+          grid: { top: 30, left: 100, right: 100, bottom: 10, containLabel: false },
           xAxis: {
             type: 'value',
+            min: -axisBound,
+            max: axisBound,
             axisLabel: {
               formatter: (val: number) => {
                 const abs = Math.abs(val);

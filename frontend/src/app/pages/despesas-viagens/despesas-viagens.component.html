@@ -1361,14 +1361,15 @@
                                 </tr>
                               </thead>
                               <tbody>
-                                @for (despesa of filteredParsedDespesas; track $index) {
+                                @for (despesa of filteredParsedDespesas; track despesa) {
                                 <tr [class.bg-danger-subtle]="!despesa.pessoa_encontrada || !despesa.categoria_encontrada">
                                   
                                   <!-- Colaborador -->
                                   <td class="ps-4 fw-semibold text-dark text-uppercase border-bottom-light">
-                                    @if (editingRowIndex() === $index) {
-                                    <ng-select [items]="listaColaboradoresGeral" bindLabel="nome" bindValue="nome" [ngModel]="editColaborador()"
-                                       (ngModelChange)="editColaborador.set($event)" [clearable]="false"
+                                    @if (editingDespesa() === despesa) {
+                                    <ng-select [items]="listaColaboradoresGeral" bindLabel="nome"
+                                       [ngModel]="editColaborador()" (ngModelChange)="editColaborador.set($event)"
+                                       [clearable]="false" [virtualScroll]="true"
                                        class="custom-ng-select" appendTo="body">
                                     </ng-select>
                                     } @else {
@@ -1383,9 +1384,10 @@
 
                                   <!-- Categoria -->
                                   <td class="fw-semibold text-dark border-bottom-light">
-                                    @if (editingRowIndex() === $index) {
-                                    <ng-select [items]="listaCategoriasGeral" bindLabel="nome" bindValue="nome" [ngModel]="editCategoria()"
-                                       (ngModelChange)="editCategoria.set($event)" [clearable]="false"
+                                    @if (editingDespesa() === despesa) {
+                                    <ng-select [items]="listaCategoriasGeral" bindLabel="nome"
+                                       [ngModel]="editCategoria()" (ngModelChange)="editCategoria.set($event)"
+                                       [clearable]="false" [virtualScroll]="true"
                                        class="custom-ng-select" appendTo="body">
                                     </ng-select>
                                     } @else {
@@ -1400,7 +1402,7 @@
 
                                   <!-- Valor -->
                                   <td class="text-end fw-semibold text-dark tabular-nums border-bottom-light">
-                                    @if (editingRowIndex() === $index) {
+                                    @if (editingDespesa() === despesa) {
                                     <input type="number" class="form-control form-control-sm text-end" [value]="editValor()"
                                        (input)="onEditValorChange($event)">
                                     } @else {
@@ -1410,9 +1412,9 @@
 
                                   <!-- Ações -->
                                   <td class="text-end pe-4 border-bottom-light">
-                                    @if (editingRowIndex() === $index) {
+                                    @if (editingDespesa() === despesa) {
                                     <div class="d-flex justify-content-end gap-1">
-                                      <button class="btn btn-sm-action btn-success" (click)="saveEdit($index)">
+                                      <button class="btn btn-sm-action btn-success" (click)="saveEdit(despesa)">
                                         <i class="fa-solid fa-check"></i>
                                       </button>
                                       <button class="btn btn-sm-action btn-secondary" (click)="cancelEdit()">
@@ -1427,7 +1429,7 @@
                                       </button>
                                       }
                                       <button class="btn btn-sm-action btn-link hover-lift" [disabled]="isAddingDespesa()"
-                                        (click)="startEdit($index, despesa)" title="Editar">
+                                        (click)="startEdit(despesa)" title="Editar">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                       </button>
                                       <button class="btn btn-sm-action text-danger hover-lift" [disabled]="isAddingDespesa()"
@@ -1475,7 +1477,7 @@
                                 <tr>
                                   <td colspan="4" class="text-start py-2 px-2">
                                     <button class="btn btn-sm btn-outline-primary" (click)="startAddDespesa()"
-                                      [disabled]="editingRowIndex() !== null">
+                                      [disabled]="editingDespesa() !== null">
                                       <i class="fa-solid fa-plus me-1"></i>Adicionar Despesa
                                     </button>
                                   </td>
