@@ -50,7 +50,7 @@ export interface ImportDivergente {
 
 export interface ImportDesligado {
   idColaborador: number;
-  documento: string;
+  documento: string | null;
   nome: string;
   centroCustoAtualNome: string | null;
 }

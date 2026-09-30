@@ -24,7 +24,7 @@ class ImportDivergente(BaseModel):
 
 class ImportDesligado(BaseModel):
     idColaborador: int
-    documento: str
+    documento: Optional[str] = None
     nome: str
     centroCustoAtualNome: Optional[str] = None
 

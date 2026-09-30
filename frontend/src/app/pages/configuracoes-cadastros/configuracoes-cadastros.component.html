@@ -1,4 +1,4 @@
-﻿<div class="page-container">
+<div class="page-container">
   <div class="main-layout">
     <aside class="main-sidebar" [class.collapsed]="isSidebarCollapsed">
       <div class="sidebar-header d-flex justify-content-end mb-3 pb-2 border-bottom">
@@ -948,7 +948,7 @@
             <tbody>
               <tr *ngFor="let linha of importDesligadosFiltrados">
                 <td class="fw-medium">{{ linha.nome }}</td>
-                <td>{{ linha.documento }}</td>
+                <td>{{ linha.documento || 'Sem CPF' }}</td>
                 <td>{{ linha.centroCustoAtualNome || '-' }}</td>
               </tr>
               <tr *ngIf="importDesligadosFiltrados.length === 0">
@@ -1331,6 +1331,15 @@
       <app-skeleton type="rect" width="100%" height="400px"></app-skeleton>
     </div>
 
+    <!-- Busca na Grid -->
+    <div *ngIf="!isTurnoverLoading && turnoverData.length > 0" class="config-toolbar mb-3">
+      <div class="search-box" style="max-width: 360px;">
+        <i class="fa-solid fa-search text-muted position-absolute" style="left: 1rem; top: 50%; transform: translateY(-50%);"></i>
+        <input type="text" class="form-control" placeholder="Buscar por colaborador, CPF, movimento..." [(ngModel)]="turnoverBusca"
+          style="padding-left: 2.5rem; height: 38px; border-radius: 8px;">
+      </div>
+    </div>
+
     <!-- Tabela Turnover -->
     <div *ngIf="!isTurnoverLoading" class="table-responsive flex-grow-1" style="border: 1px solid #e2e8f0; border-radius: 12px; background: #fff;">
       <table class="saas-table w-100 m-0">
@@ -1345,7 +1354,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let m of turnoverData">
+          <tr *ngFor="let m of turnoverDataFiltrado">
             <td class="text-nowrap">{{ m.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
             <td class="fw-medium text-dark">{{ m.colaboradorNome }}</td>
             <td class="text-muted">{{ m.colaboradorDocumento || '—' }}</td>
@@ -1357,8 +1366,15 @@
             <td><span class="text-muted small">{{ m.origem }}</span></td>
             <td><span class="text-muted small">{{ m.userNome }}</span></td>
           </tr>
-          <tr *ngIf="turnoverData.length === 0">
-            <td colspan="6" class="text-center text-muted py-5">Nenhuma movimentação encontrada para o período selecionado.</td>
+          <tr *ngIf="turnoverDataFiltrado.length === 0">
+            <td colspan="6" class="text-center text-muted py-5">
+              @if (turnoverBusca) {
+                <i class="fa-solid fa-magnifying-glass fs-4 mb-2 d-block opacity-25"></i>
+                Nenhum resultado para "<strong>{{ turnoverBusca }}</strong>".
+              } @else {
+                Nenhuma movimentação encontrada para o período selecionado.
+              }
+            </td>
           </tr>
         </tbody>
       </table>

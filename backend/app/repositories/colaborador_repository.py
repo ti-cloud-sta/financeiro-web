@@ -62,9 +62,20 @@ class ColaboradorRepository:
 
     def get_documentos_ativos(self) -> List[str]:
         rows = self.db.query(Colaborador.documento).filter(
-            Colaborador.snAtivo != 'N', Colaborador.documento.isnot(None)
+            Colaborador.snAtivo != 'N',
+            Colaborador.documento.isnot(None),
+            Colaborador.documento != ''
         ).all()
         return [r[0] for r in rows]
+
+    def get_ativos_sem_documento(self) -> List[Colaborador]:
+        """Retorna colaboradores ativos sem CPF (documento None ou vazio).
+        Estes não podem ser rastreados pela planilha de RH e devem
+        aparecer no preview de desligamento para revisão manual."""
+        return self._base_query().filter(
+            Colaborador.snAtivo != 'N',
+            or_(Colaborador.documento.is_(None), Colaborador.documento == '')
+        ).all()
 
     def get_all(self, skip: int = 0, limit: int = 20, search: Optional[str] = None, id_cargo: Optional[int] = None) -> Tuple[List[Colaborador], int]:
         query = self.db.query(Colaborador).outerjoin(CentroCusto).outerjoin(CargoColaborador).filter(
