@@ -866,7 +866,7 @@ export class InadimplenciaComponent implements OnInit {
         this.gridRJ.forEach(t => idsUsados.add(t.id));
         this.gridPR.forEach(t => idsUsados.add(t.id));
 
-        this.gridVariados = todosVencidos.filter((t: any) => !idsUsados.has(t.id)).map((x: any) => {
+        this.gridVariados = todosVencidos.filter((t: any) => !idsUsados.has(t.id) && t.status !== 'OK').map((x: any) => {
           const statusColorMap: Record<string, string> = {
             'AN': 'danger', 'AD': 'warning', 'RJ': 'primary', 'PR': 'info',
             'ATRASADO': 'warning', 'PROTESTADO': 'danger', 'ACORDO': 'primary',

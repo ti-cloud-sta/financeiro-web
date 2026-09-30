@@ -1227,6 +1227,11 @@ export class DespesasViagensComponent implements OnInit {
         const comValues = bf.comercial.map((v: number) => -v);
         const mktValues = bf.marketing;
 
+        let maxAbs = 0;
+        bf.comercial.forEach((v: number) => { if (v > maxAbs) maxAbs = v; });
+        bf.marketing.forEach((v: number) => { if (v > maxAbs) maxAbs = v; });
+        const axisBound = maxAbs > 0 ? Math.ceil(maxAbs * 1.1) : 100;
+
         this.chartAnaliticoButterfly = {
           color: ['#3b82f6', '#ec4899'],
           tooltip: {
@@ -1246,9 +1251,11 @@ export class DespesasViagensComponent implements OnInit {
             top: 0,
             textStyle: { fontSize: 11, color: themeColors.text }
           },
-          grid: { top: 30, left: 10, right: 10, bottom: 10, containLabel: true },
+          grid: { top: 30, left: 100, right: 100, bottom: 10, containLabel: false },
           xAxis: {
             type: 'value',
+            min: -axisBound,
+            max: axisBound,
             axisLabel: {
               formatter: (val: number) => {
                 const abs = Math.abs(val);

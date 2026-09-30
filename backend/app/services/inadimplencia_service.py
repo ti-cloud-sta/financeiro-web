@@ -663,7 +663,7 @@ class InadimplenciaService:
         Sem parâmetros, mostra o padrão da tela: tudo com vencimento menor ou igual à data de corte (vencido).
         Com vencimento_inicio/vencimento_fim, filtra pelo intervalo informado.
         """
-        query = self.db.query(VwNfPendenciaFase, Cliente.nome).outerjoin(
+        query = self.db.query(VwNfPendenciaFase, Cliente.nome, Cliente.codigo).outerjoin(
             Cliente, VwNfPendenciaFase.idCliente == Cliente.idclientes
         )
 
@@ -679,7 +679,7 @@ class InadimplenciaService:
         registros = query.order_by(VwNfPendenciaFase.dtVencimento.asc()).all()
 
         resultados = []
-        for vw, nome_cliente in registros:
+        for vw, nome_cliente, codigo_cliente in registros:
             resultados.append({
                 "idnfpendencias": vw.idnfpendencias,
                 "titulo": vw.titulo,
@@ -687,7 +687,7 @@ class InadimplenciaService:
                 "status": vw.status,
                 "devolucao": "S" if vw.status == 'DEVOLUCAO' else "N",
                 "clienteNome": nome_cliente,
-                "idCliente": vw.idCliente,
+                "idCliente": codigo_cliente,
                 "dtVencimento": vw.dtVencimento.isoformat() if vw.dtVencimento else None,
                 "createdAt": vw.createdAt.isoformat() if vw.createdAt else None,
                 "especie": vw.especie,
