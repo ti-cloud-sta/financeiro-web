@@ -865,9 +865,18 @@ export class DespesasViagensComponent implements OnInit {
 
   isConfirmandoESalvando = false;
 
+  get hasDivergencias(): boolean {
+    return this.despesasExtraidas.some(d => !d.pessoa_encontrada || !d.categoria_encontrada);
+  }
+
   confirmarESalvar() {
     if (this.despesasExtraidas.length === 0) return;
     if (this.isConfirmandoESalvando) return;
+
+    if (this.hasDivergencias) {
+      this.toastService.show('Resolva todas as divergências (itens em vermelho) antes de confirmar a importação.', 'error');
+      return;
+    }
 
     this.isConfirmandoESalvando = true;
     const idUserLogado = this.authService.currentUser()?.iduser;

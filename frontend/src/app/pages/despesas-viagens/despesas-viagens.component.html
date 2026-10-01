@@ -1518,8 +1518,9 @@
                             Cancelar
                           </app-button>
                           <app-button variant="primary" (clicked)="confirmarESalvar()"
-                            [disabled]="despesasExtraidas.length === 0 || isConfirmandoESalvando || !unidadeSelecionadaId()"
-                            [loading]="isConfirmandoESalvando">
+                            [disabled]="despesasExtraidas.length === 0 || isConfirmandoESalvando || !unidadeSelecionadaId() || hasDivergencias"
+                            [loading]="isConfirmandoESalvando"
+                            [title]="hasDivergencias ? 'Resolva as divergências antes de confirmar' : ''">
                             Confirmar
                           </app-button>
                         </div>

@@ -32,36 +32,35 @@ class DespesasViagensService:
         nova_importacao = None
 
         # -----------------------------------------------------------------------
-        # Lançamento via IMPORTAÇÃO (IA): cria um registro de importação primeiro
-        # -----------------------------------------------------------------------
-        if not payload.isManualEntry:
-            extensao = payload.nomeArquivo.split('.')[-1] if '.' in payload.nomeArquivo else ''
-
-            id_empresa_importacao = None
-            if payload.despesas:
-                emp = self.emp_repo.get_by_nome(payload.despesas[0].empresa)
-                if emp:
-                    id_empresa_importacao = emp.idEmpresas
-
-            nova_importacao = Importacao(
-                nomeArquivo=payload.nomeArquivo,
-                extensaoArquivo=extensao,
-                idEmpresa=id_empresa_importacao,
-                tipo="IA_DESPESAS",
-                idUserInc=payload.idUserInc,
-                createdAt=data_competencia_obj or datetime.now()
-            )
-            self.db.add(nova_importacao)
-            self.db.flush()
-
-        # -----------------------------------------------------------------------
-        # Para lançamento manual: usa a empresa selecionada no payload
+        # Lançamento: cria um registro de importação (seja IA ou Manual)
         # -----------------------------------------------------------------------
         empresa_manual = None
         if payload.isManualEntry and payload.idEmpresaManual:
             empresa_manual = self.emp_repo.get_by_id(payload.idEmpresaManual)
             if not empresa_manual:
                 raise HTTPException(status_code=400, detail="Empresa selecionada não encontrada.")
+
+        extensao = payload.nomeArquivo.split('.')[-1] if '.' in payload.nomeArquivo else 'MANUAL'
+        tipo_importacao = "MANUAL_DESPESAS" if payload.isManualEntry else "IA_DESPESAS"
+
+        id_empresa_importacao = None
+        if payload.isManualEntry and payload.idEmpresaManual:
+            id_empresa_importacao = payload.idEmpresaManual
+        elif payload.despesas:
+            emp = self.emp_repo.get_by_nome(payload.despesas[0].empresa)
+            if emp:
+                id_empresa_importacao = emp.idEmpresas
+
+        nova_importacao = Importacao(
+            nomeArquivo=payload.nomeArquivo,
+            extensaoArquivo=extensao,
+            idEmpresa=id_empresa_importacao,
+            tipo=tipo_importacao,
+            idUserInc=payload.idUserInc,
+            createdAt=data_competencia_obj or datetime.now()
+        )
+        self.db.add(nova_importacao)
+        self.db.flush()
 
         # -----------------------------------------------------------------------
         # Grava as movimentações
@@ -90,14 +89,16 @@ class DespesasViagensService:
             nome_corrigido = d.colaborador.strip()
             colab = None
 
-            # 1) Verifica se já existe um alias mapeado para o nome original divergente
-            alias = self.alias_repo.get_by_nome_divergente(nome_original)
-            if alias:
-                colab = self.colab_repo.get_by_id(alias.idColaborador)
+            # 1) O nome corrigido (o que o usuário confirmou/selecionou na interface) é soberano.
+            # Tenta encontrar primeiro por esse nome.
+            colab = self.colab_repo.get_by_nome_normalizado(nome_corrigido)
 
-            # 2) Se não achou via alias, tenta pelo nome corrigido (o que o usuário selecionou)
-            if not colab:
-                colab = self.colab_repo.get_by_nome_normalizado(nome_corrigido)
+            # 2) Se não achou pelo nome corrigido, e o usuário não alterou o nome (corrigido == original),
+            # verifica se já existe um alias mapeado para esse nome.
+            if not colab and nome_corrigido == nome_original:
+                alias = self.alias_repo.get_by_nome_divergente(nome_original)
+                if alias:
+                    colab = self.colab_repo.get_by_id(alias.idColaborador)
 
             if not colab:
                 raise HTTPException(
@@ -184,12 +185,9 @@ class DespesasViagensService:
                 q = q.filter(Movimentacao.idCategoria == id_categoria)
             if id_unidade:
                 q = q.filter(Movimentacao.idUnidade == id_unidade)
-            # Apenas importações do tipo IA_DESPESAS ou lançamentos manuais (sem importacao)
-            q = q.outerjoin(Importacao, Movimentacao.idImportacoes == Importacao.idImportacoes)
-            q = q.filter(
-                (Movimentacao.idImportacoes == None) |
-                (Importacao.tipo == "IA_DESPESAS")
-            )
+            # Apenas importações do tipo IA_DESPESAS ou MANUAL_DESPESAS
+            q = q.join(Importacao, Movimentacao.idImportacoes == Importacao.idImportacoes)
+            q = q.filter(Importacao.tipo.in_(["IA_DESPESAS", "MANUAL_DESPESAS"]))
             return q
 
         # ---- KPI: Total e Quantidade ----
@@ -212,11 +210,8 @@ class DespesasViagensService:
 
         def soma_mes(inicio, fim):
             q = db.query(func.coalesce(func.sum(Movimentacao.valor), 0))
-            q = q.outerjoin(Importacao, Movimentacao.idImportacoes == Importacao.idImportacoes)
-            q = q.filter(
-                (Movimentacao.idImportacoes == None) |
-                (Importacao.tipo == "IA_DESPESAS")
-            )
+            q = q.join(Importacao, Movimentacao.idImportacoes == Importacao.idImportacoes)
+            q = q.filter(Importacao.tipo.in_(["IA_DESPESAS", "MANUAL_DESPESAS"]))
             q = q.filter(Movimentacao.createdAt >= inicio, Movimentacao.createdAt <= fim)
             if id_empresa:
                 q = q.filter(Movimentacao.idEmpresa == id_empresa)
@@ -468,11 +463,8 @@ class DespesasViagensService:
         # Base query for all Despesas de Viagens
         def base_q():
             q = self.db.query(Movimentacao)
-            q = q.outerjoin(Importacao, Movimentacao.idImportacoes == Importacao.idImportacoes)
-            q = q.filter(
-                (Movimentacao.idImportacoes == None) |
-                (Importacao.tipo == "IA_DESPESAS")
-            )
+            q = q.join(Importacao, Movimentacao.idImportacoes == Importacao.idImportacoes)
+            q = q.filter(Importacao.tipo.in_(["IA_DESPESAS", "MANUAL_DESPESAS"]))
             if data_inicio_str:
                 di = datetime.strptime(data_inicio_str, "%Y-%m-%d")
                 q = q.filter(Movimentacao.createdAt >= di)
@@ -676,13 +668,13 @@ class DespesasViagensService:
             CentroCusto.nome.label("cc_nome"),
             CentroCusto.codigo.label("cc_codigo"),
             Unidade.codigo.label("unidade_codigo")
-        ).outerjoin(Importacao, Movimentacao.idImportacoes == Importacao.idImportacoes) \
+        ).join(Importacao, Movimentacao.idImportacoes == Importacao.idImportacoes) \
          .outerjoin(Categoria, Movimentacao.idCategoria == Categoria.idCategorias) \
          .outerjoin(Colaborador, Movimentacao.idColaborador == Colaborador.idColaborador) \
          .outerjoin(CentroCusto, Colaborador.idCentroCusto == CentroCusto.idCentroCusto) \
          .outerjoin(Empresa, Movimentacao.idEmpresa == Empresa.idEmpresas) \
          .outerjoin(Unidade, Movimentacao.idUnidade == Unidade.idUnidade) \
-         .filter((Movimentacao.idImportacoes == None) | (Importacao.tipo == 'IA_DESPESAS'))
+         .filter(Importacao.tipo.in_(["IA_DESPESAS", "MANUAL_DESPESAS"]))
 
         if filtros.get("data_inicio"):
             q = q.filter(Movimentacao.createdAt >= f"{filtros['data_inicio']} 00:00:00")
