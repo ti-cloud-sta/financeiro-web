@@ -18,9 +18,9 @@ except ImportError:
 
 # ================= CONFIGURAÇÕES =================
 # Tenta pegar do ambiente (ex: VPS), senão usa o padrão fixado
-DB_USER = os.getenv("DB_USER", "root")
-DB_PASS = os.getenv("DB_PASS", "sua_senha_do_banco_aqui")
-DB_NAME = os.getenv("DB_NAME", "stamariabd")
+DB_USER = os.getenv("DATABASE_USER", "root")
+DB_PASS = os.getenv("DATABASE_PASSWORD", "sua_senha_do_banco_aqui")
+DB_NAME = os.getenv("DATABASE_NAME", "stamariabd")
 
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com") # ou smtp.office365.com
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
