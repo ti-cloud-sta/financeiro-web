@@ -1,0 +1,22 @@
+============= LEMBRETES VPS - ROTINA DE BACKUP =============
+
+1. Atualizar o arquivo .env lá na VPS, adicionando as variáveis novas do SMTP:
+   SMTP_SERVER=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER='ti-cloud@stamaria.ind.br'
+   SMTP_PASS='SUA_SENHA_DE_APP'
+   EMAIL_DESTINO='ti-cloud@stamaria.ind.br'
+
+2. Criar a "Senha de App" no Google Workspace:
+   - Fazer login com 'ti-cloud@stamaria.ind.br' no navegador
+   - Ir em Gerenciar Conta -> Segurança -> Verificação em 2 Etapas
+   - Criar "Senhas de app" e copiar os 16 caracteres para colocar no .env
+
+3. Testar o Backup na VPS:
+   - Rodar manualmente na VPS: python3 /var/www/financeiro-web/backend/scripts/backup_rotina.py
+   - Checar se o e-mail chegou certinho com o ZIP anexado.
+
+4. Agendar e Ativar o Cronjob:
+   - Rodar 'crontab -e'
+   - Inserir a linha: 0 3 * * * /usr/bin/python3 /caminho/do/projeto/backend/scripts/backup_rotina.py >> /var/log/backup_erp.log 2>&1
+   - Garantir que o serviço do cron esteja ativado rodando (ex: 'sudo systemctl enable cron' e 'sudo systemctl start cron').

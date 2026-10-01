@@ -154,6 +154,15 @@ class ColaboradorImportService:
                 centroCustoAtualNome=colab.centro_custo.nome if colab.centro_custo else None
             ))
 
+        # Colaboradores ativos sem CPF (documento None ou vazio) não podem ser
+        # rastreados pela planilha. Se não estão na planilha de RH, devem aparecer
+        # no preview para o usuário decidir o desligamento.
+        for colab in self.colab_repo.get_ativos_sem_documento():
+            desligados.append(ImportDesligado(
+                idColaborador=colab.idColaborador, documento=None, nome=colab.nome,
+                centroCustoAtualNome=colab.centro_custo.nome if colab.centro_custo else None
+            ))
+
         return ImportPreviewResponse(novos=novos, divergentes=divergentes, desligados=desligados, erros=erros)
 
     def _get_cargo_padrao_id(self) -> int:

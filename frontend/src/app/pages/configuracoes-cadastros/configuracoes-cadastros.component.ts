@@ -1227,6 +1227,7 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
   turnoverShortcut = 'este-ano';
   turnoverFiltroTipo = '';
   turnoverFiltroOrigem = '';
+  turnoverBusca = '';
   locale = Portuguese;
 
   openTurnoverModal() {
@@ -1236,6 +1237,19 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
 
   closeTurnoverModal() {
     this.isTurnoverModalOpen = false;
+    this.turnoverBusca = '';
+  }
+
+  get turnoverDataFiltrado(): any[] {
+    if (!this.turnoverBusca.trim()) return this.turnoverData;
+    const termo = this.turnoverBusca.toLowerCase().trim();
+    return this.turnoverData.filter(m =>
+      (m.colaboradorNome || '').toLowerCase().includes(termo) ||
+      (m.colaboradorDocumento || '').toLowerCase().includes(termo) ||
+      (m.tipoMovimento || '').toLowerCase().includes(termo) ||
+      (m.origem || '').toLowerCase().includes(termo) ||
+      (m.userNome || '').toLowerCase().includes(termo)
+    );
   }
 
   isTurnoverPeriodoValido(): boolean {
