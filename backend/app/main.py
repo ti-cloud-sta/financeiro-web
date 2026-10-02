@@ -82,6 +82,7 @@ app.include_router(cargos_colaboradores.router, prefix="/api/v1/cargos-colaborad
 app.include_router(colaboradores.router, prefix="/api/v1/colaboradores", tags=["Colaboradores"], dependencies=[Depends(get_current_user)])
 app.include_router(centros_custo.router, prefix="/api/v1/centros-custo", tags=["Centros de Custo"], dependencies=[Depends(get_current_user)])
 app.include_router(unidades.router, prefix="/api/v1/unidades", tags=["Unidades"], dependencies=[Depends(get_current_user)])
+app.include_router(importacoes.public_router, prefix="/api/v1/importacoes", tags=["Importações Públicas"])
 app.include_router(importacoes.router, prefix="/api/v1/importacoes", tags=["Importações"], dependencies=[Depends(get_current_user)])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Usuários"], dependencies=[Depends(get_current_user)])
 app.include_router(plano_saude.router, prefix="/api/v1/plano-saude", tags=["Plano de Saúde"], dependencies=[Depends(get_current_user)])

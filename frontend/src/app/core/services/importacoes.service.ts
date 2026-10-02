@@ -164,6 +164,34 @@ export class ImportacoesService {
     return this.http.get<any>(`${this.apiUrl}/inadimplencia/dashboard/visao-geral`);
   }
 
+  compartilharDashboardInadimplencia(formData: FormData): Observable<{ sucesso: boolean; message_id?: string }> {
+    return this.http.post<{ sucesso: boolean; message_id?: string }>(
+      `${this.apiUrl}/inadimplencia/dashboard/compartilhar`,
+      formData
+    );
+  }
+
+  compartilharDashboardLogistica(formData: FormData): Observable<{ sucesso: boolean; message_id?: string }> {
+    return this.http.post<{ sucesso: boolean; message_id?: string }>(
+      `${this.apiUrl}/inadimplencia/dashboard/compartilhar-logistica`,
+      formData
+    );
+  }
+
+  compartilharDashboardComercial(formData: FormData): Observable<{ sucesso: boolean; message_id?: string }> {
+    return this.http.post<{ sucesso: boolean; message_id?: string }>(
+      `${this.apiUrl}/inadimplencia/dashboard/compartilhar-comercial`,
+      formData
+    );
+  }
+
+  compartilharDashboardPendenciasAcr(formData: FormData): Observable<{ sucesso: boolean; message_id?: string }> {
+    return this.http.post<{ sucesso: boolean; message_id?: string }>(
+      `${this.apiUrl}/inadimplencia/dashboard/compartilhar-pendencias-acr`,
+      formData
+    );
+  }
+
   alterarFasePendencia(id: number, fase: string, status?: string): Observable<{ idnfpendencias: number; fase: string }> {
     const payload: any = { fase };
     if (status) {
@@ -175,16 +203,19 @@ export class ImportacoesService {
     );
   }
 
-  listarHistoricoPendencia(idNf: number): Observable<HistoricoApi[]> {
-    return this.http.get<HistoricoApi[]>(`${this.apiUrl}/inadimplencia/pendencias/${idNf}/historico`);
+  listarHistoricoPendencia(idNf: number, isPublic = false): Observable<HistoricoApi[]> {
+    const endpoint = isPublic ? 'historico/publico' : 'historico';
+    return this.http.get<HistoricoApi[]>(`${this.apiUrl}/inadimplencia/pendencias/${idNf}/${endpoint}`);
   }
 
-  listarMensagensPendencia(idNf: number): Observable<MensagemThreadApi[]> {
-    return this.http.get<MensagemThreadApi[]>(`${this.apiUrl}/inadimplencia/pendencias/${idNf}/mensagens`);
+  listarMensagensPendencia(idNf: number, isPublic = false): Observable<MensagemThreadApi[]> {
+    const endpoint = isPublic ? 'mensagens/publico' : 'mensagens';
+    return this.http.get<MensagemThreadApi[]>(`${this.apiUrl}/inadimplencia/pendencias/${idNf}/${endpoint}`);
   }
 
-  listarTratativas(idNf: number): Observable<TratativaApi[]> {
-    return this.http.get<TratativaApi[]>(`${this.apiUrl}/inadimplencia/pendencias/${idNf}/tratativas`);
+  listarTratativas(idNf: number, isPublic = false): Observable<TratativaApi[]> {
+    const endpoint = isPublic ? 'tratativas/publico' : 'tratativas';
+    return this.http.get<TratativaApi[]>(`${this.apiUrl}/inadimplencia/pendencias/${idNf}/${endpoint}`);
   }
 
   criarTratativa(idNf: number, conteudo: string): Observable<TratativaApi> {

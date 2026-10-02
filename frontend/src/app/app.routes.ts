@@ -19,6 +19,22 @@ export const routes: Routes = [
     canActivate: [noAuthGuard]
   },
   {
+    path: 'compartilhar/inadimplencia',
+    loadComponent: () => import('./pages/inadimplencia-publica/inadimplencia-publica.component').then(m => m.InadimplenciaPublicaComponent)
+  },
+  {
+    path: 'compartilhar/logistica',
+    loadComponent: () => import('./pages/inadimplencia-publica/inadimplencia-publica.component').then(m => m.InadimplenciaPublicaComponent)
+  },
+  {
+    path: 'compartilhar/comercial',
+    loadComponent: () => import('./pages/inadimplencia-publica/inadimplencia-publica.component').then(m => m.InadimplenciaPublicaComponent)
+  },
+  {
+    path: 'compartilhar/pendencias-acr',
+    loadComponent: () => import('./pages/inadimplencia-publica/inadimplencia-publica.component').then(m => m.InadimplenciaPublicaComponent)
+  },
+  {
     path: '',
     loadComponent: () => import('./layout/main-layout/main-layout.component').then(m => m.MainLayoutComponent),
     canActivate: [authGuard],

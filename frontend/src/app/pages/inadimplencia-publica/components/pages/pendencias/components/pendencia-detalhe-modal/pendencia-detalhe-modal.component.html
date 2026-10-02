@@ -1,0 +1,426 @@
+<app-modal [isOpen]="isOpen" title="Detalhes da Pendência" size="lg" (closed)="close()">
+  <div class="pendencia-detalhe" *ngIf="detalhe as d">
+
+    <!-- Subtítulo com o cliente -->
+    <div class="detalhe-subtitle">
+      <i class="fa-solid fa-building"></i>
+      <span>{{ d.nomeCliente }}</span>
+    </div>
+
+    <!-- Header da nota -->
+    <div class="nf-detail-grid">
+      <div class="detail-field">
+        <label>Código - Unidade</label>
+        <span>{{ d.codigoUnidade }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Espécie</label>
+        <span>{{ d.especie }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Série</label>
+        <span>{{ d.serie }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Título</label>
+        <span>{{ d.titulo }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Parcela</label>
+        <span>{{ d.parcela }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Código - Cliente</label>
+        <span>{{ d.codigoCliente }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Portador</label>
+        <span>{{ d.portador }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Data Emissão</label>
+        <span>{{ d.dataEmissao | date:'dd/MM/yyyy' }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Data Entrega</label>
+        <span>{{ d.dataEntrega ? (d.dataEntrega | date:'dd/MM/yyyy') : '—' }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Data Vencimento</label>
+        <span>{{ d.dataVencimento ? (d.dataVencimento | date:'dd/MM/yyyy') : '—' }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Valor Original</label>
+        <span class="value-money">{{ d.valorOriginal | currency:'BRL' }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Saldo</label>
+        <span class="value-money" [class.text-danger]="d.saldo > 0">{{ d.saldo | currency:'BRL' }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Fase</label>
+        <span class="badge bg-{{faseColor}} bg-opacity-10 text-{{faseColor}} px-2 py-1" style="font-size: 0.75rem; font-weight: 700;">{{ d.fase }}</span>
+      </div>
+      <div class="detail-field">
+        <label>Status</label>
+        <select class="form-select form-select-sm" 
+                style="height: 28px; font-size: 0.75rem; font-weight: 600; padding-top: 2px; padding-bottom: 2px;"
+                [(ngModel)]="statusSelecionado"
+                (change)="onStatusChange()"
+                [disabled]="salvandoStatus">
+            <option *ngFor="let s of statusOptions" [value]="s">{{ s }}</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Abas -->
+    <ul class="config-nav">
+      <li class="config-nav-item">
+        <button class="config-nav-link" [class.active]="activeTab === 'tratativa'" (click)="setTab('tratativa')">
+          <i class="fa-solid fa-clipboard-list me-2"></i>Tratativa
+        </button>
+      </li>
+      <li class="config-nav-item">
+        <button class="config-nav-link" [class.active]="activeTab === 'mensagens'" (click)="setTab('mensagens')">
+          <i class="fa-solid fa-comments me-2"></i>Mensagens
+        </button>
+      </li>
+      <li class="config-nav-item">
+        <button class="config-nav-link" [class.active]="activeTab === 'historico'" (click)="setTab('historico')">
+          <i class="fa-solid fa-timeline me-2"></i>Histórico
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content-area">
+
+      <!-- ABA TRATATIVA -->
+      @if (activeTab === 'tratativa') {
+      <div class="tratativa-panel animate-fade-in">
+        <div class="tratativa-input">
+          <textarea class="form-control" rows="3" placeholder="Descreva a tratativa realizada com o cliente..."
+            [(ngModel)]="novaTratativa" [disabled]="isSalvandoTratativa"></textarea>
+          <div class="d-flex justify-content-end align-items-center gap-2 mt-2">
+            @if (editingTratativaIndex !== null) {
+            <button type="button" class="btn-link-cancel" [disabled]="isSalvandoTratativa"
+              (click)="cancelarEdicaoTratativa()">Cancelar</button>
+            }
+            <app-button variant="primary" icon="fa-solid fa-check" [loading]="isSalvandoTratativa"
+              [disabled]="!novaTratativa.trim() || isSalvandoTratativa" (clicked)="registrarTratativa()">
+              {{ editingTratativaIndex !== null ? 'Alterar' : 'Tratar' }}
+            </app-button>
+          </div>
+        </div>
+
+        <div class="table-card mt-3">
+          <div class="table-responsive">
+            <table class="saas-table">
+              <thead>
+                <tr>
+                  <th style="width: 18%;">Data</th>
+                  <th>Tratativa</th>
+                  <th style="width: 8%; text-align: center;">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (isLoadingTratativas) {
+                <tr>
+                  <td colspan="3" class="text-center text-muted py-4">
+                    <i class="fa-solid fa-spinner fa-spin me-2"></i>Carregando tratativas...
+                  </td>
+                </tr>
+                } @else {
+                @for (item of tratativas; track item.id) {
+                <tr>
+                  <td class="font-monospace small">{{ item.data | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td>
+                    <span class="fw-semibold">{{ item.autor }}</span>
+                    <span class="text-muted"> — {{ item.texto }}</span>
+                  </td>
+                  <td class="text-center">
+                    <div class="actions-cell justify-content-center">
+                      <button class="action-btn" title="Editar" (click)="editarTratativa($index)">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                }
+                @if (tratativas.length === 0) {
+                <tr>
+                  <td colspan="3" class="text-center text-muted py-4">Nenhuma tratativa registrada.</td>
+                </tr>
+                }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- ABA MENSAGENS -->
+      @else if (activeTab === 'mensagens') {
+      <div class="chat-panel animate-fade-in">
+
+        <!-- Banner de Conexão com Google OAuth -->
+        @if (!googleAuthService.isConectado()) {
+        <div class="google-auth-banner google-auth-banner--disconnected">
+          <div class="google-auth-info">
+            <div class="google-icon-wrapper">
+              <svg viewBox="0 0 24 24" width="22" height="22">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+              </svg>
+            </div>
+            <div class="google-auth-text">
+              <span class="google-auth-title">Conectar conta do Gmail</span>
+              <span class="google-auth-subtitle">Autorize sua conta para enviar e-mails de cobrança diretamente pelo seu remetente.</span>
+            </div>
+          </div>
+          <button type="button" class="btn-google-connect" (click)="conectarGoogle()" [disabled]="googleAuthService.isCarregando()">
+            @if (googleAuthService.isCarregando()) {
+              <i class="fa-solid fa-spinner fa-spin me-1"></i> Conectando...
+            } @else {
+              <i class="fa-brands fa-google me-1"></i> Conectar com Google
+            }
+          </button>
+        </div>
+        } @else {
+        <div class="google-auth-banner google-auth-banner--connected">
+          <div class="google-auth-info">
+            <span class="connected-badge">
+              <i class="fa-solid fa-circle-check text-success me-1"></i> Conectado ao Gmail
+            </span>
+            @if (googleAuthService.emailConectado()) {
+            <span class="connected-email">{{ googleAuthService.emailConectado() }}</span>
+            }
+          </div>
+          <button type="button" class="btn-google-disconnect" (click)="abrirConfirmarDesconexao()" title="Desconectar conta Google">
+            <i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Desconectar
+          </button>
+        </div>
+        }
+
+        <div class="chat-thread">
+          @if (isLoadingMensagens) {
+          <div class="chat-skeleton">
+            <div class="chat-skeleton-row chat-skeleton-row--right">
+              <div class="skeleton-bubble skeleton-bubble--right">
+                <div class="skel skel-line" style="width:120px;"></div>
+                <div class="skel skel-line" style="width:80%;"></div>
+                <div class="skel skel-line" style="width:60%;"></div>
+              </div>
+              <div class="skel skel-avatar"></div>
+            </div>
+            <div class="chat-skeleton-row chat-skeleton-row--left">
+              <div class="skel skel-avatar"></div>
+              <div class="skeleton-bubble skeleton-bubble--left">
+                <div class="skel skel-line" style="width:100px;"></div>
+                <div class="skel skel-line" style="width:70%;"></div>
+              </div>
+            </div>
+          </div>
+          } @else {
+            @for (msg of mensagens; track msg.id) {
+            <div class="chat-message" [class.chat-message--mine]="msg.minhaMensagem" [class.chat-message--reply]="!msg.minhaMensagem">
+              @if (!msg.minhaMensagem) {
+              <div class="reply-avatar" title="{{ msg.autor }}">{{ msg.iniciais }}</div>
+              }
+              <div class="chat-bubble">
+                <div class="chat-bubble-header">
+                  <span class="chat-author">{{ msg.autor }}</span>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="chat-time">{{ msg.data | date:'dd/MM HH:mm' }}</span>
+                  </div>
+                </div>
+                @if (msg.assunto) {
+                <div class="chat-subject"><i class="fa-solid fa-tag me-1"></i>{{ msg.assunto }}</div>
+                }
+                <div class="chat-body" [innerHTML]="msg.corpo"></div>
+                @if (msg.anexos.length > 0) {
+                <div class="chat-attachments">
+                  @for (anexo of msg.anexos; track anexo) {
+                  <span class="attachment-chip"><i class="fa-solid fa-paperclip"></i>{{ anexo }}</span>
+                  }
+                </div>
+                }
+              </div>
+              @if (msg.minhaMensagem) {
+              <app-avatar [initials]="msg.iniciais" size="sm"></app-avatar>
+              }
+            </div>
+            }
+            @if (mensagens.length === 0) {
+            <div class="chat-empty-state">
+              <i class="fa-regular fa-envelope chat-empty-icon"></i>
+              <span>Nenhum e-mail nesta conversa ainda.<br>Preencha os campos abaixo para disparar uma mensagem.</span>
+            </div>
+            }
+          }
+        </div>
+
+        <div class="compose-panel">
+          @if (composeReplyMessageId) {
+          <div class="compose-reply-indicator d-flex justify-content-between align-items-center p-2 mb-2 rounded" style="background-color: #f8fafc; border-left: 3px solid var(--bs-primary);">
+            <span class="small text-muted"><i class="fa-solid fa-reply me-1"></i> Respondendo ao e-mail na conversa</span>
+            <button type="button" class="btn-close" style="font-size: 0.65rem;" (click)="cancelarResposta()" title="Cancelar resposta"></button>
+          </div>
+          }
+          <div class="compose-row">
+            <input type="text" class="form-control form-control-sm" placeholder="Assunto do e-mail"
+              [(ngModel)]="composeAssunto">
+          </div>
+          <div class="compose-row compose-row--split">
+            <input type="text" class="form-control form-control-sm" placeholder="Para (destinatários separados por vírgula)"
+              [(ngModel)]="composeDestinatarios">
+            <div class="chips-input-container" (click)="focarInputCopia(copiaInputRef)">
+              <span class="chips-prefix"><i class="fa-solid fa-copy"></i> Cc:</span>
+              <div class="chips-list">
+                @for (email of composeCopias; track $index) {
+                  <span class="email-chip" [class.email-chip--invalid]="!emailValido(email)" [title]="email">
+                    <span class="chip-text">{{ email }}</span>
+                    <button type="button" class="chip-remove" (click)="removerCopia($index); $event.stopPropagation();" title="Remover e-mail">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </span>
+                }
+                <input #copiaInputRef
+                  type="text"
+                  class="chips-inline-input"
+                  [placeholder]="composeCopias.length === 0 ? 'Adicionar Cc (Enter ou vírgula)' : '+ Cc...'"
+                  [(ngModel)]="composeCopiaInput"
+                  (keydown)="aoPressionarTeclaCopia($event)"
+                  (blur)="adicionarCopia()"
+                  (paste)="aoColarCopia($event)">
+              </div>
+            </div>
+          </div>
+          <div class="compose-templates d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center flex-wrap gap-2">
+              <span class="template-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Modelos Rápidos:</span>
+              <button type="button" class="template-chip" (click)="aplicarTemplate('cobranca')">Cobrança</button>
+              <button type="button" class="template-chip" (click)="aplicarTemplate('recobranca')">Recobrança</button>
+              <button type="button" class="template-chip" (click)="aplicarTemplate('protesto')">Protesto</button>
+              <button type="button" class="template-chip" (click)="aplicarTemplate('sem_data')">Sem Data Entrega</button>
+              <button type="button" class="template-chip" (click)="aplicarTemplate('devolucao')">Devolução</button>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm ms-auto" title="Responder a Todos da Conversa" (click)="iniciarRespostaGlobal()" [disabled]="!mensagens || mensagens.length === 0">
+              <i class="fa-solid fa-reply-all me-1"></i> Responder a Todos
+            </button>
+          </div>
+
+          <div class="compose-toolbar">
+            <button type="button" class="toolbar-btn" title="Negrito" (mousedown)="$event.preventDefault()" (click)="aplicarFormatacao('bold')">
+              <i class="fa-solid fa-bold"></i>
+            </button>
+            <button type="button" class="toolbar-btn" title="Itálico" (mousedown)="$event.preventDefault()" (click)="aplicarFormatacao('italic')">
+              <i class="fa-solid fa-italic"></i>
+            </button>
+            <button type="button" class="toolbar-btn" title="Sublinhado" (mousedown)="$event.preventDefault()" (click)="aplicarFormatacao('underline')">
+              <i class="fa-solid fa-underline"></i>
+            </button>
+            <button type="button" class="toolbar-btn" title="Lista" (mousedown)="$event.preventDefault()" (click)="aplicarFormatacao('insertUnorderedList')">
+              <i class="fa-solid fa-list-ul"></i>
+            </button>
+            <span class="toolbar-divider"></span>
+            <button type="button" class="toolbar-btn" title="Anexar arquivo" (mousedown)="$event.preventDefault()" (click)="triggerAnexo()">
+              <i class="fa-solid fa-paperclip"></i>
+            </button>
+          </div>
+
+          @if (assinaturaComErro) {
+          <div class="compose-row" style="padding: 0.5rem 0.75rem; background: #fff8e1; border: 1px solid #f59e0b; border-radius: 8px; display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; color:#92400e;">
+            <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i>
+            <span>A imagem da assinatura não pôde ser carregada no editor, mas o e-mail será enviado com o link correto.</span>
+          </div>
+          }
+
+          <div #composeBody class="compose-body" contenteditable="true"
+            data-placeholder="Escreva sua mensagem..."></div>
+
+          @if (arquivosSelecionados.length > 0) {
+          <div class="compose-attachments">
+            @for (file of arquivosSelecionados; track $index) {
+            <span class="attachment-chip">
+              <i class="fa-solid fa-paperclip"></i>
+              <span class="attachment-name">{{ file.name }}</span>
+              <span class="attachment-size">({{ formatarTamanhoArquivo(file.size) }})</span>
+              <button type="button" (click)="removerArquivo($index)" title="Remover anexo"><i class="fa-solid fa-xmark"></i></button>
+            </span>
+            }
+          </div>
+          }
+
+          <div class="compose-footer">
+            <app-button variant="primary" icon="fa-solid fa-paper-plane" [loading]="isEnviandoEmail" [disabled]="isEnviandoEmail" (clicked)="enviarMensagem()">
+              {{ googleAuthService.isConectado() ? 'Enviar Mensagem' : 'Conectar e Enviar' }}
+            </app-button>
+          </div>
+        </div>
+
+        <input #anexoInput type="file" multiple style="display:none;" (change)="onAnexoSelecionado($event)">
+      </div>
+      }
+
+      <!-- ABA HISTÓRICO -->
+      @else if (activeTab === 'historico') {
+      <div class="timeline-panel animate-fade-in">
+        @if (isLoadingHistorico) {
+        <div class="text-center text-muted py-4">
+          <i class="fa-solid fa-spinner fa-spin me-2"></i>Carregando histórico...
+        </div>
+        } @else if (historico.length === 0) {
+        <div class="text-center text-muted py-4">Nenhum evento registrado para esta pendência.</div>
+        } @else {
+        <div class="timeline-scroll custom-scrollbar">
+          <div class="timeline-track">
+            @for (evento of historico; track $index) {
+            <div class="timeline-node">
+              <div class="timeline-icon" [ngClass]="'cor-' + evento.cor">
+                <i [class]="evento.icone"></i>
+              </div>
+              <div class="timeline-card">
+                <span class="timeline-date">
+                  {{ evento.data | date:'dd/MM/yyyy' }} <small>{{ evento.data | date:'HH:mm' }}</small>
+                </span>
+                <span class="timeline-type" [ngClass]="'cor-' + evento.cor">{{ evento.tipo }}</span>
+                <p class="timeline-obs" [title]="evento.observacao">{{ evento.observacao }}</p>
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+        }
+      </div>
+      }
+
+    </div>
+  </div>
+
+  <!-- Modais de Notificação e Confirmação -->
+  <app-confirm-modal
+    [isOpen]="alertaModalOpen"
+    [title]="alertaTitulo"
+    [message]="alertaMensagem"
+    [variant]="alertaVariant"
+    [showCancel]="false"
+    confirmText="Entendido"
+    (confirmed)="alertaModalOpen = false"
+    (canceled)="alertaModalOpen = false">
+  </app-confirm-modal>
+
+  <app-confirm-modal
+    [isOpen]="confirmarDesconectarOpen"
+    title="Desconectar Conta Google"
+    message="Tem certeza que deseja desconectar sua conta do Gmail? Você precisará autorizar novamente para enviar novos e-mails."
+    variant="danger"
+    [showCancel]="true"
+    confirmText="Sim, desconectar"
+    cancelText="Cancelar"
+    (confirmed)="desconectarGoogle()"
+    (canceled)="confirmarDesconectarOpen = false">
+  </app-confirm-modal>
+</app-modal>

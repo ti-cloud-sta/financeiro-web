@@ -1,4 +1,5 @@
 import { Component, OnInit, signal, computed, ViewChild, ElementRef, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PendenciasComponent } from './components/pages/pendencias/pendencias.component';
@@ -23,17 +24,21 @@ export interface MensagemChat {
 }
 
 @Component({
-  selector: 'app-inadimplencia',
+  selector: 'app-inadimplencia-publica',
   standalone: true,
   imports: [CommonModule, FormsModule, PendenciasComponent, ButtonComponent, ConfirmModalComponent, ModalComponent, NgxEchartsModule, SkeletonComponent, AvatarComponent],
-  templateUrl: './inadimplencia.component.html',
-  styleUrls: ['./inadimplencia.component.scss']
+  templateUrl: './inadimplencia-publica.component.html',
+  styleUrls: ['./inadimplencia-publica.component.scss']
 })
-export class InadimplenciaComponent implements OnInit {
+export class InadimplenciaPublicaComponent implements OnInit {
   private importacoesService = inject(ImportacoesService);
   readonly googleAuthService = inject(GoogleAuthService);
+  private router = inject(Router);
 
   isSidebarCollapsed = false;
+  isSomenteLogistica = false;
+  isSomenteComercial = false;
+  isSomentePendenciasAcr = false;
   activeTab = 'dashboards';
   dashboardTab = signal<'visao-geral' | 'financeiro' | 'logistica' | 'comercial' | 'fiscal' | 'pendencias-acr'>('visao-geral');
   financeiroTab = signal<'gerencial' | 'gerente'>('gerencial');
@@ -58,7 +63,18 @@ export class InadimplenciaComponent implements OnInit {
 
   ngOnInit() {
     this.isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-    this.carregarHistoricoAtualizacao();
+    this.isSomenteLogistica = this.router.url.includes('/compartilhar/logistica');
+    this.isSomenteComercial = this.router.url.includes('/compartilhar/comercial');
+    this.isSomentePendenciasAcr = this.router.url.includes('/compartilhar/pendencias-acr');
+    
+    if (this.isSomenteLogistica) {
+      this.dashboardTab.set('logistica');
+    } else if (this.isSomenteComercial) {
+      this.dashboardTab.set('comercial');
+    } else if (this.isSomentePendenciasAcr) {
+      this.dashboardTab.set('pendencias-acr');
+    }
+
     this.carregarDashboardVisaoGeral();
   }
 
@@ -636,7 +652,7 @@ export class InadimplenciaComponent implements OnInit {
     this.isLoadingTratativas = true;
 
     if (titulo.id) {
-      this.importacoesService.listarTratativas(Number(titulo.id)).subscribe({
+      this.importacoesService.listarTratativas(Number(titulo.id), true).subscribe({
         next: (itens) => {
           this.tratativasMock = itens.map((t: any) => ({
             id: t.idtratativas,
@@ -677,7 +693,7 @@ export class InadimplenciaComponent implements OnInit {
     this.isLoadingMensagens = true;
 
     if (titulo.id) {
-      this.importacoesService.listarMensagensPendencia(Number(titulo.id)).subscribe({
+      this.importacoesService.listarMensagensPendencia(Number(titulo.id), true).subscribe({
         next: (itens) => {
           this.mensagensMock = itens.map(m => this.mapearMensagemApi(m));
           this.isLoadingMensagens = false;
@@ -735,7 +751,7 @@ export class InadimplenciaComponent implements OnInit {
     this.isHistoricoModalOpen = true;
 
     if (titulo?.id) {
-      this.importacoesService.listarHistoricoPendencia(Number(titulo.id)).subscribe({
+      this.importacoesService.listarHistoricoPendencia(Number(titulo.id), true).subscribe({
         next: (itens) => {
           this.isLoadingHistorico = false;
           this.historicoMock = (itens || []).map((h: any) => {
@@ -1090,283 +1106,7 @@ export class InadimplenciaComponent implements OnInit {
   }
 
   // ==========================================
-  // COMPARTILHAR DIRETORIA
+  // Lógica de compartilhamento removida do modo público
   // ==========================================
-  isCompartilharModalOpen = false;
-  compartilharDestinatarios = '';
-  compartilharCc = '';
-  compartilharMensagem = '';
-  isEnviandoCompartilhamento = false;
-
-  abrirCompartilhar() {
-    this.compartilharDestinatarios = '';
-    this.compartilharCc = '';
-    this.compartilharMensagem = '';
-    this.isEnviandoCompartilhamento = false;
-    this.isCompartilharModalOpen = true;
-
-    if (!this.googleAuthService.isConectado()) {
-      this.googleAuthService.verificarStatus().subscribe();
-    }
-  }
-
-  fecharCompartilhar() {
-    this.isCompartilharModalOpen = false;
-  }
-
-  enviarCompartilhamento() {
-    if (!this.compartilharDestinatarios.trim()) {
-      this.openAlert('Destinatário Ausente', 'Por favor, informe ao menos um e-mail destinatário.', 'primary');
-      return;
-    }
-
-    if (!this.googleAuthService.isConectado()) {
-      this.googleAuthService.iniciarAutorizacaoPopup()
-        .then(() => this._dispararCompartilhamento())
-        .catch((err) => {
-          this.openAlert('Autorização Necessária', err.message || 'É obrigatório conectar sua conta do Google antes de compartilhar.', 'danger');
-        });
-      return;
-    }
-
-    this._dispararCompartilhamento();
-  }
-
-  private _dispararCompartilhamento() {
-    this.isEnviandoCompartilhamento = true;
-
-    const formData = new FormData();
-    formData.append('destinatarios', this.compartilharDestinatarios.trim());
-    if (this.compartilharCc.trim()) {
-      formData.append('copia', this.compartilharCc.trim());
-    }
-    if (this.compartilharMensagem.trim()) {
-      formData.append('mensagem_personalizada', this.compartilharMensagem.trim());
-    }
-
-    this.importacoesService.compartilharDashboardInadimplencia(formData).subscribe({
-      next: () => {
-        this.isEnviandoCompartilhamento = false;
-        this.fecharCompartilhar();
-        this.openAlert('Sucesso!', 'O dashboard foi compartilhado por e-mail com sucesso.', 'primary');
-      },
-      error: (err) => {
-        this.isEnviandoCompartilhamento = false;
-        console.error('Erro ao compartilhar dashboard:', err);
-        const detalhe = err.error?.detail || err.message || 'Falha ao enviar e-mail pelo Gmail.';
-        this.openAlert('Falha no Envio', detalhe, 'danger');
-      }
-    });
-  }
-
-  // ==========================================
-  // COMPARTILHAR LOGISTICA
-  // ==========================================
-  isCompartilharLogisticaModalOpen = false;
-  compartilharLogisticaDestinatarios = '';
-  compartilharLogisticaCc = '';
-  compartilharLogisticaMensagem = '';
-  isEnviandoCompartilhamentoLogistica = false;
-
-  abrirCompartilharLogistica() {
-    this.compartilharLogisticaDestinatarios = '';
-    this.compartilharLogisticaCc = '';
-    this.compartilharLogisticaMensagem = '';
-    this.isEnviandoCompartilhamentoLogistica = false;
-    this.isCompartilharLogisticaModalOpen = true;
-
-    if (!this.googleAuthService.isConectado()) {
-      this.googleAuthService.verificarStatus().subscribe();
-    }
-  }
-
-  fecharCompartilharLogistica() {
-    this.isCompartilharLogisticaModalOpen = false;
-  }
-
-  enviarCompartilhamentoLogistica() {
-    if (!this.compartilharLogisticaDestinatarios.trim()) {
-      this.openAlert('Destinatário Ausente', 'Por favor, informe ao menos um e-mail destinatário.', 'primary');
-      return;
-    }
-
-    if (!this.googleAuthService.isConectado()) {
-      this.googleAuthService.iniciarAutorizacaoPopup()
-        .then(() => this._dispararCompartilhamentoLogistica())
-        .catch((err) => {
-          this.openAlert('Autorização Necessária', err.message || 'É obrigatório conectar sua conta do Google antes de compartilhar.', 'danger');
-        });
-      return;
-    }
-
-    this._dispararCompartilhamentoLogistica();
-  }
-
-  private _dispararCompartilhamentoLogistica() {
-    this.isEnviandoCompartilhamentoLogistica = true;
-
-    const formData = new FormData();
-    formData.append('destinatarios', this.compartilharLogisticaDestinatarios.trim());
-    if (this.compartilharLogisticaCc.trim()) {
-      formData.append('copia', this.compartilharLogisticaCc.trim());
-    }
-    if (this.compartilharLogisticaMensagem.trim()) {
-      formData.append('mensagem_personalizada', this.compartilharLogisticaMensagem.trim());
-    }
-
-    this.importacoesService.compartilharDashboardLogistica(formData).subscribe({
-      next: () => {
-        this.isEnviandoCompartilhamentoLogistica = false;
-        this.fecharCompartilharLogistica();
-        this.openAlert('Sucesso!', 'O relatório de Logística foi compartilhado por e-mail com sucesso.', 'primary');
-      },
-      error: (err) => {
-        this.isEnviandoCompartilhamentoLogistica = false;
-        console.error('Erro ao compartilhar dashboard logistica:', err);
-        const detalhe = err.error?.detail || err.message || 'Falha ao enviar e-mail pelo Gmail.';
-        this.openAlert('Falha no Envio', detalhe, 'danger');
-      }
-    });
-  }
-
-  // ==========================================
-  // COMPARTILHAR COMERCIAL
-  // ==========================================
-  isCompartilharComercialModalOpen = false;
-  compartilharComercialDestinatarios = '';
-  compartilharComercialCc = '';
-  compartilharComercialMensagem = '';
-  isEnviandoCompartilhamentoComercial = false;
-
-  abrirCompartilharComercial() {
-    this.compartilharComercialDestinatarios = '';
-    this.compartilharComercialCc = '';
-    this.compartilharComercialMensagem = '';
-    this.isEnviandoCompartilhamentoComercial = false;
-    this.isCompartilharComercialModalOpen = true;
-
-    if (!this.googleAuthService.isConectado()) {
-      this.googleAuthService.verificarStatus().subscribe();
-    }
-  }
-
-  fecharCompartilharComercial() {
-    this.isCompartilharComercialModalOpen = false;
-  }
-
-  enviarCompartilhamentoComercial() {
-    if (!this.compartilharComercialDestinatarios.trim()) {
-      this.openAlert('Destinatário Ausente', 'Por favor, informe ao menos um e-mail destinatário.', 'primary');
-      return;
-    }
-
-    if (!this.googleAuthService.isConectado()) {
-      this.googleAuthService.iniciarAutorizacaoPopup()
-        .then(() => this._dispararCompartilhamentoComercial())
-        .catch((err) => {
-          this.openAlert('Autorização Necessária', err.message || 'É obrigatório conectar sua conta do Google antes de compartilhar.', 'danger');
-        });
-      return;
-    }
-
-    this._dispararCompartilhamentoComercial();
-  }
-
-  private _dispararCompartilhamentoComercial() {
-    this.isEnviandoCompartilhamentoComercial = true;
-
-    const formData = new FormData();
-    formData.append('destinatarios', this.compartilharComercialDestinatarios.trim());
-    if (this.compartilharComercialCc.trim()) {
-      formData.append('copia', this.compartilharComercialCc.trim());
-    }
-    if (this.compartilharComercialMensagem.trim()) {
-      formData.append('mensagem_personalizada', this.compartilharComercialMensagem.trim());
-    }
-
-    this.importacoesService.compartilharDashboardComercial(formData).subscribe({
-      next: () => {
-        this.isEnviandoCompartilhamentoComercial = false;
-        this.fecharCompartilharComercial();
-        this.openAlert('Sucesso!', 'O relatório do Comercial foi compartilhado por e-mail com sucesso.', 'primary');
-      },
-      error: (err) => {
-        this.isEnviandoCompartilhamentoComercial = false;
-        console.error('Erro ao compartilhar dashboard comercial:', err);
-        const detalhe = err.error?.detail || err.message || 'Falha ao enviar e-mail pelo Gmail.';
-        this.openAlert('Falha no Envio', detalhe, 'danger');
-      }
-    });
-  }
-
-  // ==========================================
-  // COMPARTILHAR PENDÊNCIAS ACR
-  // ==========================================
-  isCompartilharPendenciasAcrModalOpen = false;
-  compartilharPendenciasAcrDestinatarios = '';
-  compartilharPendenciasAcrCc = '';
-  compartilharPendenciasAcrMensagem = '';
-  isEnviandoCompartilhamentoPendenciasAcr = false;
-
-  abrirCompartilharPendenciasAcr() {
-    this.compartilharPendenciasAcrDestinatarios = '';
-    this.compartilharPendenciasAcrCc = '';
-    this.compartilharPendenciasAcrMensagem = '';
-    this.isEnviandoCompartilhamentoPendenciasAcr = false;
-    this.isCompartilharPendenciasAcrModalOpen = true;
-
-    if (!this.googleAuthService.isConectado()) {
-      this.googleAuthService.verificarStatus().subscribe();
-    }
-  }
-
-  fecharCompartilharPendenciasAcr() {
-    this.isCompartilharPendenciasAcrModalOpen = false;
-  }
-
-  enviarCompartilhamentoPendenciasAcr() {
-    if (!this.compartilharPendenciasAcrDestinatarios.trim()) {
-      this.openAlert('Destinatário Ausente', 'Por favor, informe ao menos um e-mail destinatário.', 'primary');
-      return;
-    }
-
-    if (!this.googleAuthService.isConectado()) {
-      this.googleAuthService.iniciarAutorizacaoPopup()
-        .then(() => this._dispararCompartilhamentoPendenciasAcr())
-        .catch((err) => {
-          this.openAlert('Autorização Necessária', err.message || 'É obrigatório conectar sua conta do Google antes de compartilhar.', 'danger');
-        });
-      return;
-    }
-
-    this._dispararCompartilhamentoPendenciasAcr();
-  }
-
-  private _dispararCompartilhamentoPendenciasAcr() {
-    this.isEnviandoCompartilhamentoPendenciasAcr = true;
-
-    const formData = new FormData();
-    formData.append('destinatarios', this.compartilharPendenciasAcrDestinatarios.trim());
-    if (this.compartilharPendenciasAcrCc.trim()) {
-      formData.append('copia', this.compartilharPendenciasAcrCc.trim());
-    }
-    if (this.compartilharPendenciasAcrMensagem.trim()) {
-      formData.append('mensagem_personalizada', this.compartilharPendenciasAcrMensagem.trim());
-    }
-
-    this.importacoesService.compartilharDashboardPendenciasAcr(formData).subscribe({
-      next: () => {
-        this.isEnviandoCompartilhamentoPendenciasAcr = false;
-        this.fecharCompartilharPendenciasAcr();
-        this.openAlert('Sucesso!', 'O relatório de Pendências ACR foi compartilhado por e-mail com sucesso.', 'primary');
-      },
-      error: (err) => {
-        this.isEnviandoCompartilhamentoPendenciasAcr = false;
-        console.error('Erro ao compartilhar dashboard pendencias ACR:', err);
-        const detalhe = err.error?.detail || err.message || 'Falha ao enviar e-mail pelo Gmail.';
-        this.openAlert('Falha no Envio', detalhe, 'danger');
-      }
-    });
-  }
 
 }
