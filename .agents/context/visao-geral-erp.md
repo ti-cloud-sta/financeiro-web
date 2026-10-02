@@ -30,3 +30,9 @@ O **ERP SANTAMARIA (financeiro-web)** é uma plataforma integrada de gestão fin
   - MySQL (`stamariabd`), utilizando Views como fonte única de verdade para regras complexas de negócio.
 - **Ambiente & Deploy**:
   - Docker e Docker Compose (`docker-compose.yml`).
+  - O arquivo `.env` com as variáveis de ambiente fica localizado **exclusivamente na pasta raiz** do projeto (`/projects/financeiro-web/.env` na VPS e `/.env` localmente), e não dentro das pastas `/backend` ou `/frontend`.
+  - Para aplicar alterações de `.env` na VPS, edite o arquivo na raiz e use os comandos:
+    ```bash
+    cd projects/financeiro-web
+    docker compose up -d --build
+    ```
