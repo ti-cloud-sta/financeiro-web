@@ -6225,3 +6225,131 @@ def compartilhar_dashboard_logistica(
     except Exception as e:
         logger.error(f"Erro ao compartilhar dashboard logistica: {e}")
         raise HTTPException(status_code=500, detail=f"Erro ao enviar o e-mail: {str(e)}")
+
+@router.post("/inadimplencia/dashboard/compartilhar-comercial")
+def compartilhar_dashboard_comercial(
+    destinatarios: str = Form(..., description="E-mails destinatários separados por vírgula"),
+    copia: Optional[str] = Form(None, description="E-mails em cópia separados por vírgula"),
+    assunto: Optional[str] = Form("Relatório do Comercial", description="Assunto do e-mail"),
+    mensagem_personalizada: Optional[str] = Form(None, description="Mensagem adicional personalizada"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from app.services.google_auth_service import GoogleAuthService
+    from app.services.gmail_service import GmailService
+    from app.core.config import settings
+
+    access_token = GoogleAuthService.obter_access_token_valido(current_user, db)
+
+    # Link para a página pública
+    link_dashboard = f"{settings.FRONTEND_URL}/compartilhar/comercial"
+
+    # Corpo base em HTML
+    html_mensagem = ""
+    if mensagem_personalizada:
+        msg_html = mensagem_personalizada.replace("\n", "<br>")
+        html_mensagem = f"<p style='color:#334155; font-size:14px; margin-bottom: 20px;'>{msg_html}</p>"
+        
+    corpo_html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px;">
+        {html_mensagem}
+        <p style="color:#334155; font-size:14px; margin-bottom: 20px;">
+            Prezados,<br><br>
+            Encaminho, em anexo, o relatório atualizado das pendências relacionadas às notas fiscais do setor Comercial.<br><br>
+            O relatório contempla as notas fiscais que necessitam de acompanhamento e/ou regularização, visando à atualização das informações e à conclusão dos processos pendentes.<br><br>
+            Peço, por gentileza, que verifiquem as pendências apresentadas e, quando aplicável, realizem as tratativas necessárias.
+        </p>
+        <p style="margin-bottom: 30px;">
+            <a href="{link_dashboard}" style="display:inline-block; padding: 12px 24px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">
+                Acessar Relatório Comercial
+            </a>
+        </p>
+        <p style="color:#334155; font-size:14px; margin-bottom: 20px;">
+            Fico à disposição para eventuais dúvidas ou esclarecimentos.
+        </p>
+        <p style="color:#64748b; font-size:12px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+            Este é um relatório gerado automaticamente pelo ERP Santa Maria. Por favor, não responda este e-mail.
+        </p>
+        <div style="margin-top: 20px;">
+            <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjFFw0P_XxmH9v5vpY_xD7PMIP1q2rv_5mwb3CaGqd5rnz3ie-wGL7D8PieowH1fAoQt9AhuT2ehoXRV8AAErbImaEhVWn_qKwytXXoEd5QUK4Ms_fSEOZ7cJTJXmr90qTmNbbj8AcZ7-oBBwH0OXObMEr6wg6UXfzxgf2ibk8vh6fRGNLl7RRsxA_Jm9k/s1600/Composi%C3%A7%C3%A3o-1-TANIA.gif" alt="Assinatura Santa Maria" style="max-width: 400px;">
+        </div>
+    </div>
+    """
+
+    try:
+        resultado = GmailService.enviar_email(
+            access_token=access_token,
+            destinatarios=destinatarios,
+            assunto=assunto,
+            corpo_html=corpo_html,
+            copia=copia,
+            anexos=[],
+            remetente_email=current_user.email
+        )
+        return {"sucesso": True, "message_id": resultado.get("messageId")}
+    except Exception as e:
+        logger.error(f"Erro ao compartilhar dashboard comercial: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao enviar o e-mail: {str(e)}")
+
+@router.post("/inadimplencia/dashboard/compartilhar-pendencias-acr")
+def compartilhar_dashboard_pendencias_acr(
+    destinatarios: str = Form(..., description="E-mails destinatários separados por vírgula"),
+    copia: Optional[str] = Form(None, description="E-mails em cópia separados por vírgula"),
+    assunto: Optional[str] = Form("Relatório de Pendências ACR", description="Assunto do e-mail"),
+    mensagem_personalizada: Optional[str] = Form(None, description="Mensagem adicional personalizada"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from app.services.google_auth_service import GoogleAuthService
+    from app.services.gmail_service import GmailService
+    from app.core.config import settings
+
+    access_token = GoogleAuthService.obter_access_token_valido(current_user, db)
+
+    # Link para a página pública
+    link_dashboard = f"{settings.FRONTEND_URL}/compartilhar/pendencias-acr"
+
+    # Corpo base em HTML
+    html_mensagem = ""
+    if mensagem_personalizada:
+        msg_html = mensagem_personalizada.replace("\n", "<br>")
+        html_mensagem = f"<p style='color:#334155; font-size:14px; margin-bottom: 20px;'>{msg_html}</p>"
+        
+    corpo_html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px;">
+        {html_mensagem}
+        <p style="color:#334155; font-size:14px; margin-bottom: 20px;">
+            Prezados,<br><br>
+            Encaminho, em anexo, o relatório atualizado das pendências relacionadas ao ACR.<br><br>
+            O relatório apresenta as pendências identificadas para acompanhamento e tratativa, permitindo uma melhor visualização das demandas que ainda necessitam de regularização.<br><br>
+            Fico à disposição caso seja necessário algum esclarecimento ou informação adicional.
+        </p>
+        <p style="margin-bottom: 30px;">
+            <a href="{link_dashboard}" style="display:inline-block; padding: 12px 24px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">
+                Acessar Relatório de Pendências ACR
+            </a>
+        </p>
+        <p style="color:#64748b; font-size:12px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+            Este é um relatório gerado automaticamente pelo ERP Santa Maria. Por favor, não responda este e-mail.
+        </p>
+        <div style="margin-top: 20px;">
+            <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjFFw0P_XxmH9v5vpY_xD7PMIP1q2rv_5mwb3CaGqd5rnz3ie-wGL7D8PieowH1fAoQt9AhuT2ehoXRV8AAErbImaEhVWn_qKwytXXoEd5QUK4Ms_fSEOZ7cJTJXmr90qTmNbbj8AcZ7-oBBwH0OXObMEr6wg6UXfzxgf2ibk8vh6fRGNLl7RRsxA_Jm9k/s1600/Composi%C3%A7%C3%A3o-1-TANIA.gif" alt="Assinatura Santa Maria" style="max-width: 400px;">
+        </div>
+    </div>
+    """
+
+    try:
+        resultado = GmailService.enviar_email(
+            access_token=access_token,
+            destinatarios=destinatarios,
+            assunto=assunto,
+            corpo_html=corpo_html,
+            copia=copia,
+            anexos=[],
+            remetente_email=current_user.email
+        )
+        return {"sucesso": True, "message_id": resultado.get("messageId")}
+    except Exception as e:
+        logger.error(f"Erro ao compartilhar dashboard pendencias ACR: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao enviar o e-mail: {str(e)}")
+

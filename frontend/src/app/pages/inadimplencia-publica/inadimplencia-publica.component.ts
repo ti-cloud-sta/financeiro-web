@@ -37,6 +37,8 @@ export class InadimplenciaPublicaComponent implements OnInit {
 
   isSidebarCollapsed = false;
   isSomenteLogistica = false;
+  isSomenteComercial = false;
+  isSomentePendenciasAcr = false;
   activeTab = 'dashboards';
   dashboardTab = signal<'visao-geral' | 'financeiro' | 'logistica' | 'comercial' | 'fiscal' | 'pendencias-acr'>('visao-geral');
   financeiroTab = signal<'gerencial' | 'gerente'>('gerencial');
@@ -62,9 +64,15 @@ export class InadimplenciaPublicaComponent implements OnInit {
   ngOnInit() {
     this.isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
     this.isSomenteLogistica = this.router.url.includes('/compartilhar/logistica');
+    this.isSomenteComercial = this.router.url.includes('/compartilhar/comercial');
+    this.isSomentePendenciasAcr = this.router.url.includes('/compartilhar/pendencias-acr');
     
     if (this.isSomenteLogistica) {
       this.dashboardTab.set('logistica');
+    } else if (this.isSomenteComercial) {
+      this.dashboardTab.set('comercial');
+    } else if (this.isSomentePendenciasAcr) {
+      this.dashboardTab.set('pendencias-acr');
     }
 
     this.carregarDashboardVisaoGeral();

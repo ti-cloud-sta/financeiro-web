@@ -25,7 +25,7 @@
 
   <main class="main-content px-3 px-md-4">
     <div class="config-layout">
-            <div class="dashboard-header d-flex justify-content-between align-items-center border-bottom pt-2" *ngIf="!isSomenteLogistica">
+            <div class="dashboard-header d-flex justify-content-between align-items-center border-bottom pt-2" *ngIf="!isSomenteLogistica && !isSomenteComercial && !isSomentePendenciasAcr">
               <ul class="config-nav mb-0 border-bottom-0 pb-0 px-3">
                 <li class="config-nav-item">
                   <button class="config-nav-link" [class.active]="dashboardTab() === 'visao-geral'"

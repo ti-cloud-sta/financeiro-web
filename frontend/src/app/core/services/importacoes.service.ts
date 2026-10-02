@@ -178,6 +178,20 @@ export class ImportacoesService {
     );
   }
 
+  compartilharDashboardComercial(formData: FormData): Observable<{ sucesso: boolean; message_id?: string }> {
+    return this.http.post<{ sucesso: boolean; message_id?: string }>(
+      `${this.apiUrl}/inadimplencia/dashboard/compartilhar-comercial`,
+      formData
+    );
+  }
+
+  compartilharDashboardPendenciasAcr(formData: FormData): Observable<{ sucesso: boolean; message_id?: string }> {
+    return this.http.post<{ sucesso: boolean; message_id?: string }>(
+      `${this.apiUrl}/inadimplencia/dashboard/compartilhar-pendencias-acr`,
+      formData
+    );
+  }
+
   alterarFasePendencia(id: number, fase: string, status?: string): Observable<{ idnfpendencias: number; fase: string }> {
     const payload: any = { fase };
     if (status) {

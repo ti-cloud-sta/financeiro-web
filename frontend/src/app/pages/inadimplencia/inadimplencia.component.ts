@@ -1229,4 +1229,144 @@ export class InadimplenciaComponent implements OnInit {
     });
   }
 
+  // ==========================================
+  // COMPARTILHAR COMERCIAL
+  // ==========================================
+  isCompartilharComercialModalOpen = false;
+  compartilharComercialDestinatarios = '';
+  compartilharComercialCc = '';
+  compartilharComercialMensagem = '';
+  isEnviandoCompartilhamentoComercial = false;
+
+  abrirCompartilharComercial() {
+    this.compartilharComercialDestinatarios = '';
+    this.compartilharComercialCc = '';
+    this.compartilharComercialMensagem = '';
+    this.isEnviandoCompartilhamentoComercial = false;
+    this.isCompartilharComercialModalOpen = true;
+
+    if (!this.googleAuthService.isConectado()) {
+      this.googleAuthService.verificarStatus().subscribe();
+    }
+  }
+
+  fecharCompartilharComercial() {
+    this.isCompartilharComercialModalOpen = false;
+  }
+
+  enviarCompartilhamentoComercial() {
+    if (!this.compartilharComercialDestinatarios.trim()) {
+      this.openAlert('Destinatário Ausente', 'Por favor, informe ao menos um e-mail destinatário.', 'primary');
+      return;
+    }
+
+    if (!this.googleAuthService.isConectado()) {
+      this.googleAuthService.iniciarAutorizacaoPopup()
+        .then(() => this._dispararCompartilhamentoComercial())
+        .catch((err) => {
+          this.openAlert('Autorização Necessária', err.message || 'É obrigatório conectar sua conta do Google antes de compartilhar.', 'danger');
+        });
+      return;
+    }
+
+    this._dispararCompartilhamentoComercial();
+  }
+
+  private _dispararCompartilhamentoComercial() {
+    this.isEnviandoCompartilhamentoComercial = true;
+
+    const formData = new FormData();
+    formData.append('destinatarios', this.compartilharComercialDestinatarios.trim());
+    if (this.compartilharComercialCc.trim()) {
+      formData.append('copia', this.compartilharComercialCc.trim());
+    }
+    if (this.compartilharComercialMensagem.trim()) {
+      formData.append('mensagem_personalizada', this.compartilharComercialMensagem.trim());
+    }
+
+    this.importacoesService.compartilharDashboardComercial(formData).subscribe({
+      next: () => {
+        this.isEnviandoCompartilhamentoComercial = false;
+        this.fecharCompartilharComercial();
+        this.openAlert('Sucesso!', 'O relatório do Comercial foi compartilhado por e-mail com sucesso.', 'primary');
+      },
+      error: (err) => {
+        this.isEnviandoCompartilhamentoComercial = false;
+        console.error('Erro ao compartilhar dashboard comercial:', err);
+        const detalhe = err.error?.detail || err.message || 'Falha ao enviar e-mail pelo Gmail.';
+        this.openAlert('Falha no Envio', detalhe, 'danger');
+      }
+    });
+  }
+
+  // ==========================================
+  // COMPARTILHAR PENDÊNCIAS ACR
+  // ==========================================
+  isCompartilharPendenciasAcrModalOpen = false;
+  compartilharPendenciasAcrDestinatarios = '';
+  compartilharPendenciasAcrCc = '';
+  compartilharPendenciasAcrMensagem = '';
+  isEnviandoCompartilhamentoPendenciasAcr = false;
+
+  abrirCompartilharPendenciasAcr() {
+    this.compartilharPendenciasAcrDestinatarios = '';
+    this.compartilharPendenciasAcrCc = '';
+    this.compartilharPendenciasAcrMensagem = '';
+    this.isEnviandoCompartilhamentoPendenciasAcr = false;
+    this.isCompartilharPendenciasAcrModalOpen = true;
+
+    if (!this.googleAuthService.isConectado()) {
+      this.googleAuthService.verificarStatus().subscribe();
+    }
+  }
+
+  fecharCompartilharPendenciasAcr() {
+    this.isCompartilharPendenciasAcrModalOpen = false;
+  }
+
+  enviarCompartilhamentoPendenciasAcr() {
+    if (!this.compartilharPendenciasAcrDestinatarios.trim()) {
+      this.openAlert('Destinatário Ausente', 'Por favor, informe ao menos um e-mail destinatário.', 'primary');
+      return;
+    }
+
+    if (!this.googleAuthService.isConectado()) {
+      this.googleAuthService.iniciarAutorizacaoPopup()
+        .then(() => this._dispararCompartilhamentoPendenciasAcr())
+        .catch((err) => {
+          this.openAlert('Autorização Necessária', err.message || 'É obrigatório conectar sua conta do Google antes de compartilhar.', 'danger');
+        });
+      return;
+    }
+
+    this._dispararCompartilhamentoPendenciasAcr();
+  }
+
+  private _dispararCompartilhamentoPendenciasAcr() {
+    this.isEnviandoCompartilhamentoPendenciasAcr = true;
+
+    const formData = new FormData();
+    formData.append('destinatarios', this.compartilharPendenciasAcrDestinatarios.trim());
+    if (this.compartilharPendenciasAcrCc.trim()) {
+      formData.append('copia', this.compartilharPendenciasAcrCc.trim());
+    }
+    if (this.compartilharPendenciasAcrMensagem.trim()) {
+      formData.append('mensagem_personalizada', this.compartilharPendenciasAcrMensagem.trim());
+    }
+
+    this.importacoesService.compartilharDashboardPendenciasAcr(formData).subscribe({
+      next: () => {
+        this.isEnviandoCompartilhamentoPendenciasAcr = false;
+        this.fecharCompartilharPendenciasAcr();
+        this.openAlert('Sucesso!', 'O relatório de Pendências ACR foi compartilhado por e-mail com sucesso.', 'primary');
+      },
+      error: (err) => {
+        this.isEnviandoCompartilhamentoPendenciasAcr = false;
+        console.error('Erro ao compartilhar dashboard pendencias ACR:', err);
+        const detalhe = err.error?.detail || err.message || 'Falha ao enviar e-mail pelo Gmail.';
+        this.openAlert('Falha no Envio', detalhe, 'danger');
+      }
+    });
+  }
+
 }

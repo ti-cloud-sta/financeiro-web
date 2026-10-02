@@ -1589,7 +1589,12 @@
 
                   <!-- Painel: Atual -->
                   <div class="dash-kpi-panel border rounded-4 p-4 mb-4 border-2">
-                    <div class="d-flex justify-content-end align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <div>
+                        <app-button variant="outline-primary" size="sm" (clicked)="abrirCompartilharComercial()" [disabled]="!kpiTotalAcordos">
+                          <i class="fa-solid fa-share-nodes me-2"></i> Compartilhar Comercial
+                        </app-button>
+                      </div>
                       <div class="d-flex gap-3 text-secondary align-items-center bg-light border px-3 py-2 rounded-3"
                         style="font-size: 0.85rem;">
                         <span class="text-muted"><i class="fa-regular fa-calendar me-2"></i>Hoje, {{ dataHoje |
@@ -1718,7 +1723,7 @@
                 <!-- DASHBOARD: PENDÊNCIAS ACR -->
                 <div *ngIf="dashboardTab() === 'pendencias-acr'">
                   <!-- Sub-navegação do Pendências ACR -->
-                  <div class="mb-4 d-flex justify-content-start" style="overflow-x: auto;">
+                  <div class="mb-4 d-flex justify-content-between align-items-center" style="overflow-x: auto;">
                     <div class="btn-group text-nowrap" role="group">
                       <button type="button" class="btn btn-outline-primary"
                         [class.active]="pendenciasAcrTab() === 'atrasados'" (click)="pendenciasAcrTab.set('atrasados')"
@@ -1750,6 +1755,11 @@
                       <button type="button" class="btn btn-outline-primary"
                         [class.active]="pendenciasAcrTab() === 'variados'" (click)="pendenciasAcrTab.set('variados')"
                         style="border-radius: 0 20px 20px 0; padding: 0.375rem 1rem; font-size: 0.875rem;">Variados</button>
+                    </div>
+                    <div>
+                      <app-button variant="outline-primary" size="sm" (clicked)="abrirCompartilharPendenciasAcr()">
+                        <i class="fa-solid fa-share-nodes me-2"></i> Compartilhar Financeiro
+                      </app-button>
                     </div>
                   </div>
                   
@@ -2949,6 +2959,96 @@
         <app-button variant="ghost" (clicked)="fecharCompartilharLogistica()" [disabled]="isEnviandoCompartilhamentoLogistica">Cancelar</app-button>
         <app-button variant="primary" (clicked)="enviarCompartilhamentoLogistica()" [loading]="isEnviandoCompartilhamentoLogistica">
           <i class="fa-regular fa-paper-plane me-2" *ngIf="!isEnviandoCompartilhamentoLogistica"></i>
+          Enviar E-mail
+        </app-button>
+      </div>
+    </div>
+  </ng-container>
+</app-modal>
+
+<!-- Modal Compartilhar Comercial -->
+<app-modal [isOpen]="isCompartilharComercialModalOpen" title="Compartilhar Relatório Comercial" size="md" (closed)="fecharCompartilharComercial()">
+  <ng-container body>
+    <div class="mb-3">
+      <div class="alert alert-primary bg-primary bg-opacity-10 border-0 text-primary small d-flex align-items-center mb-4">
+        <i class="fa-solid fa-circle-info fa-lg me-3"></i>
+        <div>
+          Um link seguro para o painel de <strong>Comercial</strong> será gerado e enviado por e-mail, sem necessidade de login.
+        </div>
+      </div>
+    </div>
+    
+    <div class="mb-3">
+      <label class="form-label fw-semibold small text-secondary">Para (E-mails)</label>
+      <input type="text" class="form-control" placeholder="exemplo@empresa.com.br, outro@empresa.com.br" [(ngModel)]="compartilharComercialDestinatarios">
+      <div class="form-text small">Separe múltiplos e-mails por vírgula.</div>
+    </div>
+    
+    <div class="mb-3">
+      <label class="form-label fw-semibold small text-secondary">Cc (Com Cópia) <span class="text-muted fw-normal">(Opcional)</span></label>
+      <input type="text" class="form-control" placeholder="copia@empresa.com.br" [(ngModel)]="compartilharComercialCc">
+    </div>
+    
+    <div class="mb-3">
+      <label class="form-label fw-semibold small text-secondary">Mensagem Adicional <span class="text-muted fw-normal">(Opcional)</span></label>
+      <textarea class="form-control" rows="3" placeholder="Adicione uma mensagem personalizada ao corpo do e-mail..." [(ngModel)]="compartilharComercialMensagem"></textarea>
+    </div>
+  </ng-container>
+  
+  <ng-container footer>
+    <div class="w-100 d-flex justify-content-between align-items-center">
+      <div class="text-muted small">
+        <i class="fa-brands fa-google me-1"></i> Enviando via Gmail autenticado
+      </div>
+      <div class="d-flex gap-2">
+        <app-button variant="ghost" (clicked)="fecharCompartilharComercial()" [disabled]="isEnviandoCompartilhamentoComercial">Cancelar</app-button>
+        <app-button variant="primary" (clicked)="enviarCompartilhamentoComercial()" [loading]="isEnviandoCompartilhamentoComercial">
+          <i class="fa-regular fa-paper-plane me-2" *ngIf="!isEnviandoCompartilhamentoComercial"></i>
+          Enviar E-mail
+        </app-button>
+      </div>
+    </div>
+  </ng-container>
+</app-modal>
+
+<!-- Modal Compartilhar Pendências ACR -->
+<app-modal [isOpen]="isCompartilharPendenciasAcrModalOpen" title="Compartilhar Relatório Financeiro" size="md" (closed)="fecharCompartilharPendenciasAcr()">
+  <ng-container body>
+    <div class="mb-3">
+      <div class="alert alert-primary bg-primary bg-opacity-10 border-0 text-primary small d-flex align-items-center mb-4">
+        <i class="fa-solid fa-circle-info fa-lg me-3"></i>
+        <div>
+          Um link seguro para o painel de <strong>Pendências do ACR</strong> será gerado e enviado por e-mail, sem necessidade de login.
+        </div>
+      </div>
+    </div>
+    
+    <div class="mb-3">
+      <label class="form-label fw-semibold small text-secondary">Para (E-mails)</label>
+      <input type="text" class="form-control" placeholder="exemplo@empresa.com.br, outro@empresa.com.br" [(ngModel)]="compartilharPendenciasAcrDestinatarios">
+      <div class="form-text small">Separe múltiplos e-mails por vírgula.</div>
+    </div>
+    
+    <div class="mb-3">
+      <label class="form-label fw-semibold small text-secondary">Cc (Com Cópia) <span class="text-muted fw-normal">(Opcional)</span></label>
+      <input type="text" class="form-control" placeholder="copia@empresa.com.br" [(ngModel)]="compartilharPendenciasAcrCc">
+    </div>
+    
+    <div class="mb-3">
+      <label class="form-label fw-semibold small text-secondary">Mensagem Adicional <span class="text-muted fw-normal">(Opcional)</span></label>
+      <textarea class="form-control" rows="3" placeholder="Adicione uma mensagem personalizada ao corpo do e-mail..." [(ngModel)]="compartilharPendenciasAcrMensagem"></textarea>
+    </div>
+  </ng-container>
+  
+  <ng-container footer>
+    <div class="w-100 d-flex justify-content-between align-items-center">
+      <div class="text-muted small">
+        <i class="fa-brands fa-google me-1"></i> Enviando via Gmail autenticado
+      </div>
+      <div class="d-flex gap-2">
+        <app-button variant="ghost" (clicked)="fecharCompartilharPendenciasAcr()" [disabled]="isEnviandoCompartilhamentoPendenciasAcr">Cancelar</app-button>
+        <app-button variant="primary" (clicked)="enviarCompartilhamentoPendenciasAcr()" [loading]="isEnviandoCompartilhamentoPendenciasAcr">
+          <i class="fa-regular fa-paper-plane me-2" *ngIf="!isEnviandoCompartilhamentoPendenciasAcr"></i>
           Enviar E-mail
         </app-button>
       </div>
