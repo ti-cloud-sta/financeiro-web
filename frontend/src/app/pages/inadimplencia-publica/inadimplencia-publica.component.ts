@@ -23,13 +23,13 @@ export interface MensagemChat {
 }
 
 @Component({
-  selector: 'app-inadimplencia',
+  selector: 'app-inadimplencia-publica',
   standalone: true,
   imports: [CommonModule, FormsModule, PendenciasComponent, ButtonComponent, ConfirmModalComponent, ModalComponent, NgxEchartsModule, SkeletonComponent, AvatarComponent],
-  templateUrl: './inadimplencia.component.html',
-  styleUrls: ['./inadimplencia.component.scss']
+  templateUrl: './inadimplencia-publica.component.html',
+  styleUrls: ['./inadimplencia-publica.component.scss']
 })
-export class InadimplenciaComponent implements OnInit {
+export class InadimplenciaPublicaComponent implements OnInit {
   private importacoesService = inject(ImportacoesService);
   readonly googleAuthService = inject(GoogleAuthService);
 
@@ -58,7 +58,6 @@ export class InadimplenciaComponent implements OnInit {
 
   ngOnInit() {
     this.isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-    this.carregarHistoricoAtualizacao();
     this.carregarDashboardVisaoGeral();
   }
 
@@ -1090,73 +1089,7 @@ export class InadimplenciaComponent implements OnInit {
   }
 
   // ==========================================
-  // COMPARTILHAR DIRETORIA
+  // Lógica de compartilhamento removida do modo público
   // ==========================================
-  isCompartilharModalOpen = false;
-  compartilharDestinatarios = '';
-  compartilharCc = '';
-  compartilharMensagem = '';
-  isEnviandoCompartilhamento = false;
-
-  abrirCompartilhar() {
-    this.compartilharDestinatarios = '';
-    this.compartilharCc = '';
-    this.compartilharMensagem = '';
-    this.isEnviandoCompartilhamento = false;
-    this.isCompartilharModalOpen = true;
-
-    if (!this.googleAuthService.isConectado()) {
-      this.googleAuthService.verificarStatus().subscribe();
-    }
-  }
-
-  fecharCompartilhar() {
-    this.isCompartilharModalOpen = false;
-  }
-
-  enviarCompartilhamento() {
-    if (!this.compartilharDestinatarios.trim()) {
-      this.openAlert('Destinatário Ausente', 'Por favor, informe ao menos um e-mail destinatário.', 'primary');
-      return;
-    }
-
-    if (!this.googleAuthService.isConectado()) {
-      this.googleAuthService.iniciarAutorizacaoPopup()
-        .then(() => this._dispararCompartilhamento())
-        .catch((err) => {
-          this.openAlert('Autorização Necessária', err.message || 'É obrigatório conectar sua conta do Google antes de compartilhar.', 'danger');
-        });
-      return;
-    }
-
-    this._dispararCompartilhamento();
-  }
-
-  private _dispararCompartilhamento() {
-    this.isEnviandoCompartilhamento = true;
-
-    const formData = new FormData();
-    formData.append('destinatarios', this.compartilharDestinatarios.trim());
-    if (this.compartilharCc.trim()) {
-      formData.append('copia', this.compartilharCc.trim());
-    }
-    if (this.compartilharMensagem.trim()) {
-      formData.append('mensagem_personalizada', this.compartilharMensagem.trim());
-    }
-
-    this.importacoesService.compartilharDashboardInadimplencia(formData).subscribe({
-      next: () => {
-        this.isEnviandoCompartilhamento = false;
-        this.fecharCompartilhar();
-        this.openAlert('Sucesso!', 'O dashboard foi compartilhado por e-mail com sucesso.', 'primary');
-      },
-      error: (err) => {
-        this.isEnviandoCompartilhamento = false;
-        console.error('Erro ao compartilhar dashboard:', err);
-        const detalhe = err.error?.detail || err.message || 'Falha ao enviar e-mail pelo Gmail.';
-        this.openAlert('Falha no Envio', detalhe, 'danger');
-      }
-    });
-  }
 
 }

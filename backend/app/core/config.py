@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     # não deve expor documentação pública.
     ENVIRONMENT: str = "production"
 
+    FRONTEND_URL: str = "http://localhost:4200"
+
     # Usando o conector assíncrono seria ideal, mas para manter simples no ORM padrão do SQLAlchemy
     # usaremos pymysql
     @property

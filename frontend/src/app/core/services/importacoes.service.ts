@@ -164,6 +164,13 @@ export class ImportacoesService {
     return this.http.get<any>(`${this.apiUrl}/inadimplencia/dashboard/visao-geral`);
   }
 
+  compartilharDashboardInadimplencia(formData: FormData): Observable<{ sucesso: boolean; message_id?: string }> {
+    return this.http.post<{ sucesso: boolean; message_id?: string }>(
+      `${this.apiUrl}/inadimplencia/dashboard/compartilhar`,
+      formData
+    );
+  }
+
   alterarFasePendencia(id: number, fase: string, status?: string): Observable<{ idnfpendencias: number; fase: string }> {
     const payload: any = { fase };
     if (status) {

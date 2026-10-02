@@ -1,0 +1,240 @@
+<div class="content p-2">
+    <div class="filters mb-2">
+        <div class="filters-grid">
+
+            <!-- Coluna de Período -->
+            <div class="filter-group period-filter-group">
+                <span class="filter-label mb-2 d-block">Data Vencimento</span>
+
+                <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
+                    <div class="period-inputs">
+                        <div class="input-icon-wrapper" style="width: 135px;">
+                            <i class="fa-regular fa-calendar input-icon"></i>
+                            <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
+                                [locale]="locale" [convertModelValue]="true" [maxDate]="dataFim || ''"
+                                placeholder="Data inicial" [(ngModel)]="dataInicio"
+                                (ngModelChange)="onDataInicioChange()">
+                        </div>
+
+                        <span class="period-separator text-muted small px-1">→</span>
+
+                        <div class="input-icon-wrapper" style="width: 135px;">
+                            <i class="fa-regular fa-calendar input-icon"></i>
+                            <input type="text" class="form-control form-control-sm" mwlFlatpickr dateFormat="d/m/Y"
+                                [locale]="locale" [convertModelValue]="true" [minDate]="dataInicio || ''"
+                                placeholder="Data final" [(ngModel)]="dataFim" (ngModelChange)="onDataFimChange()">
+                        </div>
+                    </div>
+
+                    <select class="form-select form-select-sm shortcut-select" [(ngModel)]="activePeriodShortcut"
+                        (ngModelChange)="onShortcutSelectChange($event)">
+                        <option value="vencidas">Títulos Vencidos</option>
+                        <option value="ult-vencimento">Últ. Data de Venc.</option>
+                        <option value="este-mes">Este Mês</option>
+                        <option value="este-semestre">Este Semestre</option>
+                        <option value="este-ano">Este Ano</option>
+                        <option value="personalizado" disabled hidden>Personalizado</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Coluna de Status -->
+            <div class="filter-group">
+                <label class="filter-label mb-2">Status</label>
+                <select class="form-select form-select-sm" [(ngModel)]="statusFiltro" (ngModelChange)="onStatusFiltroChange($event)">
+                    <option [value]="'null'">Todos</option>
+                    <option *ngFor="let s of statusOptions" [value]="s">{{ s }}</option>
+                </select>
+            </div>
+
+            <!-- Coluna de Busca -->
+            <div class="filter-group">
+                <label class="filter-label mb-2">Pesquisar</label>
+                <div class="input-icon-wrapper">
+                    <i class="fa-solid fa-magnifying-glass input-icon"></i>
+                    <input type="text" class="form-control form-control-sm" placeholder="Buscar em tudo..." [(ngModel)]="textoFiltro">
+                </div>
+            </div>
+
+            <!-- Coluna de Visibilidade das Colunas do Kanban -->
+            <div class="filter-group column-filter-group" #columnFilterWrapper>
+                <label class="filter-label mb-2">Colunas</label>
+                <div class="column-filter-dropdown">
+                    <button type="button"
+                        class="form-control form-control-sm column-filter-trigger d-flex align-items-center justify-content-between"
+                        (click)="toggleColumnFilterOpen()">
+                        <span class="text-truncate">{{ visibleColumnsLabel }}</span>
+                        <i class="fa-solid fa-chevron-down ms-2 small"></i>
+                    </button>
+                    <div class="column-filter-panel" *ngIf="isColumnFilterOpen">
+                        <div class="form-check" *ngFor="let column of columns">
+                            <input class="form-check-input" type="checkbox" [id]="'col_' + column.id"
+                                [checked]="isColumnVisible(column.id)" (change)="toggleColumnVisibility(column.id)">
+                            <label class="form-check-label" [for]="'col_' + column.id">{{ column.title }}</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botão Mensagem em Lote -->
+            <div class="filter-group period-filter-group ms-auto d-flex flex-column">
+                <label class="filter-label mb-2 d-none d-md-block">&nbsp;</label>
+                <app-button
+                    variant="primary"
+                    size="sm"
+                    icon="fa-solid fa-paper-plane"
+                    [disabled]="selectedCards.length === 0"
+                    (clicked)="abrirModalLote()">
+                    <div class="d-flex align-items-center text-nowrap">
+                        Mensagem em Lote
+                        @if (selectedCards.length > 0) {
+                        <span class="badge bg-white text-primary fw-bold ms-2" style="font-size: 0.75rem; border-radius: 10px;">{{ selectedCards.length }}</span>
+                        }
+                    </div>
+                </app-button>
+            </div>
+
+        </div>
+    </div>
+
+    @if (isLoading) {
+    <div class="text-center text-muted py-4">
+        <i class="fa-solid fa-spinner fa-spin me-2"></i> Carregando pendências...
+    </div>
+    }
+
+    <div class="kanban">
+        <div class="row flex-nowrap overflow-auto h-100 m-0 custom-scrollbar pb-2">
+            @for (column of filteredColumns; track column.id) {
+            <div class="col-auto h-100 px-2" style="width: 280px; min-width: 280px;">
+                <div class="kanban-column d-flex flex-column h-100">
+                    
+                    <!-- Column Header -->
+                    <div class="column-header d-flex align-items-center justify-content-between p-2 mb-2 color-{{column.colorClass}}">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="{{column.icon}} column-icon"></i>
+                            <span class="column-title fw-semibold">{{ column.title }}</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            @if (column.id === 'logistica') {
+                            <div class="form-check form-switch mb-0 d-flex align-items-center gap-1" 
+                                 [title]="filtroDevolucaoAtivo ? 'Ocultar Devoluções' : 'Mostrar Devoluções'" 
+                                 style="min-height: auto; margin-right: -4px;">
+                                <label class="form-check-label small fw-medium" style="font-size: 0.7rem; cursor: pointer;">Dev...</label>
+                                <input class="form-check-input m-0 cursor-pointer switch-orange" type="checkbox" role="switch" 
+                                       [(ngModel)]="filtroDevolucaoAtivo" style="transform: scale(0.85);">
+                            </div>
+                            }
+                            @if (column.id === 'financeiro') {
+                            <div class="form-check form-switch mb-0 d-flex align-items-center gap-1" 
+                                 [title]="filtroProtestadoAtivo ? 'Ocultar Protestados' : 'Mostrar Protestados'" 
+                                 style="min-height: auto; margin-right: -4px;">
+                                <label class="form-check-label small fw-medium" style="font-size: 0.7rem; cursor: pointer;">Prot...</label>
+                                <input class="form-check-input m-0 cursor-pointer switch-danger" type="checkbox" role="switch" 
+                                       [(ngModel)]="filtroProtestadoAtivo" style="transform: scale(0.85);">
+                            </div>
+                            }
+                            <span class="column-count badge">{{ column.cards.length }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Column Body -->
+                    <div class="column-body flex-grow-1 overflow-auto custom-scrollbar pe-1"
+                         [class.drag-over-active]="dragOverColumnId === column.id"
+                         (dragover)="onDragOver($event)"
+                         (dragenter)="onDragEnter($event, column)"
+                         (dragleave)="onDragLeave($event, column)"
+                         (drop)="onDrop($event, column)">
+                        @for (card of column.cards; track card.id) {
+                        <div class="kanban-card mb-2 p-3"
+                             [class.card-selected]="isCardSelected(card.id)"
+                             draggable="true"
+                             (dragstart)="onDragStart($event, card, column)"
+                             (dragend)="onDragEnd($event)"
+                             (click)="abrirDetalhes(card)">
+
+                            <!-- Card Header (Title & Options) -->
+                            <div class="d-flex align-items-start justify-content-between mb-2">
+                                <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                    <input type="checkbox"
+                                           class="form-check-input card-checkbox m-0"
+                                           [checked]="isCardSelected(card.id)"
+                                           (click)="$event.stopPropagation()"
+                                           (change)="toggleCardSelection(card, $event)"
+                                           [title]="'Selecionar título ' + card.title">
+                                    <h6 class="card-title text-truncate mb-0" [title]="card.title">{{ card.title }}</h6>
+                                </div>
+                                <button class="btn btn-sm btn-icon text-muted p-0 ms-2 flex-shrink-0" title="Opções" (click)="$event.stopPropagation()">
+                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Status & Client -->
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="badge status-badge bg-{{card.statusColor}} bg-opacity-10 text-{{card.statusColor}} flex-shrink-0">
+                                    {{ card.status }}
+                                </span>
+                                <span class="card-client fw-semibold text-end text-truncate ms-2" [title]="card.fullClientName || card.clientName">
+                                    {{ card.clientName }}
+                                </span>
+                            </div>
+                            
+                            <!-- Card Footer -->
+                            <div class="card-footer d-flex align-items-center mt-auto pt-2 border-top border-secondary-subtle">
+                                <div class="card-lead-time d-flex align-items-center gap-1 text-muted">
+                                    <i class="fa-regular fa-clock"></i>
+                                    @if (card.leadTimeDays !== null) {
+                                    <span>{{ card.leadTimeDays }} {{ card.leadTimeDays === 1 ? 'dia' : 'dias' }} desde a importação</span>
+                                    } @else {
+                                    <span>Data de importação indisponível</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        }
+                    </div>
+                    
+                </div>
+            </div>
+            }
+        </div>
+    </div>
+</div>
+
+<app-pendencia-detalhe-modal
+    [isOpen]="isDetalheModalOpen"
+    [card]="cardSelecionado"
+    (closed)="fecharDetalhes()"
+    (atualizado)="carregarPendencias()">
+</app-pendencia-detalhe-modal>
+
+<app-pendencia-lote-modal
+    [isOpen]="isModalLoteOpen"
+    [cards]="selectedCards"
+    (cardRemovido)="removerCardDoLote($event)"
+    (closed)="fecharModalLote()"
+    (enviado)="onLoteEnviado()">
+</app-pendencia-lote-modal>
+
+<app-modal
+    [isOpen]="isDropStatusModalOpen"
+    title="Informar Novo Status"
+    size="sm"
+    (closed)="fecharStatusDrop()">
+    <div class="p-3">
+        <p class="text-muted small mb-3">
+            O título está saindo da fase <strong>Finalizado</strong>. Por favor, informe qual o status atual desta pendência para que ela possa retornar ao fluxo:
+        </p>
+        <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted mb-1">Status da Pendência</label>
+            <select class="form-select form-select-sm" [(ngModel)]="dropStatusSelecionado">
+                <option value="" disabled selected>Selecione um status...</option>
+                <option *ngFor="let s of todasOpcoesStatus" [value]="s">{{ s }}</option>
+            </select>
+        </div>
+    </div>
+    <div modal-footer class="modal-footer border-top-0 pt-0 pb-3 px-3 d-flex justify-content-end gap-2">
+        <button class="btn btn-sm btn-light border" (click)="fecharStatusDrop()">Cancelar</button>
+        <button class="btn btn-sm btn-primary" [disabled]="!dropStatusSelecionado" (click)="confirmarStatusDrop()">Confirmar Retorno</button>
+    </div>
+</app-modal>
