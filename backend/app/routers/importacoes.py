@@ -6113,7 +6113,7 @@ def compartilhar_dashboard_inadimplencia(
     access_token = GoogleAuthService.obter_access_token_valido(current_user, db)
 
     # Link para a página pública
-    link_dashboard = f"{settings.FRONTEND_URL}/compartilhar/inadimplencia"
+    link_dashboard = "https://stamaria.cloud/compartilhar/inadimplencia"
 
     # Corpo base em HTML
     html_mensagem = ""
@@ -6177,7 +6177,7 @@ def compartilhar_dashboard_logistica(
     access_token = GoogleAuthService.obter_access_token_valido(current_user, db)
 
     # Link para a página pública
-    link_dashboard = f"{settings.FRONTEND_URL}/compartilhar/logistica"
+    link_dashboard = "https://stamaria.cloud/compartilhar/logistica"
 
     # Corpo base em HTML
     html_mensagem = ""
@@ -6242,7 +6242,7 @@ def compartilhar_dashboard_comercial(
     access_token = GoogleAuthService.obter_access_token_valido(current_user, db)
 
     # Link para a página pública
-    link_dashboard = f"{settings.FRONTEND_URL}/compartilhar/comercial"
+    link_dashboard = "https://stamaria.cloud/compartilhar/comercial"
 
     # Corpo base em HTML
     html_mensagem = ""
@@ -6307,7 +6307,7 @@ def compartilhar_dashboard_pendencias_acr(
     access_token = GoogleAuthService.obter_access_token_valido(current_user, db)
 
     # Link para a página pública
-    link_dashboard = f"{settings.FRONTEND_URL}/compartilhar/pendencias-acr"
+    link_dashboard = "https://stamaria.cloud/compartilhar/pendencias-acr"
 
     # Corpo base em HTML
     html_mensagem = ""
