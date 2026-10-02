@@ -6103,7 +6103,6 @@ def compartilhar_dashboard_inadimplencia(
     copia: Optional[str] = Form(None, description="E-mails em cópia separados por vírgula"),
     assunto: Optional[str] = Form("Relatório de Inadimplência", description="Assunto do e-mail"),
     mensagem_personalizada: Optional[str] = Form(None, description="Mensagem adicional personalizada"),
-    base_url: str = Form(..., description="URL base do frontend"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -6114,7 +6113,7 @@ def compartilhar_dashboard_inadimplencia(
     access_token = GoogleAuthService.obter_access_token_valido(current_user, db)
 
     # Link para a página pública
-    link_dashboard = f"{base_url}/compartilhar/inadimplencia"
+    link_dashboard = "https://stamaria.cloud/compartilhar/inadimplencia"
 
     # Corpo base em HTML
     html_mensagem = ""
@@ -6168,7 +6167,6 @@ def compartilhar_dashboard_logistica(
     copia: Optional[str] = Form(None, description="E-mails em cópia separados por vírgula"),
     assunto: Optional[str] = Form("Relatório de Logística", description="Assunto do e-mail"),
     mensagem_personalizada: Optional[str] = Form(None, description="Mensagem adicional personalizada"),
-    base_url: str = Form(..., description="URL base do frontend"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -6179,7 +6177,7 @@ def compartilhar_dashboard_logistica(
     access_token = GoogleAuthService.obter_access_token_valido(current_user, db)
 
     # Link para a página pública
-    link_dashboard = f"{base_url}/compartilhar/logistica"
+    link_dashboard = "https://stamaria.cloud/compartilhar/logistica"
 
     # Corpo base em HTML
     html_mensagem = ""
@@ -6234,7 +6232,6 @@ def compartilhar_dashboard_comercial(
     copia: Optional[str] = Form(None, description="E-mails em cópia separados por vírgula"),
     assunto: Optional[str] = Form("Relatório do Comercial", description="Assunto do e-mail"),
     mensagem_personalizada: Optional[str] = Form(None, description="Mensagem adicional personalizada"),
-    base_url: str = Form(..., description="URL base do frontend"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -6245,7 +6242,7 @@ def compartilhar_dashboard_comercial(
     access_token = GoogleAuthService.obter_access_token_valido(current_user, db)
 
     # Link para a página pública
-    link_dashboard = f"{base_url}/compartilhar/comercial"
+    link_dashboard = "https://stamaria.cloud/compartilhar/comercial"
 
     # Corpo base em HTML
     html_mensagem = ""
@@ -6300,7 +6297,6 @@ def compartilhar_dashboard_pendencias_acr(
     copia: Optional[str] = Form(None, description="E-mails em cópia separados por vírgula"),
     assunto: Optional[str] = Form("Relatório de Pendências ACR", description="Assunto do e-mail"),
     mensagem_personalizada: Optional[str] = Form(None, description="Mensagem adicional personalizada"),
-    base_url: str = Form(..., description="URL base do frontend"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -6311,7 +6307,7 @@ def compartilhar_dashboard_pendencias_acr(
     access_token = GoogleAuthService.obter_access_token_valido(current_user, db)
 
     # Link para a página pública
-    link_dashboard = f"{base_url}/compartilhar/pendencias-acr"
+    link_dashboard = "https://stamaria.cloud/compartilhar/pendencias-acr"
 
     # Corpo base em HTML
     html_mensagem = ""
