@@ -1,4 +1,5 @@
 import { Component, OnInit, signal, computed, ViewChild, ElementRef, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PendenciasComponent } from './components/pages/pendencias/pendencias.component';
@@ -32,8 +33,10 @@ export interface MensagemChat {
 export class InadimplenciaPublicaComponent implements OnInit {
   private importacoesService = inject(ImportacoesService);
   readonly googleAuthService = inject(GoogleAuthService);
+  private router = inject(Router);
 
   isSidebarCollapsed = false;
+  isSomenteLogistica = false;
   activeTab = 'dashboards';
   dashboardTab = signal<'visao-geral' | 'financeiro' | 'logistica' | 'comercial' | 'fiscal' | 'pendencias-acr'>('visao-geral');
   financeiroTab = signal<'gerencial' | 'gerente'>('gerencial');
@@ -58,6 +61,12 @@ export class InadimplenciaPublicaComponent implements OnInit {
 
   ngOnInit() {
     this.isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    this.isSomenteLogistica = this.router.url.includes('/compartilhar/logistica');
+    
+    if (this.isSomenteLogistica) {
+      this.dashboardTab.set('logistica');
+    }
+
     this.carregarDashboardVisaoGeral();
   }
 
@@ -635,7 +644,7 @@ export class InadimplenciaPublicaComponent implements OnInit {
     this.isLoadingTratativas = true;
 
     if (titulo.id) {
-      this.importacoesService.listarTratativas(Number(titulo.id)).subscribe({
+      this.importacoesService.listarTratativas(Number(titulo.id), true).subscribe({
         next: (itens) => {
           this.tratativasMock = itens.map((t: any) => ({
             id: t.idtratativas,
@@ -676,7 +685,7 @@ export class InadimplenciaPublicaComponent implements OnInit {
     this.isLoadingMensagens = true;
 
     if (titulo.id) {
-      this.importacoesService.listarMensagensPendencia(Number(titulo.id)).subscribe({
+      this.importacoesService.listarMensagensPendencia(Number(titulo.id), true).subscribe({
         next: (itens) => {
           this.mensagensMock = itens.map(m => this.mapearMensagemApi(m));
           this.isLoadingMensagens = false;
@@ -734,7 +743,7 @@ export class InadimplenciaPublicaComponent implements OnInit {
     this.isHistoricoModalOpen = true;
 
     if (titulo?.id) {
-      this.importacoesService.listarHistoricoPendencia(Number(titulo.id)).subscribe({
+      this.importacoesService.listarHistoricoPendencia(Number(titulo.id), true).subscribe({
         next: (itens) => {
           this.isLoadingHistorico = false;
           this.historicoMock = (itens || []).map((h: any) => {

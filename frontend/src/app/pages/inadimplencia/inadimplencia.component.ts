@@ -1159,4 +1159,74 @@ export class InadimplenciaComponent implements OnInit {
     });
   }
 
+  // ==========================================
+  // COMPARTILHAR LOGISTICA
+  // ==========================================
+  isCompartilharLogisticaModalOpen = false;
+  compartilharLogisticaDestinatarios = '';
+  compartilharLogisticaCc = '';
+  compartilharLogisticaMensagem = '';
+  isEnviandoCompartilhamentoLogistica = false;
+
+  abrirCompartilharLogistica() {
+    this.compartilharLogisticaDestinatarios = '';
+    this.compartilharLogisticaCc = '';
+    this.compartilharLogisticaMensagem = '';
+    this.isEnviandoCompartilhamentoLogistica = false;
+    this.isCompartilharLogisticaModalOpen = true;
+
+    if (!this.googleAuthService.isConectado()) {
+      this.googleAuthService.verificarStatus().subscribe();
+    }
+  }
+
+  fecharCompartilharLogistica() {
+    this.isCompartilharLogisticaModalOpen = false;
+  }
+
+  enviarCompartilhamentoLogistica() {
+    if (!this.compartilharLogisticaDestinatarios.trim()) {
+      this.openAlert('Destinatário Ausente', 'Por favor, informe ao menos um e-mail destinatário.', 'primary');
+      return;
+    }
+
+    if (!this.googleAuthService.isConectado()) {
+      this.googleAuthService.iniciarAutorizacaoPopup()
+        .then(() => this._dispararCompartilhamentoLogistica())
+        .catch((err) => {
+          this.openAlert('Autorização Necessária', err.message || 'É obrigatório conectar sua conta do Google antes de compartilhar.', 'danger');
+        });
+      return;
+    }
+
+    this._dispararCompartilhamentoLogistica();
+  }
+
+  private _dispararCompartilhamentoLogistica() {
+    this.isEnviandoCompartilhamentoLogistica = true;
+
+    const formData = new FormData();
+    formData.append('destinatarios', this.compartilharLogisticaDestinatarios.trim());
+    if (this.compartilharLogisticaCc.trim()) {
+      formData.append('copia', this.compartilharLogisticaCc.trim());
+    }
+    if (this.compartilharLogisticaMensagem.trim()) {
+      formData.append('mensagem_personalizada', this.compartilharLogisticaMensagem.trim());
+    }
+
+    this.importacoesService.compartilharDashboardLogistica(formData).subscribe({
+      next: () => {
+        this.isEnviandoCompartilhamentoLogistica = false;
+        this.fecharCompartilharLogistica();
+        this.openAlert('Sucesso!', 'O relatório de Logística foi compartilhado por e-mail com sucesso.', 'primary');
+      },
+      error: (err) => {
+        this.isEnviandoCompartilhamentoLogistica = false;
+        console.error('Erro ao compartilhar dashboard logistica:', err);
+        const detalhe = err.error?.detail || err.message || 'Falha ao enviar e-mail pelo Gmail.';
+        this.openAlert('Falha no Envio', detalhe, 'danger');
+      }
+    });
+  }
+
 }

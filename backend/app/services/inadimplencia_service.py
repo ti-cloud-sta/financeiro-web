@@ -1237,13 +1237,14 @@ class InadimplenciaService:
                     )
             self.db.commit()
 
-    def listar_mensagens_thread(self, id_nf: int, user: "User") -> list:
+    def listar_mensagens_thread(self, id_nf: int, user: "User" = None) -> list:
         """
         Retorna as mensagens gravadas na base.
         Antes de ler, faz um sync com a Gmail API para buscar respostas do cliente.
         """
         # Sincroniza com Gmail
-        self._sincronizar_respostas(id_nf, user)
+        if user:
+            self._sincronizar_respostas(id_nf, user)
         
         # Busca todas as mensagens da tabela nova
         mensagens_db = (

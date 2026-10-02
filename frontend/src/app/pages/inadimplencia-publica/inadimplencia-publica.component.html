@@ -12,7 +12,7 @@
 
     <!-- CENTER: TITLE -->
     <div class="position-absolute start-50 translate-middle-x text-center w-100" style="pointer-events: none;">
-      <h4 class="mb-0 fw-bold text-dark">Relatório de Inadimplência</h4>
+      <h4 class="mb-0 fw-bold text-dark">Relatório de Pendências</h4>
       <span class="text-muted small">Visualização Compartilhada</span>
     </div>
 
@@ -25,7 +25,7 @@
 
   <main class="main-content px-3 px-md-4">
     <div class="config-layout">
-            <div class="dashboard-header d-flex justify-content-between align-items-center border-bottom pt-2">
+            <div class="dashboard-header d-flex justify-content-between align-items-center border-bottom pt-2" *ngIf="!isSomenteLogistica">
               <ul class="config-nav mb-0 border-bottom-0 pb-0 px-3">
                 <li class="config-nav-item">
                   <button class="config-nav-link" [class.active]="dashboardTab() === 'visao-geral'"
@@ -2371,3 +2371,300 @@
           </div>
   </main>
 </div>
+<!-- Modal Tratativas -->
+<app-modal [isOpen]="isTratativasModalOpen"
+  [title]="'Tratativas - Título ' + (tituloSelecionadoTratativas?.titulo || '')" size="lg"
+  (closed)="fecharTratativas()">
+  <ng-container body>
+    <div *ngIf="tituloSelecionadoTratativas" class="card border-0 bg-light mb-4">
+      <div class="card-body p-3">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="text-muted small text-uppercase fw-semibold mb-1"
+              style="font-size: 0.75rem; letter-spacing: 0.5px;">Cliente</div>
+            <div class="text-dark fw-medium text-truncate" [title]="tituloSelecionadoTratativas.cliente">
+              {{ tituloSelecionadoTratativas.cliente }}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase fw-semibold mb-1"
+              style="font-size: 0.75rem; letter-spacing: 0.5px;">Vencimento</div>
+            <div class="text-dark fw-medium">
+              {{ tituloSelecionadoTratativas.vencimento | date:'dd/MM/yyyy' }}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase fw-semibold mb-1"
+              style="font-size: 0.75rem; letter-spacing: 0.5px;">Valor</div>
+            <div class="text-danger fw-bold">
+              {{ tituloSelecionadoTratativas.valor | currency:'BRL' }}
+            </div>
+          </div>
+          <div class="col-12 mt-2 pt-2 border-top">
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-muted small fw-semibold" style="font-size: 0.75rem;">FASE:</span>
+              <span class="badge fw-normal px-2 py-1" [ngClass]="getBadgeClass(tituloSelecionadoTratativas.fase)">
+                {{ tituloSelecionadoTratativas.fase || 'N/A' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline / Lista de Tratativas -->
+    <div class="tratativas-list">
+      <div *ngIf="isLoadingTratativas" class="py-4 px-3">
+        <div class="d-flex mb-4">
+          <app-skeleton type="circle" width="32px" height="32px" class="me-3"></app-skeleton>
+          <div class="d-flex flex-column" style="width: 80%;">
+            <app-skeleton type="rect" width="30%" height="15px" class="mb-2" style="border-radius: 8px;"></app-skeleton>
+            <app-skeleton type="rect" width="100%" height="40px" style="border-radius: 8px;"></app-skeleton>
+          </div>
+        </div>
+        <div class="d-flex mb-4">
+          <app-skeleton type="circle" width="32px" height="32px" class="me-3"></app-skeleton>
+          <div class="d-flex flex-column" style="width: 80%;">
+            <app-skeleton type="rect" width="40%" height="15px" class="mb-2" style="border-radius: 8px;"></app-skeleton>
+            <app-skeleton type="rect" width="80%" height="40px" style="border-radius: 8px;"></app-skeleton>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!isLoadingTratativas">
+        <div *ngFor="let tratativa of tratativasMock; let isLast = last" class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="fw-semibold text-dark" style="font-size: 0.9rem;">
+              <i class="fa-solid fa-user-circle text-secondary me-1"></i> {{ tratativa.autor }}
+            </span>
+            <span class="text-muted small">{{ tratativa.data | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="p-3 bg-white border rounded shadow-sm text-dark small position-relative">
+            <div class="chat-bubble-arrow position-absolute"
+              style="top: -6px; left: 15px; border-width: 0 6px 6px 6px; border-style: solid; border-color: transparent transparent #dee2e6 transparent;">
+            </div>
+            <div class="chat-bubble-arrow-inner position-absolute"
+              style="top: -5px; left: 15px; border-width: 0 6px 6px 6px; border-style: solid; border-color: transparent transparent #ffffff transparent;">
+            </div>
+            {{ tratativa.conteudo }}
+          </div>
+          <hr *ngIf="!isLast" class="text-muted opacity-25 my-3">
+        </div>
+      </div>
+
+      <div *ngIf="!isLoadingTratativas && tratativasMock.length === 0" class="empty-state text-center py-5">
+        <div
+          class="empty-state-icon bg-light text-muted mb-3 mx-auto d-flex align-items-center justify-content-center rounded-circle"
+          style="width: 64px; height: 64px;">
+          <i class="fa-solid fa-clipboard-list fa-2x"></i>
+        </div>
+        <h6 class="text-dark fw-semibold mb-1">Nenhuma tratativa</h6>
+        <p class="text-muted small mb-0">Não há tratativas registradas para este título.</p>
+      </div>
+    </div>
+  </ng-container>
+  <ng-container footer>
+    <div class="w-100 d-flex justify-content-end">
+      <app-button variant="ghost" (clicked)="fecharTratativas()">Fechar</app-button>
+    </div>
+  </ng-container>
+</app-modal>
+
+<!-- Modal Histórico -->
+<app-modal [isOpen]="isHistoricoModalOpen" [title]="'Histórico do Título ' + (tituloSelecionadoHistorico?.titulo || '')"
+  size="lg" (closed)="fecharHistorico()">
+  <ng-container body>
+    <div *ngIf="tituloSelecionadoHistorico" class="card border-0 bg-light mb-4">
+      <div class="card-body p-3">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="text-muted small text-uppercase fw-semibold mb-1"
+              style="font-size: 0.75rem; letter-spacing: 0.5px;">Cliente</div>
+            <div class="text-dark fw-medium text-truncate" [title]="tituloSelecionadoHistorico.cliente">
+              {{ tituloSelecionadoHistorico.cliente }}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase fw-semibold mb-1"
+              style="font-size: 0.75rem; letter-spacing: 0.5px;">Vencimento</div>
+            <div class="text-dark fw-medium">
+              {{ tituloSelecionadoHistorico.vencimento | date:'dd/MM/yyyy' }}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase fw-semibold mb-1"
+              style="font-size: 0.75rem; letter-spacing: 0.5px;">Valor</div>
+            <div class="text-danger fw-bold">
+              {{ tituloSelecionadoHistorico.valor | currency:'BRL' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline Vertical -->
+    <div *ngIf="isLoadingHistorico" class="py-4 px-3">
+      <div class="d-flex mb-4">
+        <app-skeleton type="circle" width="32px" height="32px" class="me-3"></app-skeleton>
+        <div class="d-flex flex-column" style="width: 80%;">
+          <app-skeleton type="rect" width="30%" height="15px" class="mb-2" style="border-radius: 8px;"></app-skeleton>
+          <app-skeleton type="rect" width="100%" height="40px" style="border-radius: 8px;"></app-skeleton>
+        </div>
+      </div>
+      <div class="d-flex mb-4">
+        <app-skeleton type="circle" width="32px" height="32px" class="me-3"></app-skeleton>
+        <div class="d-flex flex-column" style="width: 80%;">
+          <app-skeleton type="rect" width="40%" height="15px" class="mb-2" style="border-radius: 8px;"></app-skeleton>
+          <app-skeleton type="rect" width="80%" height="40px" style="border-radius: 8px;"></app-skeleton>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="!isLoadingHistorico && historicoMock.length === 0" class="empty-state text-center py-5">
+      <div
+        class="empty-state-icon bg-light text-muted mb-3 mx-auto d-flex align-items-center justify-content-center rounded-circle"
+        style="width: 64px; height: 64px;">
+        <i class="fa-solid fa-timeline fa-2x"></i>
+      </div>
+      <h6 class="text-dark fw-semibold mb-1">Sem histórico</h6>
+      <p class="text-muted small mb-0">Nenhum evento registrado para este título.</p>
+    </div>
+    <div *ngIf="!isLoadingHistorico && historicoMock.length > 0" class="timeline-vertical custom-scrollbar">
+      <div *ngFor="let item of historicoMock; let i = index; let last = last" class="timeline-v-node"
+        [class.last]="last">
+        <div class="timeline-icon" [ngClass]="'cor-' + item.cor">
+          <i [class]="item.icone"></i>
+        </div>
+        <div class="timeline-card">
+          <span class="timeline-date">
+            {{ item.data | date:'dd/MM/yyyy' }} <small>{{ item.data | date:'HH:mm' }}</small>
+          </span>
+          <span class="timeline-type" [ngClass]="'cor-' + item.cor">{{ item.tipo }}</span>
+          <p class="timeline-obs" [title]="item.observacao">{{ item.observacao }}</p>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+  <ng-container footer>
+    <div class="w-100 d-flex justify-content-end">
+      <app-button variant="ghost" (clicked)="fecharHistorico()">Fechar</app-button>
+    </div>
+  </ng-container>
+</app-modal>
+
+<!-- Modal de Confirmação para Exclusão e Alertas -->
+<app-confirm-modal [isOpen]="isConfirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
+  [confirmText]="confirmText" [cancelText]="cancelText" [variant]="confirmVariant" [showCancel]="showCancelConfirm"
+  (confirmed)="executeConfirm()" (canceled)="closeConfirmModal()">
+</app-confirm-modal>
+
+<!-- Modal Mensagens -->
+<app-modal [isOpen]="isMensagensModalOpen" [title]="'Mensagens - Título ' + (tituloSelecionadoMensagens?.titulo || '')"
+  size="lg" (closed)="fecharMensagens()">
+  <ng-container body>
+    <div *ngIf="tituloSelecionadoMensagens" class="card border-0 bg-light mb-4">
+      <div class="card-body p-3">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="text-muted small text-uppercase fw-semibold mb-1"
+              style="font-size: 0.75rem; letter-spacing: 0.5px;">Cliente</div>
+            <div class="text-dark fw-medium text-truncate" [title]="tituloSelecionadoMensagens.cliente">
+              {{ tituloSelecionadoMensagens.cliente }}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase fw-semibold mb-1"
+              style="font-size: 0.75rem; letter-spacing: 0.5px;">Vencimento</div>
+            <div class="text-dark fw-medium">
+              {{ tituloSelecionadoMensagens.vencimento | date:'dd/MM/yyyy' }}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase fw-semibold mb-1"
+              style="font-size: 0.75rem; letter-spacing: 0.5px;">Valor</div>
+            <div class="text-danger fw-bold">
+              {{ tituloSelecionadoMensagens.valor | currency:'BRL' }}
+            </div>
+          </div>
+          <div class="col-12 mt-2 pt-2 border-top">
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-muted small fw-semibold" style="font-size: 0.75rem;">FASE:</span>
+              <span class="badge fw-normal px-2 py-1" [ngClass]="getBadgeClass(tituloSelecionadoMensagens.fase)">
+                {{ tituloSelecionadoMensagens.fase || 'N/A' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline / Lista de Mensagens -->
+    <div class="chat-panel animate-fade-in">
+      <div class="chat-thread" style="max-height: 400px; overflow-y: auto;">
+        <div *ngIf="isLoadingMensagens" class="py-4 px-3">
+          <div class="d-flex mb-4 justify-content-end">
+            <div class="d-flex flex-column align-items-end" style="width: 70%;">
+              <app-skeleton type="rect" width="100%" height="60px" class="mb-2"
+                style="border-radius: 12px;"></app-skeleton>
+              <app-skeleton type="rect" width="40%" height="20px" style="border-radius: 12px;"></app-skeleton>
+            </div>
+            <app-skeleton type="circle" width="32px" height="32px" class="ms-2"></app-skeleton>
+          </div>
+          <div class="d-flex mb-4">
+            <app-skeleton type="circle" width="32px" height="32px" class="me-2"></app-skeleton>
+            <div class="d-flex flex-column" style="width: 70%;">
+              <app-skeleton type="rect" width="100%" height="60px" class="mb-2"
+                style="border-radius: 12px;"></app-skeleton>
+              <app-skeleton type="rect" width="60%" height="20px" style="border-radius: 12px;"></app-skeleton>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!isLoadingMensagens">
+          <div *ngFor="let msg of mensagensMock" class="chat-message mb-3"
+            [class.chat-message--mine]="msg.minhaMensagem" [class.chat-message--reply]="!msg.minhaMensagem">
+            <div *ngIf="!msg.minhaMensagem" class="reply-avatar me-2" title="{{ msg.autor }}">
+              <app-avatar [initials]="msg.iniciais" size="sm"></app-avatar>
+            </div>
+            <div class="chat-bubble flex-grow-1 p-3 rounded"
+              [ngClass]="msg.minhaMensagem ? 'bg-primary text-white ms-auto' : 'bg-light text-dark'"
+              [style.max-width]="'85%'">
+              <div class="chat-bubble-header d-flex justify-content-between mb-2"
+                [ngClass]="msg.minhaMensagem ? 'text-white-50' : 'text-muted'">
+                <span class="chat-author fw-bold small">{{ msg.autor }}</span>
+                <span class="chat-time small">{{ msg.data | date:'dd/MM HH:mm' }}</span>
+              </div>
+              <div *ngIf="msg.assunto" class="chat-subject mb-2 small fw-semibold">
+                <i class="fa-solid fa-tag me-1"></i>{{ msg.assunto }}
+              </div>
+              <div class="chat-body small" [innerHTML]="msg.corpo"></div>
+              <div *ngIf="msg.anexos && msg.anexos.length > 0" class="chat-attachments mt-2 pt-2 border-top"
+                [ngClass]="msg.minhaMensagem ? 'border-light' : ''">
+                <span *ngFor="let anexo of msg.anexos" class="badge bg-secondary bg-opacity-25 text-dark me-1 mb-1">
+                  <i class="fa-solid fa-paperclip me-1"></i>{{ anexo }}
+                </span>
+              </div>
+            </div>
+            <div *ngIf="msg.minhaMensagem" class="ms-2">
+              <app-avatar [initials]="msg.iniciais" size="sm"></app-avatar>
+            </div>
+          </div>
+
+          <div *ngIf="mensagensMock.length === 0" class="empty-state text-center py-5">
+            <div
+              class="empty-state-icon bg-light text-muted mb-3 mx-auto d-flex align-items-center justify-content-center rounded-circle"
+              style="width: 64px; height: 64px;">
+              <i class="fa-regular fa-envelope-open fa-2x"></i>
+            </div>
+            <h6 class="text-dark fw-semibold mb-1">Nenhuma mensagem</h6>
+            <p class="text-muted small mb-0">Não há registros de troca de e-mails nesta pendência.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+  <ng-container footer>
+    <div class="w-100 d-flex justify-content-end">
+      <app-button variant="ghost" (clicked)="fecharMensagens()">Fechar</app-button>
+    </div>
+  </ng-container>
+</app-modal>

@@ -16,6 +16,8 @@ docker compose up -d --build
 docker compose up -d --build frontend
 docker compose up -d --build backend
 
+SENHA SSH .q@Fle003'aEbcPM
+
 =============================================
 
 leia a documentação do projeto completo e faça uma verificação nos arquivos 
