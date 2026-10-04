@@ -596,7 +596,7 @@
                           class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm position-relative d-flex flex-column">
                           <h6 class="mb-3 fw-semibold text-secondary w-75">Títulos Pagos Fora do Prazo (Anual)</h6>
                           <span class="badge bg-secondary bg-opacity-10 text-secondary border position-absolute"
-                            style="top: 1rem; right: 1rem;">{{ qtdTitulosVencidos }} Títulos</span>
+                            style="top: 1rem; right: 1rem;">{{ qtdPagosForaPrazo }} Títulos</span>
                           <div echarts *ngIf="chartOptionsAtrasoAnual" [options]="chartOptionsAtrasoAnual"
                             class="chart-container flex-grow-1 w-100" style="min-height: 250px;"></div>
                         </div>
@@ -894,6 +894,52 @@
                           <h6 class="mb-3 fw-semibold text-secondary">Boletos Vencidos por Faixa (Dias)</h6>
                           <div echarts *ngIf="chartOptionsFaixasAtraso" [options]="chartOptionsFaixasAtraso"
                             class="chart-container" style="min-height: 280px;"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="row g-4 mb-4">
+                      <div class="col-12">
+                        <div class="dash-chart-card p-3 bg-white border rounded-3 shadow-sm">
+                          <h6 class="mb-3 fw-semibold text-secondary">Títulos Pagos Fora do Prazo — Detalhamento</h6>
+                          <div class="table-responsive">
+                            <table class="saas-table w-100">
+                              <thead>
+                                <tr>
+                                  <th style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">Cliente</th>
+                                  <th style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">Título</th>
+                                  <th class="text-center" style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">Vencimento</th>
+                                  <th class="text-center" style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">Data Baixa</th>
+                                  <th class="text-center" style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">Dias de Atraso</th>
+                                  <th class="text-end" style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">Valor</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @if (gridPagosForaPrazo.length === 0) {
+                                  <tr>
+                                    <td colspan="6" class="text-center text-secondary py-3">Nenhum título pago fora do prazo nos últimos 12 meses.</td>
+                                  </tr>
+                                }
+                                @for (row of gridPagosForaPrazo; track row.titulo) {
+                                  <tr>
+                                    <td>{{ row.cliente }}</td>
+                                    <td>{{ row.titulo }}</td>
+                                    <td class="text-center">{{ row.vencimento | date:'dd/MM/yy' }}</td>
+                                    <td class="text-center">{{ row.dataBaixa | date:'dd/MM/yy' }}</td>
+                                    <td class="text-center">
+                                      <span class="badge rounded-pill bg-light text-secondary border px-2 py-1">
+                                        {{ row.diasAtraso }}d
+                                      </span>
+                                    </td>
+                                    <td class="text-end">
+                                      <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1">
+                                        {{ row.valor | currency:'BRL' }}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     </div>

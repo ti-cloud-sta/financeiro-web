@@ -28,3 +28,20 @@ design e lógica, não esqueça nada, nao perca nem pule
 arquivos e não perca o foco.
 
 coloque nas suas premissas as regras que estao na pasta [rules](file;file:///c%3A/Users/JOE/Documents/GitHub/financeiro-web/.agents/rules) 
+
+=============================================
+PROMPT PADRÃO PARA CRIAÇÃO DE ENDPOINTS DATASUL:
+
+"Preciso criar um novo endpoint de integração com o Datasul para receber dados via POST.
+Módulo: [NOME_DO_MODULO]
+Tabela Alvo: [NOME_DA_TABELA]
+Script SQL: [INSERT INTO ...]
+Tipo de Importação: [TIPO_DE_IMPORTACAO]
+
+Com base neste pedido, siga estritamente o padrão arquitetural já estabelecido (inspirado em '/importacoes/inadimplencia/importar-pendencias/datasul'):
+1. Crie o schema Pydantic de entrada refletindo os campos recebidos do sistema legado.
+2. Crie a rota POST no arquivo de router correspondente, exigindo autenticação JWT (`Depends(get_current_user)`).
+3. No Service correspondente, implemente a lógica de inserção/atualização reaproveitando regras existentes (como fazemos no processamento de planilhas) onde fizer sentido.
+4. Garanta que o processamento seja atômico (tudo em uma única transação).
+5. Registre o histórico da ação criando uma linha na tabela `importacoes` usando o [TIPO_DE_IMPORTACAO].
+6. Emita eventos de histórico ou atualização para cada registro conforme as regras do módulo."

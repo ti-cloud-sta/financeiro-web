@@ -78,23 +78,25 @@ export class InadimplenciaComponent implements OnInit {
     this.dashboardTab.set(tab);
     
     this.isDashboardLoading.set(true);
-    setTimeout(() => {
-      this.isDashboardLoading.set(false);
-      
-      if (tab === 'visao-geral') {
-        this._loadFinanceiroData();
-        this._loadLogisticaData();
-        this._loadComercialData();
-      } else if (tab === 'financeiro') {
-        this._loadFinanceiroData();
-      } else if (tab === 'logistica') {
-        this._loadLogisticaData();
-      } else if (tab === 'comercial') {
-        this._loadComercialData();
-      } else if (tab === 'fiscal') {
-        this._loadFiscalData();
-      }
-    }, 600);
+    this.importacoesService.obterDashboardVisaoGeral().subscribe({
+      next: (res) => {
+        this.isDashboardLoading.set(false);
+        if (tab === 'visao-geral') {
+          this._loadFinanceiroData(res);
+          this._loadLogisticaData(res);
+          this._loadComercialData(res);
+        } else if (tab === 'financeiro') {
+          this._loadFinanceiroData(res);
+        } else if (tab === 'logistica') {
+          this._loadLogisticaData(res);
+        } else if (tab === 'comercial') {
+          this._loadComercialData(res);
+        } else if (tab === 'fiscal') {
+          this._loadFiscalData(res);
+        }
+      },
+      error: () => this.isDashboardLoading.set(false)
+    });
   }
 
   // ----------------------------------------------------
@@ -302,6 +304,8 @@ export class InadimplenciaComponent implements OnInit {
   kpiTotalVencidoAtual = 0;
   kpiTotalProtestadoAtual = 0;
   qtdTitulosVencidos = 0;
+  qtdPagosForaPrazo = 0;
+  gridPagosForaPrazo: any[] = [];
   qtdTitulosProtestados = 0;
   evolucaoVencido = 0;
   evolucaoProtestado = 0;
@@ -617,13 +621,19 @@ export class InadimplenciaComponent implements OnInit {
 
   carregarDashboardVisaoGeral() {
     this.isDashboardLoading.set(true);
-    setTimeout(() => {
-      this.isDashboardLoading.set(false);
-      this._loadFinanceiroData();
-      this._loadLogisticaData();
-      this._loadComercialData();
-      this._loadFiscalData();
-    }, 600);
+    this.importacoesService.obterDashboardVisaoGeral().subscribe({
+      next: (res) => {
+        this.isDashboardLoading.set(false);
+        this._loadFinanceiroData(res);
+        this._loadLogisticaData(res);
+        this._loadComercialData(res);
+        this._loadFiscalData(res);
+      },
+      error: (err) => {
+        this.isDashboardLoading.set(false);
+        console.error('Erro ao carregar dashboard:', err);
+      }
+    });
   }
 
 
@@ -782,15 +792,15 @@ export class InadimplenciaComponent implements OnInit {
     this.isLoadingHistorico = false;
   }
 
-  private _loadFinanceiroData() {
-    this.importacoesService.obterDashboardVisaoGeral().subscribe({
-      next: (res) => {
+  private _loadFinanceiroData(res: any) {
         this.dataHoje = new Date();
         this.kpiTotalVencidoAtual = res.kpiVencido;
         this.evolucaoVencido = res.kpiVencidoEvolucao;
         this.kpiTotalProtestadoAtual = res.kpiProtestado;
         this.evolucaoProtestado = res.kpiProtestadoEvolucao;
         this.qtdTitulosVencidos = (res.gridFinanceiro || []).length;
+        this.qtdPagosForaPrazo = res.evolucaoPagosForaPrazo ? res.evolucaoPagosForaPrazo.total : 0;
+        this.gridPagosForaPrazo = res.gridPagosForaPrazo || [];
         this.qtdTitulosProtestados = (res.gridFinanceiro || []).filter((x: any) => x.status === 'PROTESTADO' || x.status === 'CARTÓRIO').length;
 
         this.rankingClientes = (res.rankingClientesAtraso || []).map((x: any) => ({
@@ -885,15 +895,14 @@ export class InadimplenciaComponent implements OnInit {
         const textColor = isDark ? '#e2e8f0' : '#475569';
         const splitLineColor = isDark ? '#334155' : '#e2e8f0';
 
-        // "Pagos fora do prazo" fica zerado de propósito: ainda não temos a informação de
-        // pagamento dos títulos para saber se foram quitados ou não, só os meses no eixo.
-        const atrasoAnualZerado = (res.evolucaoAtraso.labels || []).map(() => 0);
+        const atrasoAnualData = res.evolucaoPagosForaPrazo?.values || (res.evolucaoAtraso.labels || []).map(() => 0);
+        const atrasoAnualLabels = res.evolucaoPagosForaPrazo?.labels || res.evolucaoAtraso.labels;
         this.chartOptionsAtrasoAnual = {
           tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
           grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-          xAxis: { type: 'category', data: res.evolucaoAtraso.labels, axisLabel: { color: textColor } },
+          xAxis: { type: 'category', data: atrasoAnualLabels, axisLabel: { color: textColor } },
           yAxis: { type: 'value', splitLine: { show: false }, axisLabel: { color: textColor } },
-          series: [{ name: 'Vencidos', type: 'line', data: atrasoAnualZerado, label: { show: true, position: 'top', fontSize: 11, fontWeight: '600', color: '#64748b' }, itemStyle: { color: this.colors[2] }, areaStyle: { opacity: 0.1 } }]
+          series: [{ name: 'Pagos c/ Atraso', type: 'line', data: atrasoAnualData, label: { show: true, position: 'top', fontSize: 11, fontWeight: '600', color: '#64748b' }, itemStyle: { color: this.colors[2] }, areaStyle: { opacity: 0.1 } }]
         };
 
         this.chartOptionsProtestos = {
@@ -966,24 +975,17 @@ export class InadimplenciaComponent implements OnInit {
             ]
           }]
         };
-      },
-      error: (err) => console.error('Erro ao carregar dados do dashboard financeiro:', err)
-    });
   }
 
   carregarDashboardLogistica() {
     this.isDashboardLoading.set(true);
-    setTimeout(() => {
-      this.isDashboardLoading.set(false);
-      this._loadLogisticaData();
-    }, 600);
+    this.importacoesService.obterDashboardVisaoGeral().subscribe({
+      next: (res) => { this.isDashboardLoading.set(false); this._loadLogisticaData(res); },
+      error: () => this.isDashboardLoading.set(false)
+    });
   }
 
-  private _loadLogisticaData() {
-      // Limpando os mocks, os dados reais vêm do subscribe abaixo.
-
-    this.importacoesService.obterDashboardVisaoGeral().subscribe({
-      next: (res) => {
+  private _loadLogisticaData(res: any) {
         this.kpiSemEntregaAtual = res.kpiSemEntrega; 
         this.evolucaoSemEntrega = 0; // Evolução será calculada via histórico
         this.kpiDevolucaoAtual = res.kpiDevolucao; 
@@ -1013,22 +1015,17 @@ export class InadimplenciaComponent implements OnInit {
           yAxis: { type: 'value', splitLine: { show: false }, axisLabel: { color: textColor } },
           series: [{ name: 'Devolução', type: 'line', data: res.evolucaoLogisticaDevolucao.values, label: { show: true, position: 'top', fontSize: 11, fontWeight: '600', color: '#64748b' }, itemStyle: { color: this.colors[7] }, areaStyle: { opacity: 0.1 } }]
         };
-      },
-      error: (err) => console.error('Erro ao carregar dados do dashboard logístico:', err)
-    });
   }
 
   carregarDashboardComercial() {
     this.isDashboardLoading.set(true);
-    setTimeout(() => {
-      this.isDashboardLoading.set(false);
-      this._loadComercialData();
-    }, 600);
+    this.importacoesService.obterDashboardVisaoGeral().subscribe({
+      next: (res) => { this.isDashboardLoading.set(false); this._loadComercialData(res); },
+      error: () => this.isDashboardLoading.set(false)
+    });
   }
 
-  private _loadComercialData() {
-    this.importacoesService.obterDashboardVisaoGeral().subscribe({
-      next: (res) => {
+  private _loadComercialData(res: any) {
         this.kpiTotalAcordos = res.kpiTotalAcordos;
         
         this.rankingAcordos = res.rankingAcordos;
@@ -1049,22 +1046,17 @@ export class InadimplenciaComponent implements OnInit {
           yAxis: { type: 'value', splitLine: { show: false }, axisLabel: { color: textColor } },
           series: [{ name: 'Acordos (Ocorrências)', type: 'line', data: res.evolucaoAcordos.values, label: { show: true, position: 'top', fontSize: 11, fontWeight: '600', color: '#64748b' }, itemStyle: { color: this.colors[0] }, areaStyle: { opacity: 0.1 } }]
         };
-      },
-      error: (err) => console.error('Erro ao carregar dados do dashboard comercial:', err)
-    });
   }
 
   carregarDashboardFiscal() {
     this.isDashboardLoading.set(true);
-    setTimeout(() => {
-      this.isDashboardLoading.set(false);
-      this._loadFiscalData();
-    }, 600);
+    this.importacoesService.obterDashboardVisaoGeral().subscribe({
+      next: (res) => { this.isDashboardLoading.set(false); this._loadFiscalData(res); },
+      error: () => this.isDashboardLoading.set(false)
+    });
   }
 
-  private _loadFiscalData() {
-    this.importacoesService.obterDashboardVisaoGeral().subscribe({
-      next: (res) => {
+  private _loadFiscalData(res: any) {
         this.kpiTotalFiscal = res.kpiTotalFiscal;
         
         this.rankingFiscal = res.rankingFiscal;
@@ -1084,9 +1076,6 @@ export class InadimplenciaComponent implements OnInit {
           yAxis: { type: 'value', splitLine: { show: false }, axisLabel: { color: textColor } },
           series: [{ name: 'Fiscal (Ocorrências)', type: 'line', data: res.evolucaoFiscal.values, label: { show: true, position: 'top', fontSize: 11, fontWeight: '600', color: '#64748b' }, itemStyle: { color: this.colors[3] }, areaStyle: { opacity: 0.1 } }]
         };
-      },
-      error: (err) => console.error('Erro ao carregar dados do dashboard fiscal:', err)
-    });
   }
 
   // ==========================================
