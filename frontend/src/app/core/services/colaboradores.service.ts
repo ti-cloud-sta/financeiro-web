@@ -142,4 +142,16 @@ export class ColaboradoresService {
       .map(([k, v]) => `${k}=${encodeURIComponent(v as string)}`).join('&');
     return this.http.get<any>(`${this.apiUrl}/movimentos${query ? '?' + query : ''}`);
   }
+
+  listarAlertasPlanoSaude(params: {
+    data_inicio?: string;
+    data_fim?: string;
+    page?: number;
+    size?: number;
+  }): Observable<any> {
+    let query = Object.entries(params)
+      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => `${k}=${encodeURIComponent(v as string)}`).join('&');
+    return this.http.get<any>(`${this.apiUrl}/alertas-plano-saude${query ? '?' + query : ''}`);
+  }
 }

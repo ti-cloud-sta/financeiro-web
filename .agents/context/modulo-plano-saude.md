@@ -88,3 +88,13 @@ A vinculação do beneficiário ao colaborador do ERP segue regras estritas:
 
 ## 8. Regra de Negócio Crítica: Filtro de Colaboradores Ativos
 - Em todas as etapas de busca, sugestão de IA e vinculação de faturas, devem ser considerados **apenas colaboradores com `snAtivo == 'S'`**.
+
+---
+
+## 9. Detecção de Fantasmas (Ghosts) e Alertas de Turnover
+- Durante a persistência de faturas (ex: `confirmar_sorriso` e `confirmar_unimed_odonto` no `PlanoSaudeIAService`), o sistema audita os beneficiários validados contra a base do RH.
+- **Regras de Detecção de "Ghosts"**:
+  1. O colaborador vinculado foi encontrado, mas está inativo (`snAtivo == 'N'`).
+  2. O colaborador está ativo, mas não possui nenhum registro histórico de movimento do tipo `ATIVACAO` originado de importações do RH (`IMPORTACAO_EXCEL`, `MANUAL`, `ATUALIZACAO_BASE`).
+- **Registro**: Se enquadrado em qualquer uma das regras acima, um registro é gravado na tabela `turnover_planos_saude` mapeando o Colaborador, a Empresa emissora da despesa (e não o vínculo do colaborador), a Importação geradora e o **valor da operação** (para facilitar conciliação financeira do faturamento indevido).
+- **Consulta e Relatório**: Os alertas são consumidos pelo frontend via `GET /alertas-plano-saude` e renderizados na aba *Alertas de Planos de Saúde* do modal de Turnover (Módulo Configurações). O usuário pode exportar os alertas problemáticos em Excel (incluindo a formatação em R$ do valor gerado pelo fantasma) para buscar reembolso junto ao RH/Operadora.

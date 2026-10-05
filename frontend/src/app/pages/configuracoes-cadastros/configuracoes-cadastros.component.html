@@ -1271,6 +1271,25 @@
 <app-modal [isOpen]="isTurnoverModalOpen" title="Relatório de Turnover" (closed)="closeTurnoverModal()"
   size="lg" [customBodyStyle]="{'height': '90vh', 'overflow-y': 'auto', 'display': 'flex', 'flex-direction': 'column'}">
   <div body class="d-flex flex-column h-100">
+    
+    <!-- TABS TURNOVER -->
+    <div class="config-nav d-flex px-4 pt-3 border-bottom" style="gap: 1.5rem;">
+      <div class="nav-item pb-2 position-relative text-muted fw-medium"
+        [class.active]="turnoverActiveTab === 'historico'"
+        [class.text-primary]="turnoverActiveTab === 'historico'"
+        (click)="turnoverActiveTab = 'historico'" style="font-size: 0.9rem; cursor: pointer;">
+        <i class="fa-solid fa-clock-rotate-left me-2"></i>Histórico do RH
+        <div class="active-indicator position-absolute bottom-0 start-0 w-100" *ngIf="turnoverActiveTab === 'historico'" style="height: 2px; background-color: var(--bs-primary);"></div>
+      </div>
+      <div class="nav-item pb-2 position-relative text-muted fw-medium"
+        [class.active]="turnoverActiveTab === 'alertas'"
+        [class.text-danger]="turnoverActiveTab === 'alertas'"
+        (click)="mudarAbaTurnover('alertas')" style="font-size: 0.9rem; cursor: pointer;">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>Alertas de Planos de Saúde
+        <div class="active-indicator position-absolute bottom-0 start-0 w-100" *ngIf="turnoverActiveTab === 'alertas'" style="height: 2px; background-color: var(--bs-danger);"></div>
+      </div>
+    </div>
+
     <!-- Filtros do Turnover -->
     <div class="filters-panel-card mb-4" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem;">
       <div class="filters-grid d-flex flex-wrap gap-4 align-items-end">
@@ -1294,6 +1313,7 @@
             </div>
             <select class="form-select form-select-sm shortcut-select" style="width: 150px; height: 38px; border-radius: 8px;" [(ngModel)]="turnoverShortcut"
               (ngModelChange)="onTurnoverShortcutChange($event)">
+              <option value="este-mes">Este Mês</option>
               <option value="ultimo-bimestre">Últ. Bimestre</option>
               <option value="ultimo-semestre">Últ. Semestre</option>
               <option value="este-ano">Este Ano</option>
@@ -1303,8 +1323,8 @@
           </div>
         </div>
 
-        <!-- Coluna Tipo -->
-        <div class="filter-group">
+        <!-- Coluna Tipo (Apenas Histórico) -->
+        <div class="filter-group" *ngIf="turnoverActiveTab === 'historico'">
           <label class="filter-label mb-2 d-block text-uppercase text-muted" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Tipo de Movimento</label>
           <select class="form-select form-select-sm" style="width: 200px; height: 38px; border-radius: 8px;" [(ngModel)]="turnoverFiltroTipo" (ngModelChange)="carregarTurnover()">
             <option value="">Todos</option>
@@ -1313,8 +1333,8 @@
           </select>
         </div>
 
-        <!-- Coluna Origem -->
-        <div class="filter-group">
+        <!-- Coluna Origem (Apenas Histórico) -->
+        <div class="filter-group" *ngIf="turnoverActiveTab === 'historico'">
           <label class="filter-label mb-2 d-block text-uppercase text-muted" style="font-size: 0.725rem; letter-spacing: 0.05em; font-weight: 600;">Origem</label>
           <select class="form-select form-select-sm" style="width: 200px; height: 38px; border-radius: 8px;" [(ngModel)]="turnoverFiltroOrigem" (ngModelChange)="carregarTurnover()">
             <option value="">Todas</option>
@@ -1341,7 +1361,7 @@
     </div>
 
     <!-- Tabela Turnover -->
-    <div *ngIf="!isTurnoverLoading" class="table-responsive flex-grow-1" style="border: 1px solid #e2e8f0; border-radius: 12px; background: #fff;">
+    <div *ngIf="!isTurnoverLoading && turnoverActiveTab === 'historico'" class="table-responsive flex-grow-1" style="border: 1px solid #e2e8f0; border-radius: 12px; background: #fff;">
       <table class="saas-table w-100 m-0">
         <thead style="position: sticky; top: 0; background: #fff; z-index: 10;">
           <tr>
@@ -1379,11 +1399,52 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Tabela Turnover (Alertas) -->
+    <div *ngIf="!isTurnoverLoading && turnoverActiveTab === 'alertas'" class="table-responsive flex-grow-1" style="border: 1px solid #e2e8f0; border-radius: 12px; background: #fff;">
+      <table class="saas-table w-100 m-0">
+        <thead style="position: sticky; top: 0; background: #fff; z-index: 10;">
+          <tr>
+            <th>DATA OCORRÊNCIA</th>
+            <th>COLABORADOR</th>
+            <th>OPERADORA/EMPRESA</th>
+            <th>COMPETÊNCIA</th>
+            <th class="text-end">VALOR</th>
+            <th>STATUS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of turnoverAlertasDataFiltrado">
+            <td class="text-nowrap">{{ a.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td class="fw-medium text-dark">{{ a.colaboradorNome }}</td>
+            <td class="text-muted">{{ a.empresaNome }}</td>
+            <td class="text-muted fw-medium">{{ a.competencia || '—' }}</td>
+            <td class="text-end text-danger fw-semibold">{{ a.valor ? (a.valor | currency:'BRL') : '—' }}</td>
+            <td>
+              <span class="badge" [ngClass]="a.resolvido === 'S' ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'">
+                {{ a.resolvido === 'S' ? 'Resolvido' : 'Pendente de Baixa' }}
+              </span>
+            </td>
+          </tr>
+          <tr *ngIf="turnoverAlertasDataFiltrado.length === 0">
+            <td colspan="6" class="text-center text-muted py-5">
+              @if (turnoverBusca) {
+                <i class="fa-solid fa-magnifying-glass fs-4 mb-2 d-block opacity-25"></i>
+                Nenhum resultado para "<strong>{{ turnoverBusca }}</strong>".
+              } @else {
+                <i class="fa-solid fa-circle-check fs-4 text-success mb-3 d-block opacity-75"></i>
+                Nenhuma divergência ou cobrança indevida encontrada no período!
+              }
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <div modal-footer class="erp-modal-footer">
     <button type="button" class="btn btn-outline-secondary" (click)="closeTurnoverModal()">Fechar</button>
-    <button type="button" class="btn btn-primary" (click)="exportarTurnover()" [disabled]="!turnoverData || turnoverData.length === 0">
+    <button type="button" class="btn btn-primary" (click)="exportarTurnover()" [disabled]="(turnoverActiveTab === 'historico' && (!turnoverData || turnoverData.length === 0)) || (turnoverActiveTab === 'alertas' && (!turnoverAlertasData || turnoverAlertasData.length === 0))">
       <i class="fa-solid fa-file-excel me-2"></i> Exportar
     </button>
   </div>

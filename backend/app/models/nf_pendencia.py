@@ -29,6 +29,8 @@ class NfPendencia(Base):
     encerrado = Column(String(1), server_default='S')
     fase = Column(String(100), nullable=True)
     status = Column(String(100), nullable=True)
+    dataBaixa = Column(Date, nullable=True)
+    faseOrigemBaixa = Column(String(100), nullable=True)
 
     unidade_rel = relationship("Unidade")
     cliente = relationship("Cliente")

@@ -84,3 +84,7 @@ Todos os select boxes de status (filtro Kanban, modal de detalhes e modal de mud
 - **Loading States**: Durante o carregamento assíncrono das APIs, os modais exibem esqueletos de carregamento estilizados utilizando o componente padrão `<app-skeleton>`, reproduzindo o layout real da lista ou do chat para manter a imersão (Skeleton UI Premium).
 - **Modal de Mensagens**: Exibe uma timeline estilo "Chat" com balões de mensagens, avatares gerados automaticamente com iniciais do remetente e suporte à marcação de "Minha Mensagem" para alinhamento à direita (com cor primária) vs "Mensagem do Cliente" (alinhamento à esquerda, fundo claro).
 
+### Relatório de Títulos Pagos Fora do Prazo
+- O sistema registra o momento exato em que um título é finalizado por baixa automática (ausência na importação), gravando a `dataBaixa` e a `faseOrigemBaixa` na tabela `nfpendencias`.
+- No Dashboard Financeiro (Visão Geral), há uma seção dedicada para acompanhamento de títulos pagos em atraso (Anual), incluindo o gráfico de evolução mês a mês (últimos 12 meses) e uma grid detalhada com cálculo de dias de atraso.
+- A ordem de exibição do painel `Visão Geral` segue a hierarquia: Indicadores críticos (Protestos, Concentração de Atrasos) no topo, gráficos secundários (Atraso Anual e Boletos Vencidos) no meio, e a grid de Detalhamento na base, preservando a fluidez de leitura dos KPIs.

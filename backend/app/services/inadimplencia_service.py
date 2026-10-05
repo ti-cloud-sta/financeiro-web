@@ -503,6 +503,8 @@ class InadimplenciaService:
                 # Se a pendência estava marcada como encerrada por ausência anterior mas voltou na planilha
                 if not is_prorrogacao and pendencia_existente.encerrado == 'S':
                     pendencia_existente.encerrado = 'N'
+                    pendencia_existente.dataBaixa = None
+                    pendencia_existente.faseOrigemBaixa = None
                     mudancas.append("Status de encerramento reaberto para ativo")
 
                 # Efetivação e gravação de histórico
@@ -619,6 +621,10 @@ class InadimplenciaService:
             ).all()
             for p_ativa in pendencias_ativas:
                 if p_ativa.idnfpendencias not in ids_processados_planilha:
+                    vw_atual = self.db.query(VwNfPendenciaFase).filter_by(idnfpendencias=p_ativa.idnfpendencias).first()
+                    if vw_atual:
+                        p_ativa.faseOrigemBaixa = vw_atual.fase
+                    p_ativa.dataBaixa = datetime.date.today()
                     p_ativa.encerrado = 'S'
                     p_ativa.idImportacoes = importacao.idImportacoes
                     self.db.flush()
@@ -746,9 +752,13 @@ class InadimplenciaService:
         if nova_fase == "FINALIZADO":
             nf.status = "OK"
             nf.encerrado = "S"
+            nf.faseOrigemBaixa = fase_anterior
+            nf.dataBaixa = datetime.date.today()
             hist_detalhes += " Status definido para 'OK' e título encerrado."
         elif fase_anterior == "FINALIZADO" and nova_fase != "FINALIZADO":
             nf.encerrado = "N"
+            nf.faseOrigemBaixa = None
+            nf.dataBaixa = None
             hist_detalhes += " Título reaberto."
             if novo_status:
                 novo_status = novo_status.strip().upper()
@@ -1432,14 +1442,16 @@ class InadimplenciaService:
         
         pagos_fora = (
             self.db.query(
-                extract('month', NfPendencia.dtVencimento).label('mes'),
+                extract('month', NfPendencia.dataBaixa).label('mes'),
                 func.count(NfPendencia.idnfpendencias).label('qtd')
             )
             .filter(
                 NfPendencia.encerrado == 'S',
-                NfPendencia.dtVencimento >= doze_meses_atras
+                NfPendencia.faseOrigemBaixa == 'FINANCEIRO',
+                NfPendencia.dataBaixa > NfPendencia.dtVencimento,
+                NfPendencia.dataBaixa >= doze_meses_atras
             )
-            .group_by(extract('month', NfPendencia.dtVencimento))
+            .group_by(extract('month', NfPendencia.dataBaixa))
             .all()
         )
         
@@ -1739,6 +1751,7 @@ class InadimplenciaService:
     def get_dashboard_visao_geral(self) -> dict:
         from sqlalchemy import func, extract, desc
         import datetime
+        from dateutil.relativedelta import relativedelta
 
         hoje = datetime.date.today()
         ano = hoje.year
@@ -2099,7 +2112,62 @@ class InadimplenciaService:
         
         composicao_carteira = [{"name": r[0] or 'Indefinido', "value": r[1]} for r in composicao_db]
 
-        
+        # Gráfico Títulos Pagos Fora do Prazo
+        pagos_fora = (
+            self.db.query(
+                extract('month', NfPendencia.dataBaixa).label('mes'),
+                extract('year', NfPendencia.dataBaixa).label('ano'),
+                func.count(NfPendencia.idnfpendencias).label('qtd')
+            )
+            .filter(
+                NfPendencia.encerrado == 'S',
+                NfPendencia.faseOrigemBaixa == 'FINANCEIRO',
+                NfPendencia.dataBaixa > NfPendencia.dtVencimento,
+                NfPendencia.dataBaixa >= doze_meses_atras
+            )
+            .group_by(extract('year', NfPendencia.dataBaixa), extract('month', NfPendencia.dataBaixa))
+            .all()
+        )
+        pagos_fora_dict = {(int(p.ano), int(p.mes)): p.qtd for p in pagos_fora}
+        valores_pagos_fora = []
+        doze_meses_labels = []
+        for i in range(12):
+            dt_iter = doze_meses_atras + relativedelta(months=i)
+            valores_pagos_fora.append(pagos_fora_dict.get((dt_iter.year, dt_iter.month), 0))
+            doze_meses_labels.append(f"{meses_nomes[dt_iter.month-1]}/{str(dt_iter.year)[-2:]}")
+
+        # Grid detalhado dos títulos pagos fora do prazo
+        pagos_fora_detail_db = (
+            self.db.query(
+                NfPendencia.titulo,
+                NfPendencia.dataBaixa,
+                NfPendencia.dtVencimento,
+                NfPendencia.valorSaldo,
+                Cliente.nome.label('cliente_nome'),
+            )
+            .outerjoin(Cliente, Cliente.idclientes == NfPendencia.idCliente)
+            .filter(
+                NfPendencia.encerrado == 'S',
+                NfPendencia.faseOrigemBaixa == 'FINANCEIRO',
+                NfPendencia.dataBaixa > NfPendencia.dtVencimento,
+                NfPendencia.dataBaixa >= doze_meses_atras
+            )
+            .order_by(NfPendencia.dataBaixa.desc())
+            .all()
+        )
+        grid_pagos_fora = []
+        for r in pagos_fora_detail_db:
+            dias_atraso = (r.dataBaixa - r.dtVencimento).days if r.dataBaixa and r.dtVencimento else None
+            grid_pagos_fora.append({
+                "titulo": r.titulo,
+                "cliente": r.cliente_nome or '—',
+                "vencimento": r.dtVencimento.isoformat() if r.dtVencimento else None,
+                "dataBaixa": r.dataBaixa.isoformat() if r.dataBaixa else None,
+                "diasAtraso": dias_atraso,
+                "valor": float(r.valorSaldo or 0),
+            })
+
+
         grid_vencidos_geral_db = (
             self.db.query(
                 VwNfPendenciaFase.idnfpendencias.label('id'),
@@ -2149,6 +2217,12 @@ class InadimplenciaService:
                 "labels": meses_labels,
                 "values": meses_valores_atraso
             },
+            "evolucaoPagosForaPrazo": {
+                "labels": doze_meses_labels,
+                "values": valores_pagos_fora,
+                "total": sum(valores_pagos_fora)
+            },
+            "gridPagosForaPrazo": grid_pagos_fora,
             "evolucaoProtesto": {
                 "labels": meses_labels,
                 "values": meses_valores_protesto

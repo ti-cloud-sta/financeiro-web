@@ -11,6 +11,8 @@ from app.models.colaborador import Colaborador
 from app.models.empresa import Empresa
 from app.models.importacao import Importacao
 from app.models.movimentacao import Movimentacao
+from app.models.colaboradores_movimento import ColaboradoresMovimento
+from app.models.turnover_plano_saude import TurnoverPlanoSaude
 from app.repositories.categoria_repository import CategoriaRepository
 from app.repositories.colaborador_alias_repository import ColaboradorAliasRepository
 from app.repositories.colaborador_repository import ColaboradorRepository
@@ -368,6 +370,38 @@ class PlanoSaudeIAService:
                     pass
 
             self.db.add(nova_mov)
+
+            # --- REGISTRO DE TURNOVER/DIVERGÊNCIA DE PLANO ---
+            is_ghost = False
+            if colab.snAtivo == 'N':
+                is_ghost = True
+            else:
+                tem_ativacao_rh = self.db.query(ColaboradoresMovimento).filter(
+                    ColaboradoresMovimento.idColaboradores == colab.idColaborador,
+                    ColaboradoresMovimento.origem.in_(['IMPORTACAO_EXCEL', 'MANUAL', 'ATUALIZACAO_BASE']),
+                    ColaboradoresMovimento.tipoMovimento == 'ATIVACAO'
+                ).first()
+                if not tem_ativacao_rh:
+                    is_ghost = True
+
+            if is_ghost:
+                comp_str = None
+                if payload.dataCompetencia:
+                    try:
+                        data_comp = datetime.strptime(payload.dataCompetencia, "%Y-%m-%d")
+                        comp_str = data_comp.strftime("%m/%Y")
+                    except ValueError:
+                        pass
+                
+                novo_alerta = TurnoverPlanoSaude(
+                    idColaborador=colab.idColaborador,
+                    idEmpresa=emp.idEmpresas,
+                    idImportacao=nova_importacao.idImportacoes,
+                    competencia=comp_str,
+                    valor=t.valor_total
+                )
+                self.db.add(novo_alerta)
+
             movimentacoes_criadas += 1
 
         if erros_colaboradores:
@@ -536,6 +570,38 @@ class PlanoSaudeIAService:
                     pass
 
             self.db.add(nova_mov)
+
+            # --- REGISTRO DE TURNOVER/DIVERGÊNCIA DE PLANO ---
+            is_ghost = False
+            if colab.snAtivo == 'N':
+                is_ghost = True
+            else:
+                tem_ativacao_rh = self.db.query(ColaboradoresMovimento).filter(
+                    ColaboradoresMovimento.idColaboradores == colab.idColaborador,
+                    ColaboradoresMovimento.origem.in_(['IMPORTACAO_EXCEL', 'MANUAL', 'ATUALIZACAO_BASE']),
+                    ColaboradoresMovimento.tipoMovimento == 'ATIVACAO'
+                ).first()
+                if not tem_ativacao_rh:
+                    is_ghost = True
+
+            if is_ghost:
+                comp_str = None
+                if payload.dataCompetencia:
+                    try:
+                        data_comp = datetime.strptime(payload.dataCompetencia, "%Y-%m-%d")
+                        comp_str = data_comp.strftime("%m/%Y")
+                    except ValueError:
+                        pass
+                
+                novo_alerta = TurnoverPlanoSaude(
+                    idColaborador=colab.idColaborador,
+                    idEmpresa=emp.idEmpresas,
+                    idImportacao=nova_importacao.idImportacoes,
+                    competencia=comp_str,
+                    valor=t.valor_total
+                )
+                self.db.add(novo_alerta)
+
             movimentacoes_criadas += 1
 
         if erros_colaboradores:

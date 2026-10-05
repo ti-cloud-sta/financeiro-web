@@ -36,6 +36,20 @@ def listar_movimentos(
         tipo=tipo, origem=origem, page=page, size=size
     )
 
+@router.get("/alertas-plano-saude")
+def listar_alertas_plano_saude(
+    data_inicio: Optional[date] = None,
+    data_fim: Optional[date] = None,
+    page: int = 1,
+    size: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return colaborador_movimento_service.listar_alertas_plano_saude(
+        db=db, data_inicio=data_inicio, data_fim=data_fim,
+        page=page, size=size
+    )
+
 @router.get("", response_model=ColaboradorPaginatedResponse)
 def list_colaboradores(
     page: int = 1,

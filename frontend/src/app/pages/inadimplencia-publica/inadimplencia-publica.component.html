@@ -856,22 +856,6 @@
                     </div>
 
                     <div class="row g-4 mb-4">
-                      <div class="col-12 col-xl-8">
-                        <div class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm">
-                          <h6 class="mb-3 fw-semibold text-secondary">Títulos Pagos Fora do Prazo (Anual)</h6>
-                          <div echarts *ngIf="chartOptionsAtrasoAnual" [options]="chartOptionsAtrasoAnual"
-                            class="chart-container" style="min-height: 280px;"></div>
-                        </div>
-                      </div>
-                      <div class="col-12 col-xl-4">
-                        <div class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm">
-                          <h6 class="mb-3 fw-semibold text-secondary">Boletos Vencidos por Faixa (Dias)</h6>
-                          <div echarts *ngIf="chartOptionsFaixasAtraso" [options]="chartOptionsFaixasAtraso"
-                            class="chart-container" style="min-height: 280px;"></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="row g-4 mb-4">
                       <div class="col-12 col-xl-4">
                         <div class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm">
                           <h6 class="mb-3 fw-semibold text-secondary">Protestos no Semestre</h6>
@@ -935,6 +919,22 @@
                               </tbody>
                             </table>
                           </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="row g-4 mb-4">
+                      <div class="col-12 col-xl-8">
+                        <div class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm">
+                          <h6 class="mb-3 fw-semibold text-secondary">Títulos Pagos Fora do Prazo (Anual)</h6>
+                          <div echarts *ngIf="chartOptionsAtrasoAnual" [options]="chartOptionsAtrasoAnual"
+                            class="chart-container" style="min-height: 280px;"></div>
+                        </div>
+                      </div>
+                      <div class="col-12 col-xl-4">
+                        <div class="dash-chart-card h-100 p-3 bg-white border rounded-3 shadow-sm">
+                          <h6 class="mb-3 fw-semibold text-secondary">Boletos Vencidos por Faixa (Dias)</h6>
+                          <div echarts *ngIf="chartOptionsFaixasAtraso" [options]="chartOptionsFaixasAtraso"
+                            class="chart-container" style="min-height: 280px;"></div>
                         </div>
                       </div>
                     </div>
