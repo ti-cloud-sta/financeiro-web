@@ -68,3 +68,61 @@ def listar_movimentos(
         "size": size,
         "total_pages": (total + size - 1) // size if total > 0 else 0,
     }
+
+def listar_alertas_plano_saude(
+    db: Session,
+    data_inicio: Optional[date] = None,
+    data_fim: Optional[date] = None,
+    page: int = 1,
+    size: int = 50,
+) -> dict:
+    from app.models.turnover_plano_saude import TurnoverPlanoSaude
+    from app.models.empresa import Empresa
+    from app.models.importacao import Importacao
+
+    query = (
+        db.query(TurnoverPlanoSaude)
+        .options(
+            joinedload(TurnoverPlanoSaude.colaborador),
+            joinedload(TurnoverPlanoSaude.empresa),
+            joinedload(TurnoverPlanoSaude.importacao)
+        )
+    )
+
+    if data_inicio:
+        query = query.filter(func.date(TurnoverPlanoSaude.createdAt) >= data_inicio)
+    if data_fim:
+        query = query.filter(func.date(TurnoverPlanoSaude.createdAt) <= data_fim)
+
+    total = query.with_entities(func.count(TurnoverPlanoSaude.idTurnoverPlano)).scalar()
+
+    query = query.order_by(TurnoverPlanoSaude.createdAt.desc())
+    offset = (page - 1) * size
+    items = query.offset(offset).limit(size).all()
+
+    result = []
+    for a in items:
+        colab = a.colaborador
+        empresa = a.empresa
+        importacao = a.importacao
+        result.append({
+            "id": a.idTurnoverPlano,
+            "idColaborador": a.idColaborador,
+            "colaboradorNome": colab.nome if colab else "—",
+            "colaboradorDocumento": colab.documento if colab else None,
+            "empresaNome": empresa.nomeAbrev or empresa.nome if empresa else "—",
+            "competencia": a.competencia,
+            "valor": float(a.valor) if a.valor is not None else None,
+            "resolvido": a.resolvido,
+            "importacaoArquivo": importacao.nomeArquivo if importacao else "—",
+            "createdAt": a.createdAt.isoformat() if a.createdAt else None,
+        })
+
+    return {
+        "items": result,
+        "total": total,
+        "page": page,
+        "size": size,
+        "total_pages": (total + size - 1) // size if total > 0 else 0,
+    }
+

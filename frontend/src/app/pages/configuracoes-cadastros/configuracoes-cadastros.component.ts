@@ -1224,20 +1224,41 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
   turnoverData: any[] = [];
   turnoverDataInicio: Date | null = null;
   turnoverDataFim: Date | null = null;
-  turnoverShortcut = 'este-ano';
+  turnoverShortcut = 'este-mes';
   turnoverFiltroTipo = '';
   turnoverFiltroOrigem = '';
   turnoverBusca = '';
   locale = Portuguese;
 
+  turnoverActiveTab: 'historico' | 'alertas' = 'historico';
+  turnoverAlertasData: any[] = [];
+  ignoreDateChange = false;
+
   openTurnoverModal() {
     this.isTurnoverModalOpen = true;
-    this.onTurnoverShortcutChange('este-ano'); // Carrega por default "Este Ano"
+    this.onTurnoverShortcutChange('este-mes'); // Carrega por default "Este Mês"
   }
 
   closeTurnoverModal() {
     this.isTurnoverModalOpen = false;
     this.turnoverBusca = '';
+  }
+
+  mudarAbaTurnover(aba: 'historico' | 'alertas') {
+    this.turnoverActiveTab = aba;
+    if (aba === 'alertas' && this.turnoverAlertasData.length === 0) {
+      this.carregarTurnover();
+    }
+  }
+
+  get turnoverAlertasDataFiltrado(): any[] {
+    if (!this.turnoverBusca.trim()) return this.turnoverAlertasData;
+    const termo = this.turnoverBusca.toLowerCase().trim();
+    return this.turnoverAlertasData.filter(a =>
+      (a.colaboradorNome || '').toLowerCase().includes(termo) ||
+      (a.empresaNome || '').toLowerCase().includes(termo) ||
+      (a.competencia || '').toLowerCase().includes(termo)
+    );
   }
 
   get turnoverDataFiltrado(): any[] {
@@ -1260,17 +1281,21 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
   }
 
   onTurnoverDataInicioChange() {
+    if (this.ignoreDateChange) return;
     this.turnoverShortcut = 'personalizado';
     if (this.isTurnoverPeriodoValido()) this.carregarTurnover();
   }
 
   onTurnoverDataFimChange() {
+    if (this.ignoreDateChange) return;
     this.turnoverShortcut = 'personalizado';
     if (this.isTurnoverPeriodoValido()) this.carregarTurnover();
   }
 
   onTurnoverShortcutChange(shortcut: string) {
     if (shortcut === 'personalizado') return;
+    
+    this.ignoreDateChange = true;
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
@@ -1280,6 +1305,9 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
     } else if (shortcut === 'ultimo-semestre') {
       this.turnoverDataInicio = new Date(hoje.getFullYear(), hoje.getMonth() - 6, 1);
       this.turnoverDataFim = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+    } else if (shortcut === 'este-mes') {
+      this.turnoverDataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      this.turnoverDataFim = hoje;
     } else if (shortcut === 'este-ano') {
       this.turnoverDataInicio = new Date(hoje.getFullYear(), 0, 1);
       this.turnoverDataFim = hoje;
@@ -1289,7 +1317,11 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
     }
 
     this.turnoverShortcut = shortcut;
-    this.carregarTurnover();
+    
+    setTimeout(() => {
+      this.ignoreDateChange = false;
+      this.carregarTurnover();
+    });
   }
 
   carregarTurnover() {
@@ -1309,77 +1341,149 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
     if (this.turnoverFiltroTipo) params.tipo = this.turnoverFiltroTipo;
     if (this.turnoverFiltroOrigem) params.origem = this.turnoverFiltroOrigem;
 
-    this.colaboradoresService.listarMovimentos(params).subscribe({
-      next: (res) => {
-        this.turnoverData = res.items || [];
-        this.isTurnoverLoading = false;
-      },
-      error: (err) => {
-        console.error(err);
-        this.isTurnoverLoading = false;
-      }
-    });
+    if (this.turnoverActiveTab === 'historico') {
+      this.colaboradoresService.listarMovimentos(params).subscribe({
+        next: (res) => {
+          this.turnoverData = res.items || [];
+          this.isTurnoverLoading = false;
+        },
+        error: (err) => {
+          console.error(err);
+          this.isTurnoverLoading = false;
+        }
+      });
+    } else {
+      this.colaboradoresService.listarAlertasPlanoSaude(params).subscribe({
+        next: (res) => {
+          this.turnoverAlertasData = res.items || [];
+          this.isTurnoverLoading = false;
+        },
+        error: (err) => {
+          console.error(err);
+          this.isTurnoverLoading = false;
+        }
+      });
+    }
   }
 
   exportarTurnover() {
-    if (!this.turnoverData || this.turnoverData.length === 0) return;
+    if (this.turnoverActiveTab === 'historico') {
+      if (!this.turnoverData || this.turnoverData.length === 0) return;
 
-    const headers = [
-      'DATA',
-      'COLABORADOR',
-      'CPF/CNPJ',
-      'MOVIMENTO',
-      'ORIGEM',
-      'USUÁRIO RESPONSÁVEL'
-    ];
-
-    const dataRows = this.turnoverData.map((row: any) => {
-      let dataFormatada = '—';
-      if (row.createdAt) {
-        const d = new Date(row.createdAt);
-        if (!isNaN(d.getTime())) {
-          const dia = String(d.getDate()).padStart(2, '0');
-          const mes = String(d.getMonth() + 1).padStart(2, '0');
-          const ano = d.getFullYear();
-          const hora = String(d.getHours()).padStart(2, '0');
-          const min = String(d.getMinutes()).padStart(2, '0');
-          dataFormatada = `${dia}/${mes}/${ano} ${hora}:${min}`;
-        }
-      }
-
-      let tipoFormatado = row.tipoMovimento || '—';
-      if (tipoFormatado === 'ATIVACAO') tipoFormatado = 'Ativação';
-      else if (tipoFormatado === 'DESATIVACAO') tipoFormatado = 'Desativação';
-
-      let origemFormatada = row.origem || '—';
-      if (origemFormatada === 'MANUAL') origemFormatada = 'Criação Manual';
-      else if (origemFormatada === 'ATUALIZACAO_BASE') origemFormatada = 'Importação (RH)';
-      else if (origemFormatada === 'IMPORTACOES') origemFormatada = 'Importação (Planos)';
-
-      return [
-        dataFormatada,
-        row.colaboradorNome || '—',
-        row.colaboradorDocumento || '—',
-        tipoFormatado,
-        origemFormatada,
-        row.userNome || '—'
+      const headers = [
+        'DATA',
+        'COLABORADOR',
+        'CPF/CNPJ',
+        'MOVIMENTO',
+        'ORIGEM',
+        'USUÁRIO RESPONSÁVEL'
       ];
-    });
 
-    const worksheet: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
-    worksheet['!cols'] = [
-      { wch: 18 },
-      { wch: 35 },
-      { wch: 18 },
-      { wch: 16 },
-      { wch: 24 },
-      { wch: 25 }
-    ];
+      const dataRows = this.turnoverData.map((row: any) => {
+        let dataFormatada = '—';
+        if (row.createdAt) {
+          const d = new Date(row.createdAt);
+          if (!isNaN(d.getTime())) {
+            const dia = String(d.getDate()).padStart(2, '0');
+            const mes = String(d.getMonth() + 1).padStart(2, '0');
+            const ano = d.getFullYear();
+            const hora = String(d.getHours()).padStart(2, '0');
+            const min = String(d.getMinutes()).padStart(2, '0');
+            dataFormatada = `${dia}/${mes}/${ano} ${hora}:${min}`;
+          }
+        }
 
-    const workbook: XLSX.WorkBook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Turnover');
+        let tipoFormatado = row.tipoMovimento || '—';
+        if (tipoFormatado === 'ATIVACAO') tipoFormatado = 'Ativação';
+        else if (tipoFormatado === 'DESATIVACAO') tipoFormatado = 'Desativação';
 
-    const dataAtual = new Date().toISOString().split('T')[0];
-    XLSX.writeFile(workbook, `relatorio_turnover_${dataAtual}.xlsx`);
+        let origemFormatada = row.origem || '—';
+        if (origemFormatada === 'MANUAL') origemFormatada = 'Criação Manual';
+        else if (origemFormatada === 'ATUALIZACAO_BASE') origemFormatada = 'Importação (RH)';
+        else if (origemFormatada === 'IMPORTACOES') origemFormatada = 'Importação (Planos)';
+
+        return [
+          dataFormatada,
+          row.colaboradorNome || '—',
+          row.colaboradorDocumento || '—',
+          tipoFormatado,
+          origemFormatada,
+          row.userNome || '—'
+        ];
+      });
+
+      const worksheet: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+      worksheet['!cols'] = [
+        { wch: 18 },
+        { wch: 35 },
+        { wch: 18 },
+        { wch: 16 },
+        { wch: 24 },
+        { wch: 25 }
+      ];
+
+      const workbook: XLSX.WorkBook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Historico_RH');
+      
+      const dataAtual = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(workbook, `historico_rh_${dataAtual}.xlsx`);
+
+    } else {
+      if (!this.turnoverAlertasData || this.turnoverAlertasData.length === 0) return;
+
+      const headers = [
+        'DATA OCORRÊNCIA',
+        'COLABORADOR',
+        'OPERADORA/EMPRESA',
+        'COMPETÊNCIA',
+        'VALOR',
+        'STATUS'
+      ];
+
+      const dataRows = this.turnoverAlertasData.map((row: any) => {
+        let dataFormatada = '—';
+        if (row.createdAt) {
+          const d = new Date(row.createdAt);
+          if (!isNaN(d.getTime())) {
+            const dia = String(d.getDate()).padStart(2, '0');
+            const mes = String(d.getMonth() + 1).padStart(2, '0');
+            const ano = d.getFullYear();
+            const hora = String(d.getHours()).padStart(2, '0');
+            const min = String(d.getMinutes()).padStart(2, '0');
+            dataFormatada = `${dia}/${mes}/${ano} ${hora}:${min}`;
+          }
+        }
+
+        let valorFormatado = '—';
+        if (row.valor !== null && row.valor !== undefined) {
+          valorFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(row.valor);
+        }
+
+        return [
+          dataFormatada,
+          row.colaboradorNome || '—',
+          row.empresaNome || '—',
+          row.competencia || '—',
+          valorFormatado,
+          row.resolvido === 'S' ? 'Resolvido' : 'Pendente de Baixa'
+        ];
+      });
+
+      const worksheet: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+      worksheet['!cols'] = [
+        { wch: 18 },
+        { wch: 35 },
+        { wch: 30 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 20 }
+      ];
+
+      const workbook: XLSX.WorkBook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Alertas_Planos');
+      
+      const dataAtual = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(workbook, `alertas_planos_${dataAtual}.xlsx`);
+    }
   }
 }
