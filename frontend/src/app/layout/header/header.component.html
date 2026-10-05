@@ -26,6 +26,21 @@
 
   <div class="header-actions">
 
+    @if (ambienteApi.isDev) {
+      <span class="env-badge" title="API e banco de desenvolvimento (stamariabd_dev)">
+        <i class="fa-solid fa-flask"></i> Ambiente DEV
+      </span>
+    }
+
+    @if (isAdmin()) {
+      <div class="env-switch" role="group" aria-label="Ambiente da API">
+        <button type="button" class="env-switch-option" [class.active]="!ambienteApi.isDev"
+          (click)="solicitarTrocaAmbiente('producao')">Produção</button>
+        <button type="button" class="env-switch-option env-switch-option-dev" [class.active]="ambienteApi.isDev"
+          (click)="solicitarTrocaAmbiente('dev')">Dev</button>
+      </div>
+    }
+
     <button class="theme-toggle-btn" (click)="themeService.toggleTheme()"
       [title]="themeService.activeTheme() === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
       aria-label="Alternar tema">
@@ -40,5 +55,15 @@
       </button>
     </div>
   </div>
+
+  <app-confirm-modal
+    [isOpen]="ambienteDestino() !== null"
+    title="Trocar de ambiente"
+    [message]="mensagemTrocaAmbiente()"
+    confirmText="Trocar e sair"
+    variant="primary"
+    (confirmed)="confirmarTrocaAmbiente()"
+    (canceled)="ambienteDestino.set(null)">
+  </app-confirm-modal>
 
 </header>

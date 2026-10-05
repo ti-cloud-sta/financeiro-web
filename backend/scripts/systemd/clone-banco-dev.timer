@@ -1,0 +1,11 @@
+# Toda sexta-feira às 00:00 no horário de Brasília (o host da VPS roda em UTC).
+# Persistent=true: se o servidor estiver desligado no horário, o clone roda assim que ele voltar.
+[Unit]
+Description=Clone semanal do banco de produção para o dev
+
+[Timer]
+OnCalendar=Fri *-*-* 00:00:00 America/Sao_Paulo
+Persistent=true
+
+[Install]
+WantedBy=timers.target

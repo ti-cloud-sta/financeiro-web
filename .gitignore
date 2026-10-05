@@ -5,6 +5,9 @@ deploy/
 *.env
 databse/dumps/
 
+# Anotações locais (contém credenciais — nunca versionar)
+notas.local.txt
+
 # Python
 __pycache__/
 *.py[cod]

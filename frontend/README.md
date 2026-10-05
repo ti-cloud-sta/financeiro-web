@@ -24,42 +24,45 @@ app/
 ├── layout/       # header, sidebar, footer, main-layout
 ├── pages/        # features do ERP (ver abaixo) + pages.routes.ts
 ├── shared/       # componentes/diretivas/pipes/validators reutilizáveis
-└── app.routes.ts # rotas raiz (login público + layout protegido por authGuard)
+└── app.routes.ts # rotas raiz (login/cadastro, /compartilhar/* públicas e layout protegido por authGuard)
 ```
 
-> `app/modules/` existe mas está vazio — as features de negócio residem em `app/pages/`.
+> As features de negócio residem em `app/pages/` (não existe `app/modules/`; o alias `@modules/*` do tsconfig está sem uso).
 
 ### Módulos de negócio (`app/pages/`)
 
 | Rota | Página | O que faz |
 |---|---|---|
-| `home` | Home | Dashboard inicial, módulos ativos, relógio/usuário atual |
-| `despesas-viagens` | Despesas de Viagens | Maior módulo do sistema: dashboard (ECharts, mapa por estado, exportação PDF/Excel), upload de extratos com extração via IA, e configurações (CRUD de Colaboradores, Categorias, Centros de Custo, Unidades, Empresas) |
-| `extratores` | Extratores | Upload e conciliação de composições/prorrogações por parceiro/varejista (Atacadão, Sendas, Mart Minas, Savegnago, Cema, Mateus, Droga Raia, entre outros) |
-| `conciliacao-pagamentos` | Conciliação de Pagamentos | Cruzamento de planilha APB contra extratos bancários, com exportação do resultado |
-| `plano-saude` | Plano de Saúde | Extração/confirmação de faturas de planos de saúde (Sorriso via IA, Unimed Odonto via regex), configuração de empresas do módulo |
-| `inadimplencia` | Inadimplência | Dashboard e fluxos de atualização de carteira de inadimplentes (dados atualmente mockados) |
-| `pages/auth/login` | Login | Formulário reativo (e-mail/senha), autentica via `IAuthService` |
+| `home` | Home | Página inicial, cards de módulos (via `MockModulesService`), relógio/usuário atual |
+| `despesas-viagens` | Despesas de Viagens | Dashboard (ECharts, mapa por estado, butterfly Comercial×Marketing, exportação PDF), relatório matriz (Excel), upload de faturas/RDVs com extração via parsers + IA e conferência antes de salvar |
+| `extratores` | Extratores | Composições (pagamentos) e prorrogações por parceiro/varejista (Atacadão, Sendas, Mart Minas, Savegnago, Cema, Mateus, Droga Raia, Amazon, Adição, Zeferino, entre outros) — envia arquivo da empresa + ACR e baixa o Excel gerado |
+| `conciliacao-pagamentos` | Conciliação de Pagamentos | Cruzamento de planilha APB contra extratos bancários (streaming NDJSON), com download do resultado |
+| `plano-saude` | Plano de Saúde | Dashboard, relatório por competência (exportações Excel/CSV/TXT contábil e conciliação) e importação universal de faturas com conferência |
+| `inadimplencia` | Pendências (Inadimplência) | Dashboards por área (Financeiro, Logística, Comercial, Fiscal, Pendências ACR), kanban de pendências com e-mails via Gmail, e atualização de dados (planilha via NDJSON) |
+| `configuracoes-cadastros` | Configurações e Cadastros | Usuários (admin), Colaboradores (importação RH e Turnover), Categorias, Centros de Custo, Unidades, Empresas e Comercial (gerentes/representantes) |
+| `previsao-caixa` | Previsão de Caixa | Placeholder (ainda sem funcionalidade) |
+| `compartilhar/*` | Inadimplência pública | Visualização compartilhada dos dashboards, sem login (`inadimplencia-publica`) |
+| `login` / `cadastro` | Login e Cadastro | Formulários reativos; autenticam via `IAuthService` (cadastro fica aguardando aprovação do admin) |
 
 ## Camada de dados e HTTP
 
-- Serviços de features (`ColaboradoresService`, `ImportacoesService`, etc.) chamam `HttpClient` diretamente contra `environment.apiUrl`.
-- `core/http/http.service.ts` fornece um wrapper genérico (retry com backoff, timeout, tratamento de erro padronizado em português) usado por uma base `BaseApiService<T>` — mas nem todos os serviços de feature o utilizam ainda; parte deles chama `HttpClient` sem passar por essa camada.
-- `core/interceptors/auth.interceptor.ts` injeta o `Authorization: Bearer <token>` em toda requisição e implementa refresh de token com fila de requisições concorrentes.
+- Serviços de features (`ColaboradoresService`, `ImportacoesService`, etc.) chamam `HttpClient` diretamente contra `environment.apiUrl` (`http://127.0.0.1:8000/api/v1` em dev; `/api/v1` em produção, com proxy do nginx para o backend).
+- `core/interceptors/auth.interceptor.ts` injeta o `Authorization: Bearer <token>` em toda requisição `HttpClient`; em `401` faz logout e em `403` exibe toast e volta para `/home`. Não há refresh token.
+- Processamentos longos com streaming NDJSON (importação de pendências e conciliação bancária) usam `fetch` + `ReadableStream` em `importacoes.service.ts`, lendo o token direto do `localStorage` (não passam pelo interceptor).
 
-## Autenticação — status atual (placeholder mockado)
+## Autenticação
 
-O backend (`../backend`) **ainda não implementa autenticação real**. Para não bloquear o desenvolvimento do restante do ERP, o frontend usa uma arquitetura *interface-first*: interfaces abstratas (`IAuthService`, `ISessionService`, `ITokenService`, `IUserService`, `IPermissionsService`, `IModulesService`, `INotificationsService`, `IMenuService`, `IDashboardService`) são registradas em `app.config.ts` apontando para implementações **mock** (`Mock*Service`, em `core/mock/` e `core/services/`).
+Arquitetura *interface-first*: interfaces abstratas são registradas em `app.config.ts` e injetadas via DI.
 
-- `MockAuthService.login()` aceita qualquer e-mail/senha que passe na validação do formulário (não chama o backend) e gera um token fake.
-- O `authGuard` libera a navegação com base apenas na presença de um token no `localStorage`.
-- Isso é intencional e temporário: quando a autenticação real (ex.: Supabase Auth) for implementada no backend, basta criar as implementações reais (`HttpAuthService`, etc.) e trocar os `useClass` em `app.config.ts` — nenhuma outra parte do app depende diretamente do mock.
-- As chamadas de dados de negócio (colaboradores, importações, etc.) **não** são mockadas — usam HTTP real contra o backend.
+- **Reais:** `IAuthService` → `AuthService` (`POST /auth/login`, token em `localStorage['erp_access_token']`, usuário em `erp_current_user`, estado via Signals), `IUserService` → `UserService`, `IEnvironmentService`.
+- **Ainda mock:** `IPermissionsService`, `IModulesService`, `INotificationsService`, `IMenuService`, `IDashboardService` (`Mock*Service`).
+- `authGuard` exige sessão válida (token não expirado); `noAuthGuard` protege login/cadastro.
+- `GoogleAuthService` conecta a conta Gmail do usuário (popup OAuth) para envio de e-mails de cobrança no módulo de Pendências.
 
 ## Principais dependências
 
 - **UI/Ícones**: Bootstrap 5, Font Awesome (não há kit de componentes como Angular Material/PrimeNG)
-- **Gráficos**: `echarts` + `ngx-echarts` (dashboards de Despesas de Viagens)
+- **Gráficos**: `echarts` + `ngx-echarts` (dashboards de Despesas de Viagens, Plano de Saúde e Inadimplência)
 - **Arquivos**: `xlsx` (Excel), `jspdf` + `html2canvas` (exportação de PDF)
 - **Formulários**: `@ng-select/ng-select`, `angularx-flatpickr` (localizado em pt-BR)
 - **Datas**: `dayjs`
@@ -71,4 +74,4 @@ O backend (`../backend`) **ainda não implementa autenticação real**. Para nã
 
 ## Gerenciamento de estado
 
-O padrão do projeto é **Angular Signals** (adotado nas páginas mais recentes: `plano-saude`, `extratores`, `inadimplencia`, `conciliacao-pagamentos`, e nos serviços core de tema/layout/sessão). Não há NgRx. O módulo `despesas-viagens` (o mais antigo e maior do sistema) ainda usa propriedades de classe mutadas via `.subscribe()` em vez de signals — candidato a migração futura, mas fora do escopo de uma simples atualização de documentação.
+O padrão do projeto é **Angular Signals** (obrigatório para código novo; ver `.agents/rules/padroes-frontend-angular.md`). Não há NgRx. A adoção ainda é parcial: os serviços core (auth, tema, toast, Google) e páginas como `conciliacao-pagamentos` usam signals de forma ampla, enquanto `inadimplencia`, `configuracoes-cadastros`, `despesas-viagens` e `plano-saude` misturam signals com propriedades de classe e getters.

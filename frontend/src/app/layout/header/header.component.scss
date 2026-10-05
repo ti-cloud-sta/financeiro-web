@@ -120,6 +120,59 @@
     align-items: center;
     gap: 1.5rem;
 
+    .env-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.625rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: $font-weight-semibold;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      color: $orange;
+      background-color: rgba($orange, 0.12);
+      border: 1px solid rgba($orange, 0.35);
+    }
+
+    .env-switch {
+      display: inline-flex;
+      padding: 0.125rem;
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+      background-color: var(--color-surface);
+
+      .env-switch-option {
+        border: none;
+        background: transparent;
+        padding: 0.25rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        font-weight: $font-weight-medium;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover:not(.active) {
+          color: var(--color-text-secondary);
+          background-color: var(--color-surface-hover);
+        }
+
+        &.active {
+          cursor: default;
+          color: $primary;
+          background-color: rgba($primary, 0.1);
+          font-weight: $font-weight-semibold;
+        }
+
+        &.env-switch-option-dev.active {
+          color: $orange;
+          background-color: rgba($orange, 0.12);
+        }
+      }
+    }
+
     .theme-toggle-btn {
       background: none;
       border: none;
@@ -216,6 +269,8 @@
     }
     
     .header-actions {
+      gap: 0.75rem;
+
       .info, .arrow-down {
         display: none;
       }

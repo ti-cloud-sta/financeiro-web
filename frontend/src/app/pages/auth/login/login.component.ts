@@ -8,6 +8,7 @@ import { InputComponent } from '../../../shared/components/input/input.component
 import { CardComponent } from '../../../shared/components/card/card.component';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
 import { RouterLink } from '@angular/router';
+import { AmbienteApiService } from '../../../core/services/ambiente-api.service';
 
 @Component({
   selector: 'app-login',
@@ -29,6 +30,7 @@ export class LoginComponent {
   private authService = inject(IAuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  ambienteApi = inject(AmbienteApiService);
 
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -63,6 +65,10 @@ export class LoginComponent {
         console.error('Erro no login', err);
       }
     });
+  }
+
+  voltarParaProducao() {
+    this.ambienteApi.trocarAmbiente('producao');
   }
 
   get emailError(): string {

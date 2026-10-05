@@ -20,7 +20,6 @@ O **ERP SANTAMARIA (financeiro-web)** é uma plataforma integrada de gestão fin
   - SCSS com Design System modular inspirado em SaaS modernos (Stripe, Linear, Vercel).
   - ECharts / ngx-echarts para visualizações e gráficos interativos.
   - Flatpickr para seleção de datas e períodos.
-  - Cypress para testes de integração end-to-end.
 - **Backend**:
   - FastAPI (Python 3.11+) com arquitetura em camadas (`routers`, `services`, `repositories`, `models`, `schemas`).
   - SQLAlchemy ORM para modelagem e persistência.

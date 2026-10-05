@@ -26,6 +26,7 @@ A documentação está dividida de forma modular em duas pastas principais:
 5. [Módulo de Despesas de Viagens](file:///c:/Users/JOE/Documents/GitHub/financeiro-web/.agents/context/modulo-despesas-viagens.md)
 6. [Módulo de Conciliação de Pagamentos](file:///c:/Users/JOE/Documents/GitHub/financeiro-web/.agents/context/modulo-conciliacao-pagamentos.md)
 7. [Estrutura do Banco de Dados MySQL](file:///c:/Users/JOE/Documents/GitHub/financeiro-web/.agents/context/estrutura-banco-dados.md)
+8. [Infraestrutura da VPS de Produção](context/infraestrutura-vps.md)
 
 ---
 
@@ -46,7 +47,6 @@ A documentação está dividida de forma modular em duas pastas principais:
 
 ### 3. Validação de Build e CI
 - **Build Obrigatório**: Sempre executar um build de validação (`npm run build` na pasta `frontend/`) e aguardar sua conclusão com sucesso antes de encerrar qualquer macro-tarefa.
-- **Testes de Integração**: Após o build válido, executar os testes de integração (`npm run cy:run`) e validar os relatórios antes de finalizar.
 
 ### 4. Padrões de Frontend Angular
 - Componentes **Standalone** (`standalone: true`).

@@ -1,0 +1,38 @@
+# Ambiente DEV — sobe apenas o backend da branch dev, ligado ao MySQL de produção
+# no banco stamariabd_dev (clone semanal do stamariabd, ver backend/scripts/clonar_banco_dev.sh).
+#
+# Na VPS, a partir do checkout da branch dev (/root/projects/financeiro-web-dev):
+#   git pull
+#   docker compose -f docker-compose.dev.yml -p financeiro-web-dev up -d --build
+#
+# Requer o stack de produção (docker-compose.yml) rodando, pois usa a rede dele para
+# alcançar o "db" e para receber as requisições de /api-dev/ do nginx do frontend.
+# Variáveis lidas do .env deste checkout: MYSQL_DEV_PASSWORD, JWT_KEY_DEV, GEMINI_API_KEY, GEMINI_MODEL.
+
+services:
+  backend-dev:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 3306
+      DATABASE_NAME: stamariabd_dev
+      DATABASE_USER: app_dev
+      DATABASE_PASSWORD: ${MYSQL_DEV_PASSWORD}
+      TZ: America/Sao_Paulo
+      # Chave diferente da produção: tokens de um ambiente não valem no outro.
+      JWT_KEY: ${JWT_KEY_DEV}
+      ENVIRONMENT: development
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL}
+      # Gmail desligado no dev: evita envio de e-mails reais e callbacks OAuth caindo na produção.
+      GOOGLE_CLIENT_ID: ""
+      GOOGLE_CLIENT_SECRET: ""
+      GOOGLE_REDIRECT_URI: ""
+    networks:
+      - producao
+
+networks:
+  producao:
+    external: true
+    name: financeiro-web_default
