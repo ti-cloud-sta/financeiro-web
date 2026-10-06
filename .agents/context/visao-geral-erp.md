@@ -27,11 +27,25 @@ O **ERP SANTAMARIA (financeiro-web)** é uma plataforma integrada de gestão fin
   - Streaming NDJSON para processamento assíncrono em lote sem travamento da interface.
 - **Banco de Dados**:
   - MySQL (`stamariabd`), utilizando Views como fonte única de verdade para regras complexas de negócio.
+  - Banco de teste `stamariabd_dev`, clonado da produção toda sexta-feira às 00:00.
+- **Ambientes**:
+
+  | Ambiente | Site | API | Banco | Branch |
+  |---|---|---|---|---|
+  | Produção | `https://stamaria.cloud/` | `/api/v1` | `stamariabd` | `main` |
+  | Teste | `https://stamaria.cloud/teste/` | `/teste/api/v1` (Swagger em `/teste/docs`) | `stamariabd_dev` | `dev` |
+
+  Fluxo: desenvolver na `dev` → deploy no teste → PR `dev` → `main` → deploy na produção. Detalhes técnicos em `context/infraestrutura-vps.md`.
 - **Ambiente & Deploy**:
-  - Docker e Docker Compose (`docker-compose.yml`).
-  - O arquivo `.env` com as variáveis de ambiente fica localizado **exclusivamente na pasta raiz** do projeto (`/projects/financeiro-web/.env` na VPS e `/.env` localmente), e não dentro das pastas `/backend` ou `/frontend`.
-  - Para aplicar alterações de `.env` na VPS, edite o arquivo na raiz e use os comandos:
+  - Docker e Docker Compose: `docker-compose.yml` (produção) e `docker-compose.dev.yml` (teste).
+  - Produção: o `.env` fica **na pasta raiz** do checkout `/root/projects/financeiro-web` na VPS (não dentro de `/backend` ou `/frontend`). Teste: `.env` próprio na raiz de `/root/projects/financeiro-web-dev`. No desenvolvimento local, o backend lê `backend/.env` (o `uvicorn` roda de dentro de `backend/`).
+  - Deploy da produção:
     ```bash
-    cd projects/financeiro-web
+    cd /root/projects/financeiro-web && git pull
     docker compose up -d --build
+    ```
+  - Deploy do teste:
+    ```bash
+    cd /root/projects/financeiro-web-dev && git pull
+    docker compose -f docker-compose.dev.yml up -d --build
     ```

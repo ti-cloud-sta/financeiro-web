@@ -1,5 +1,12 @@
 ============= LEMBRETES VPS - ROTINA DE BACKUP =============
 
+ATENÇÃO antes de implantar (levantado em 05/10/2026):
+   - O projeto na VPS fica em /root/projects/financeiro-web (não em /var/www).
+   - O backup_rotina.py lê o arquivo backend/.env (pasta do script/..), mas na VPS só existe o .env da raiz.
+   - O script chama "mysqldump" direto no host, e o MySQL roda dentro do container financeiro-web-db-1:
+     conferir se o host tem o cliente mysqldump e se ele alcança o banco (porta 127.0.0.1:3306).
+   - Detalhes da VPS: .agents/context/infraestrutura-vps.md
+
 1. Atualizar o arquivo .env lá na VPS, adicionando as variáveis novas do SMTP:
    SMTP_SERVER=smtp.gmail.com
    SMTP_PORT=587
@@ -13,12 +20,13 @@
    - Criar "Senhas de app" e copiar os 16 caracteres para colocar no .env
 
 3. Testar o Backup na VPS:
-   - Rodar manualmente na VPS: python3 /var/www/financeiro-web/backend/scripts/backup_rotina.py
+   - Rodar manualmente na VPS: python3 /root/projects/financeiro-web/backend/scripts/backup_rotina.py
    - Checar se o e-mail chegou certinho com o ZIP anexado.
 
 4. Agendar e Ativar o Cronjob:
    - Rodar 'crontab -e'
-   - Inserir a linha: 0 3 * * * /usr/bin/python3 /caminho/do/projeto/backend/scripts/backup_rotina.py >> /var/log/backup_erp.log 2>&1
+   - Inserir a linha: 0 6 * * * /usr/bin/python3 /root/projects/financeiro-web/backend/scripts/backup_rotina.py >> /var/log/backup_erp.log 2>&1
+     (o host da VPS roda em UTC: 06:00 UTC = 03:00 de Brasília)
    - Garantir que o serviço do cron esteja ativado rodando (ex: 'sudo systemctl enable cron' e 'sudo systemctl start cron').
 
 ============= LEMBRETES - NOVA TABELA DE LOG (nfPendencias) =============
@@ -40,27 +48,25 @@
    - Renderizar as mudanças usando uma tabela estilo SaaS, parseando o JSON de `detalhes`.
 
 
-============= LEMBRETES VPS - AMBIENTE DE DEV E PROD =============
+============= AMBIENTE DE DEV/TESTE - CONCLUÍDO EM 06/10/2026 =============
 
-1. Banco de Dados de Desenvolvimento:
-   - Acessar o MySQL na VPS e criar o schema: `CREATE DATABASE stamariabd_dev;`
-   - Fazer um dump da produção (`stamariabd`) e importar no banco novo para testes fiéis.
+Implantado como "Ambiente de Teste":
+   - Site:    https://stamaria.cloud/teste/        (branch dev)
+   - API:     https://stamaria.cloud/teste/api/v1
+   - Swagger: https://stamaria.cloud/teste/docs
+   - Banco:   stamariabd_dev (clone da produção toda sexta 00:00)
 
-2. Ajuste do .env na VPS:
-   - Adicionar as variáveis para o ambiente Dev:
-     `DATABASE_URL_DEV=mysql+pymysql://user:pass@db_host/stamariabd_dev`
-     `PORTA_API_DEV=8001`
-     `PORTA_FRONT_DEV=8081`
+Deploy do teste na VPS:
+   cd /root/projects/financeiro-web-dev && git pull && docker compose -f docker-compose.dev.yml up -d --build
 
-3. Configuração do Docker Compose (`docker-compose.yml`):
-   - Duplicar o serviço `backend` para `backend_dev`.
-   - Mapear as portas diferentes (ex: `8001:8000`).
-   - Injetar no `environment` do `backend_dev` a variável `DATABASE_URL` lendo do `DATABASE_URL_DEV`.
-   - (Opcional) Fazer o mesmo para o frontend (`frontend_dev`), apontando ele para a API do backend na porta 8001.
+Tudo documentado em .agents/context/infraestrutura-vps.md (seção 6).
 
-4. Implantação e Validação (Nginx/Traefik):
-   - Rodar `docker compose up -d --build backend_dev` na VPS.
-   - Configurar o proxy reverso para direcionar (ex: `dev-api.stamaria.com.br` -> Porta 8001).
-   - Fazer chamadas POST na API Dev para garantir o isolamento absoluto dos dados de produção.
+
+============= PENDÊNCIAS DE INFRA (levantadas em 05/10/2026) =============
+
+   - Desligar login SSH por senha (antes: cadastrar a sua chave SSH pública no root e testar).
+   - Fusos diferentes: host e frontend em UTC, backend e banco em -03:00.
+   - FRONTEND_URL está no .env da VPS, mas não é repassada ao backend pelo docker-compose.yml.
+   - Apagar /root/manutencao/upgrade-reboot.sh depois da manutenção de 06/10/2026 (conferir o log antes).
 
 

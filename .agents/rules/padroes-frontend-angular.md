@@ -49,3 +49,14 @@ Antes de criar qualquer elemento visual, verifique se ele já existe no diretór
 - Para processamentos assíncronos longos (como importações em lote de planilhas ou PDFs pesados), o backend retorna `StreamingResponse` com NDJSON (Newline Delimited JSON).
 - No frontend, consuma esses endpoints via API nativa do navegador (`fetch` e `response.body.getReader()`), pois o `HttpClient` clássico do Angular tende a bufferizar o stream.
 - **Atualização de UI (NgZone)**: O loop de leitura de chunks do stream deve ser envolvido em `this.ngZone.run(() => { ... })` para disparar o Change Detection do Angular imediatamente, mantendo contadores, barras de progresso e spinners fluidos sem congelar a tela.
+
+---
+
+## 5. Caminho Base e Ambiente de Teste (`/teste/`)
+O mesmo build roda em produção (`https://stamaria.cloud/`) e no ambiente de teste (`https://stamaria.cloud/teste/`, build com `--base-href /teste/`). Ver `context/infraestrutura-vps.md`, seção 6.
+- **Nunca usar caminhos absolutos** para recursos do próprio site: nada de `'/api/...'`, `'/maps/...'`, `'/images/...'` em `http.get`, `fetch`, `href` ou `src`. No teste eles apontariam para a produção.
+  - Chamadas à API: sempre via `environment.apiUrl` (já resolve `/api/v1` ou `/teste/api/v1`).
+  - Arquivos estáticos: caminho relativo ao `<base href>` (ex.: `http.get('maps/brazil.json')`, `src="images/logo.jpg"`).
+  - Navegação: `router.navigate(['/rota'])` e `routerLink` já respeitam o base href.
+- **Chaves de sessão em `localStorage`/`sessionStorage`** (tokens, usuário, rascunhos) devem passar por `chaveStorage()` de `core/config/ambiente.ts`: produção e teste estão no mesmo domínio e compartilham o storage. Preferências visuais (tema, sidebar) podem ser compartilhadas.
+- Lógica específica do ambiente de teste usa `isAmbienteTeste` (`core/config/ambiente.ts`), nunca a URL da API ou o hostname.
