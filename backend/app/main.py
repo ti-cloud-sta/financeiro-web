@@ -20,6 +20,7 @@ app = FastAPI(
     docs_url="/docs" if _docs_enabled else None,
     redoc_url="/redoc" if _docs_enabled else None,
     openapi_url="/openapi.json" if _docs_enabled else None,
+    root_path=settings.ROOT_PATH,
 )
 
 # Configuração de CORS (permitir todos os origens por padrão para desenvolvimento).
