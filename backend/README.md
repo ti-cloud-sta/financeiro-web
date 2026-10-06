@@ -51,6 +51,8 @@ GOOGLE_REDIRECT_URI=http://localhost:8000/api/v1/auth/google/callback
 
 **Produção (Docker/VPS):** as variáveis vêm do `.env` da **raiz do projeto**, injetadas pelo `docker-compose.yml` (o `.env` do backend não é copiado para a imagem).
 
+**Teste (Docker/VPS):** o `docker-compose.dev.yml` sobe o `backend-dev` com `DATABASE_NAME=stamariabd_dev`, usuário `app_dev`, `JWT_KEY` próprio, Gmail desligado, `ENVIRONMENT=development` e `ROOT_PATH=/teste` (a API fica atrás de `https://stamaria.cloud/teste/`). `ROOT_PATH` é vazio por padrão e só deve ser definido quando a API for servida atrás de um prefixo de caminho.
+
 *Nota: O banco de dados já deve existir conforme a estrutura de tabelas definida em `databse/`. Não há Alembic/migrações — o schema é gerenciado manualmente.*
 
 `GEMINI_API_KEY` é obrigatório apenas para as extrações via IA (`/despesas-viagens/analisar-arquivo` e `/importacoes/plano-saude/*`); sem ele, essas rotas retornam erro explícito, mas o restante da API funciona normalmente. `GEMINI_MODEL` é opcional (default `gemini-3.5-flash-lite`; o parser de Despesas de Viagens usa um modelo fixo definido em `despesas_viagens_parser_service.py`).
@@ -71,6 +73,7 @@ Disponível apenas com `ENVIRONMENT=development` (em produção `/docs`, `/redoc
 
 - **Swagger UI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - **ReDoc**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+- **Ambiente de teste**: [https://stamaria.cloud/teste/docs](https://stamaria.cloud/teste/docs) — o "Try it out" chama a API de teste (`/teste/api/v1`). Autentique pelo `POST /api/v1/auth/login` e use o `access_token` no botão **Authorize**.
 
 ## Endpoints Disponíveis
 

@@ -16,6 +16,17 @@ npm start        # ng serve — http://localhost:4200/
 
 Outros scripts: `npm run build` (produção, saída em `dist/`), `npm run watch` (build incremental), `npm test` (Karma/Jasmine), `npm run lint` (ESLint).
 
+## Ambientes (produção e teste)
+
+O mesmo build atende `https://stamaria.cloud/` (produção) e `https://stamaria.cloud/teste/` (teste). A diferença é o caminho base: o `Dockerfile` recebe o build arg `BASE_HREF` (padrão `/`; o `docker-compose.dev.yml` usa `/teste/`) e repassa para `ng build --base-href`.
+
+`core/config/ambiente.ts` deriva tudo do `<base href>`:
+- `environment.apiUrl` (produção) vira `/api/v1` ou `/teste/api/v1`;
+- `isAmbienteTeste` liga o badge "Ambiente de Teste" e a navbar laranja (header e login);
+- `chaveStorage()` prefixa com `teste_` as chaves de sessão, já que os dois ambientes compartilham o `localStorage` do mesmo domínio.
+
+Regras ao desenvolver: nada de caminhos absolutos para recursos do site (`'/api/...'`, `'/maps/...'`, `src="/images/..."`) e chaves de sessão sempre via `chaveStorage()` — ver `.agents/rules/padroes-frontend-angular.md`, seção 5.
+
 ## Estrutura (`src/app/`)
 
 ```text
@@ -47,6 +58,7 @@ app/
 ## Camada de dados e HTTP
 
 - Serviços de features (`ColaboradoresService`, `ImportacoesService`, etc.) chamam `HttpClient` diretamente contra `environment.apiUrl` (`http://127.0.0.1:8000/api/v1` em dev; `/api/v1` em produção, com proxy do nginx para o backend).
+- `environment.prod.ts` monta a `apiUrl` a partir do caminho base (`/api/v1` ou `/teste/api/v1`); o `nginx.conf` do container repassa `/api/v1/` (e `/docs`, `/openapi.json`) para o backend do próprio ambiente, com timeout de 300 s e sem buffer.
 - `core/interceptors/auth.interceptor.ts` injeta o `Authorization: Bearer <token>` em toda requisição `HttpClient`; em `401` faz logout e em `403` exibe toast e volta para `/home`. Não há refresh token.
 - Processamentos longos com streaming NDJSON (importação de pendências e conciliação bancária) usam `fetch` + `ReadableStream` em `importacoes.service.ts`, lendo o token direto do `localStorage` (não passam pelo interceptor).
 

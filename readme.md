@@ -88,6 +88,23 @@ As extrações de faturas (Despesas de Viagens e Plano de Saúde) consomem o *Go
 
 ---
 
+# Ambientes (Produção e Teste)
+
+O mesmo repositório roda em dois ambientes independentes na VPS, no mesmo domínio. O caminho do site define tudo: cada front consome a própria API, que consome o próprio banco.
+
+| Ambiente | Site | API | Swagger | Banco | Branch |
+|---|---|---|---|---|---|
+| Produção | https://stamaria.cloud/ | `/api/v1` | desligado | `stamariabd` | `main` |
+| Teste | https://stamaria.cloud/teste/ | `/teste/api/v1` | https://stamaria.cloud/teste/docs | `stamariabd_dev` | `dev` |
+
+* **Banco de teste**: cópia da produção recriada **toda sexta-feira às 00:00** (`backend/scripts/clonar_banco_dev.sh` + timer systemd). Tudo o que for alterado no teste durante a semana é descartado. Usuários e senhas são os mesmos da produção; o Gmail fica desligado no teste.
+* **Identificação visual**: no teste, a navbar fica laranja e exibe o badge "Ambiente de Teste".
+* **Fluxo de trabalho**: desenvolver na `dev` → deploy no teste → PR `dev` → `main` → deploy na produção.
+* **Regras para o frontend**: não usar caminhos absolutos para recursos do site e passar chaves de sessão por `chaveStorage()` (ver `.agents/rules/padroes-frontend-angular.md`, seção 5).
+* **Infraestrutura, instalação e reversão**: `.agents/context/infraestrutura-vps.md`.
+
+---
+
 # Estrutura do Frontend Angular
 
 ```text
@@ -130,3 +147,12 @@ Este ERP não é apenas um sistema, mas uma plataforma em constante evolução. 
 * **Padronização de Abas**: As abas departamentais (Financeiro, Comercial, Logística) agora compartilham do mesmo padrão estrutural: um painel 'Atual' contendo KPIs e a Grid principal de faturas, e seções de 'Rankings' e 'Evolução' extraídas para cartões Full-Width.
 * **Nova Visão por Carteira**: Implementação completa da aba 'Gerente/Representante' no Financeiro, com seletores de carteira e grids de KPIs segmentados.
 * **Ações e Histórico**: Integração padronizada do Modal de 'Tratativas e Histórico' em todas as grids de inadimplência.
+
+## 05–06/10/2026 - Ambiente de Teste, Infraestrutura e Documentação
+* **Ambiente de Teste completo** em `https://stamaria.cloud/teste/`: frontend e backend da branch `dev` (`docker-compose.dev.yml`) usando o banco `stamariabd_dev` (usuário MySQL `app_dev`, restrito a esse banco).
+* **Clone semanal do banco**: `backend/scripts/clonar_banco_dev.sh` + `clone-banco-dev.timer` (sextas, 00:00 Brasília), com trava contra gravação na produção, remoção dos tokens Google no teste e validação de views/contagens.
+* **Frontend multiambiente**: build com `--base-href` (`BASE_HREF` no `Dockerfile`); `core/config/ambiente.ts` deriva a URL da API, a sinalização visual (badge + navbar laranja) e o prefixo das chaves de sessão a partir do caminho base. Mapa do Brasil passou a usar caminho relativo.
+* **Swagger de teste** em `/teste/docs` via `ROOT_PATH` no backend (`FastAPI(root_path=...)`) e rotas `/docs`/`/openapi.json` no `frontend/nginx.conf`; na produção a documentação segue desligada.
+* **Proxy**: timeouts de 300 s e `proxy_buffering off` no nginx do host e do container (corrige o 504 nas análises com IA e o atraso nos eventos NDJSON).
+* **VPS**: fail2ban instalado no SSH; manutenção única agendada (atualização de pacotes + reboot pendente do kernel); infraestrutura documentada em `.agents/context/infraestrutura-vps.md`.
+* **Documentação**: READMEs (raiz, backend, frontend) e contexto de Despesas de Viagens alinhados ao código real; regra de testes Cypress removida (não há Cypress no projeto); nova regra de caminho base/sessão no frontend; `notas.txt` (com credenciais) retirado do repositório e substituído pelo `notas.local.txt`, ignorado pelo Git.
