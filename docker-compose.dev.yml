@@ -24,6 +24,8 @@ services:
       # Chave diferente da produção: tokens de um ambiente não valem no outro.
       JWT_KEY: ${JWT_KEY_DEV}
       ENVIRONMENT: development
+      # Swagger em https://stamaria.cloud/teste/docs: o "Try it out" chama /teste/api/v1 (API de teste).
+      ROOT_PATH: /teste
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL}
       # Gmail desligado no teste: evita envio de e-mails reais e callbacks OAuth caindo na produção.

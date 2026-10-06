@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     # não deve expor documentação pública.
     ENVIRONMENT: str = "production"
 
+    # Prefixo público quando a API é servida atrás de um caminho (ambiente de teste: "/teste").
+    # Usado pelo Swagger para buscar o /openapi.json e montar as chamadas do "Try it out".
+    # Vazio na produção e no desenvolvimento local.
+    ROOT_PATH: str = ""
+
     FRONTEND_URL: str = "http://localhost:4200"
 
     # Usando o conector assíncrono seria ideal, mas para manter simples no ORM padrão do SQLAlchemy
