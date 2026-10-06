@@ -6,6 +6,7 @@ import { IAuthService } from '../interfaces/auth.service';
 import { AuthResponse, AuthTokens, LoginCredentials, RegisterCredentials } from '../models/auth.model';
 import { IEnvironmentService } from '../http/environment.service';
 import { User } from '../models/user.model';
+import { chaveStorage } from '../config/ambiente';
 
 @Injectable({
   providedIn: 'root'
@@ -16,8 +17,8 @@ export class AuthService implements IAuthService {
   private router = inject(Router);
 
   private readonly API_URL = this.envService.apiUrl;
-  private readonly USER_STORAGE_KEY = 'erp_current_user';
-  private readonly TOKEN_KEY = 'erp_access_token';
+  private readonly USER_STORAGE_KEY = chaveStorage('erp_current_user');
+  private readonly TOKEN_KEY = chaveStorage('erp_access_token');
 
   private _currentUser = signal<User | null>(null);
 

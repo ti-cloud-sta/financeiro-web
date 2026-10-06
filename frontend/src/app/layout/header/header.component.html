@@ -1,4 +1,4 @@
-<header class="header">
+<header class="header" [class.header-teste]="isAmbienteTeste">
 
   <!-- LEFT: LOGO -->
   <div class="header-brand d-flex align-items-center">
@@ -25,6 +25,12 @@
   </div>
 
   <div class="header-actions">
+
+    @if (isAmbienteTeste) {
+      <span class="env-badge" title="Dados de teste, copiados da produção toda sexta-feira. Nada feito aqui afeta a produção.">
+        <i class="fa-solid fa-flask"></i> Ambiente de Teste
+      </span>
+    }
 
     <button class="theme-toggle-btn" (click)="themeService.toggleTheme()"
       [title]="themeService.activeTheme() === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'"

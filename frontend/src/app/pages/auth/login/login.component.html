@@ -23,6 +23,13 @@
         <p class="subtitle">Bem-vindo de volta! Acesse sua conta.</p>
       </div>
 
+      @if (isAmbienteTeste) {
+        <div class="login-env-teste">
+          <span class="login-env-teste-title"><i class="fa-solid fa-flask"></i> Ambiente de Teste</span>
+          <span>Dados copiados da produção toda sexta-feira. Nada feito aqui afeta a produção.</span>
+        </div>
+      }
+
       @if (errorMessage) {
         <div class="login-error-alert">
           <i class="fa-solid fa-circle-exclamation"></i>

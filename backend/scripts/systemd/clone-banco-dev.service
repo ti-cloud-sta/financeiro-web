@@ -1,0 +1,9 @@
+# Clone do banco de produção para o dev. Instalação na VPS: ver .agents/context/infraestrutura-vps.md
+[Unit]
+Description=Clona o banco stamariabd para stamariabd_dev (ambiente dev do ERP)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /root/projects/financeiro-web/backend/scripts/clonar_banco_dev.sh

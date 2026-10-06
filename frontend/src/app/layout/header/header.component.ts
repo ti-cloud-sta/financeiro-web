@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { IAuthService } from '../../core/interfaces/auth.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { ThemeService } from '../../core/services/theme.service';
+import { isAmbienteTeste } from '../../core/config/ambiente';
 
 @Component({
   selector: 'app-header',
@@ -16,6 +17,7 @@ export class HeaderComponent {
   themeService = inject(ThemeService);
   authService = inject(IAuthService);
   user = this.authService.currentUser;
+  readonly isAmbienteTeste = isAmbienteTeste;
 
   logout() {
     this.authService.logout().subscribe();

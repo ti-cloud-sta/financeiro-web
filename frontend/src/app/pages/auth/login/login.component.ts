@@ -8,6 +8,7 @@ import { InputComponent } from '../../../shared/components/input/input.component
 import { CardComponent } from '../../../shared/components/card/card.component';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
 import { RouterLink } from '@angular/router';
+import { isAmbienteTeste } from '../../../core/config/ambiente';
 
 @Component({
   selector: 'app-login',
@@ -29,6 +30,7 @@ export class LoginComponent {
   private authService = inject(IAuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  readonly isAmbienteTeste = isAmbienteTeste;
 
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
