@@ -136,43 +136,6 @@
       border: 1px solid rgba($orange, 0.35);
     }
 
-    .env-switch {
-      display: inline-flex;
-      padding: 0.125rem;
-      border-radius: 8px;
-      border: 1px solid var(--color-border);
-      background-color: var(--color-surface);
-
-      .env-switch-option {
-        border: none;
-        background: transparent;
-        padding: 0.25rem 0.75rem;
-        border-radius: 6px;
-        font-size: 0.8125rem;
-        font-weight: $font-weight-medium;
-        color: var(--color-text-muted);
-        cursor: pointer;
-        transition: all 0.2s ease;
-
-        &:hover:not(.active) {
-          color: var(--color-text-secondary);
-          background-color: var(--color-surface-hover);
-        }
-
-        &.active {
-          cursor: default;
-          color: $primary;
-          background-color: rgba($primary, 0.1);
-          font-weight: $font-weight-semibold;
-        }
-
-        &.env-switch-option-dev.active {
-          color: $orange;
-          background-color: rgba($orange, 0.12);
-        }
-      }
-    }
-
     .theme-toggle-btn {
       background: none;
       border: none;
@@ -251,6 +214,13 @@
         margin-left: 0.25rem;
       }
     }
+  }
+
+  // Ambiente de teste (stamaria.cloud/teste/): navbar tingida de laranja nos dois temas.
+  // !important + seletor mais específico para vencer o override global de .header (_theme_overrides).
+  &.header-teste {
+    background-image: linear-gradient(rgba($orange, 0.1), rgba($orange, 0.1)) !important;
+    border-bottom: 2px solid $orange !important;
   }
 
   @media (max-width: 992px) {

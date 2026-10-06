@@ -1,13 +1,14 @@
-# Ambiente DEV — sobe apenas o backend da branch dev, ligado ao MySQL de produção
-# no banco stamariabd_dev (clone semanal do stamariabd, ver backend/scripts/clonar_banco_dev.sh).
+# Ambiente de TESTE (https://stamaria.cloud/teste/) — frontend e backend da branch dev,
+# usando o banco stamariabd_dev (clone semanal do stamariabd, ver backend/scripts/clonar_banco_dev.sh)
+# no mesmo MySQL da produção.
 #
 # Na VPS, a partir do checkout da branch dev (/root/projects/financeiro-web-dev):
 #   git pull
-#   docker compose -f docker-compose.dev.yml -p financeiro-web-dev up -d --build
+#   docker compose -f docker-compose.dev.yml up -d --build
 #
-# Requer o stack de produção (docker-compose.yml) rodando, pois usa a rede dele para
-# alcançar o "db" e para receber as requisições de /api-dev/ do nginx do frontend.
+# Requer o stack de produção (docker-compose.yml) rodando: o backend-dev usa a rede dele só para alcançar o "db".
 # Variáveis lidas do .env deste checkout: MYSQL_DEV_PASSWORD, JWT_KEY_DEV, GEMINI_API_KEY, GEMINI_MODEL.
+name: financeiro-web-dev
 
 services:
   backend-dev:
@@ -25,14 +26,35 @@ services:
       ENVIRONMENT: development
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL}
-      # Gmail desligado no dev: evita envio de e-mails reais e callbacks OAuth caindo na produção.
+      # Gmail desligado no teste: evita envio de e-mails reais e callbacks OAuth caindo na produção.
       GOOGLE_CLIENT_ID: ""
       GOOGLE_CLIENT_SECRET: ""
       GOOGLE_REDIRECT_URI: ""
     networks:
-      - producao
+      teste:
+        # O nginx do frontend procura "backend"; esse nome só existe na rede do teste.
+        # Na rede da produção este container é apenas "backend-dev" e nunca recebe tráfego de produção.
+        aliases:
+          - backend
+      producao: {}
+
+  frontend-dev:
+    build:
+      context: ./frontend
+      args:
+        # Build servido em /teste/: rotas, assets e API (/teste/api/v1) passam a partir desse caminho.
+        BASE_HREF: /teste/
+    restart: unless-stopped
+    depends_on:
+      - backend-dev
+    # O nginx do host encaminha https://stamaria.cloud/teste/* para cá, removendo o prefixo /teste.
+    ports:
+      - "127.0.0.1:8081:80"
+    networks:
+      - teste
 
 networks:
+  teste: {}
   producao:
     external: true
     name: financeiro-web_default

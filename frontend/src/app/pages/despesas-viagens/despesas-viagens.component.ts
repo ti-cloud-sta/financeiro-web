@@ -35,6 +35,7 @@ import { ThemeService } from '../../core/services/theme.service';
 import { ToastService } from '../../core/services/toast.service';
 import { RelatorioViagensComponent } from './relatorio-viagens/relatorio-viagens.component';
 import { ColaboradorModalComponent } from '../../shared/components/colaborador-modal/colaborador-modal.component';
+import { chaveStorage } from '../../core/config/ambiente';
 
 @Component({
   selector: 'app-despesas-viagens',
@@ -320,7 +321,8 @@ export class DespesasViagensComponent implements OnInit {
         this.isDashboardLoading = false;
 
         // 4. Mapa (carregado de forma independente, sem bloquear o restante)
-        this.http.get('/maps/brazil.json').subscribe({
+        // Caminho relativo ao <base href>: funciona em "/" (produção) e "/teste/" (teste).
+        this.http.get('maps/brazil.json').subscribe({
           next: (geoJson: any) => {
             echarts.registerMap('brazil', geoJson);
             const maxVal = Math.max(1000, ...(res.mapaData || []).map((d: any) => d.value));
@@ -589,7 +591,7 @@ export class DespesasViagensComponent implements OnInit {
     };
     try {
       const obfuscated = btoa(encodeURIComponent(JSON.stringify(draft)));
-      sessionStorage.setItem('despesas_viagens_draft', obfuscated);
+      sessionStorage.setItem(chaveStorage('despesas_viagens_draft'), obfuscated);
     } catch(e) {}
   }
 
@@ -601,11 +603,11 @@ export class DespesasViagensComponent implements OnInit {
   }
 
   private _clearDraft() {
-    sessionStorage.removeItem('despesas_viagens_draft');
+    sessionStorage.removeItem(chaveStorage('despesas_viagens_draft'));
   }
 
   private _loadDraft(): boolean {
-    const draftStr = sessionStorage.getItem('despesas_viagens_draft');
+    const draftStr = sessionStorage.getItem(chaveStorage('despesas_viagens_draft'));
     if (draftStr) {
       try {
         const draft = JSON.parse(decodeURIComponent(atob(draftStr)));

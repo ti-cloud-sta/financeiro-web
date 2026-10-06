@@ -62,7 +62,7 @@ Internet → nginx do host (:443, TLS) → 127.0.0.1:8080 (nginx do container fr
 - Site: `/etc/nginx/sites-available/stamaria.cloud` (link em `sites-enabled`). HTTP `:80` redireciona para HTTPS.
 - Certificado Let's Encrypt (`certbot`), renovação automática pelo `certbot.timer`. Validade atual até **03/12/2026**.
 - `/etc/nginx/nginx.conf`: `client_max_body_size 100M`, `gzip on`.
-- Até 05/10/2026 não havia `proxy_read_timeout` em nenhuma das camadas (limite padrão de 60 s; houve 504 em `POST /api/v1/despesas-viagens/analisar-arquivo` em 01/10/2026). O `frontend/nginx.conf` passou a usar 300 s e `proxy_buffering off` nas rotas de API; o nginx do host precisa do mesmo ajuste (ver seção 6).
+- Até 05/10/2026 não havia `proxy_read_timeout` em nenhuma das camadas (limite padrão de 60 s; houve 504 em `POST /api/v1/despesas-viagens/analisar-arquivo` em 01/10/2026). O `frontend/nginx.conf` passou a usar 300 s e `proxy_buffering off` em `/api/v1/`; o nginx do host precisa do mesmo ajuste (ver seção 6, passo 7).
 
 ---
 
@@ -91,20 +91,26 @@ Internet → nginx do host (:443, TLS) → 127.0.0.1:8080 (nginx do container fr
 
 ---
 
-## 6. Ambiente DEV
+## 6. Ambiente de Teste
+
+Mesmo repositório, dois ambientes independentes no mesmo domínio. O caminho define tudo: cada site consome a própria API, que consome o próprio banco.
 
 ```text
-stamaria.cloud/api/v1/...      → backend (main)      → stamariabd      (produção)
-stamaria.cloud/api-dev/v1/...  → backend-dev (dev)   → stamariabd_dev  (clone semanal)
+PRODUÇÃO  https://stamaria.cloud/         → frontend (main)     → /api/v1        → backend (main)     → stamariabd
+TESTE     https://stamaria.cloud/teste/   → frontend-dev (dev)  → /teste/api/v1  → backend-dev (dev)  → stamariabd_dev
 ```
+
+Todas as rotas do teste ficam sob `/teste/` (ex.: `/teste/login`, `/teste/inadimplencia`, `/teste/compartilhar/logistica`).
 
 | Peça | Detalhe |
 |---|---|
 | Banco | `stamariabd_dev` no mesmo MySQL; usuário `app_dev` com acesso **somente** a esse banco. |
-| Clone | `backend/scripts/clonar_banco_dev.sh` (host), toda **sexta 00:00 (Brasília)** via `clone-banco-dev.timer`. Recria o dev do zero, apaga `users.refresh_token_google`, valida views/contagens e reinicia o `backend-dev`. Log: `/var/log/clone-banco-dev.log`. |
-| Backend dev | Checkout da branch `dev` em `/root/projects/financeiro-web-dev`, subido com `docker-compose.dev.yml` (projeto `financeiro-web-dev`, container `financeiro-web-dev-backend-dev-1`) na rede `financeiro-web_default`. JWT próprio (`JWT_KEY_DEV`), Gmail desligado, `ENVIRONMENT=development`. |
-| Rota | `location /api-dev/` em `frontend/nginx.conf` (resolver dinâmico: o nginx sobe mesmo com o dev parado; sem o dev, `/api-dev/` responde 502). |
-| Frontend | O mesmo de produção. Admin troca no seletor "Produção / Dev" do header (chave `localStorage['erp_ambiente_api']`); a troca encerra a sessão e recarrega. Com o dev ativo, header e login exibem o badge "Ambiente DEV". |
+| Clone | `backend/scripts/clonar_banco_dev.sh` (host), toda **sexta 00:00 (Brasília)** via `clone-banco-dev.timer`. Recria o banco de teste do zero, apaga `users.refresh_token_google`, valida views/contagens e reinicia o `backend-dev`. Log: `/var/log/clone-banco-dev.log`. |
+| Containers | Checkout da branch `dev` em `/root/projects/financeiro-web-dev`, subido com `docker-compose.dev.yml` (projeto `financeiro-web-dev`): `frontend-dev` em `127.0.0.1:8081` e `backend-dev` (JWT próprio `JWT_KEY_DEV`, Gmail desligado, `ENVIRONMENT=development`). |
+| Redes | Rede própria `financeiro-web-dev_teste`, onde o `backend-dev` tem o alias `backend` (por isso o mesmo `frontend/nginx.conf` serve aos dois ambientes). O `backend-dev` também entra na rede `financeiro-web_default` **só para alcançar o `db`** — lá ele é apenas `backend-dev` e nunca recebe tráfego de produção. Não conectar o `frontend-dev` à rede de produção. |
+| Frontend | Mesmo código, sem seletor. O `frontend-dev` é buildado com `--base-href /teste/` (build arg `BASE_HREF` no `Dockerfile`). `core/config/ambiente.ts` deriva tudo do `<base href>`: `apiUrl` vira `/teste/api/v1`, o badge "Ambiente de Teste" e a navbar laranja aparecem, e as chaves de sessão (`erp_access_token`, `erp_current_user`, `despesas_viagens_draft`) ganham o prefixo `teste_` — os dois ambientes compartilham o `localStorage` por estarem no mesmo domínio. |
+| Roteamento | Bloco `location /teste/` no site `stamaria.cloud` do nginx do host → `127.0.0.1:8081/` (remove o prefixo). O nginx do `frontend-dev` recebe `/api/v1/...` e `/rotas` como na produção. Sem domínio, DNS ou certificado novos. |
+| Atenção | Caminhos absolutos no front (`'/algo'` em `http.get`, `fetch`, `href`, `src`) quebram o teste: usar caminhos relativos ao `<base href>` ou `environment.apiUrl`. Links fixos do backend para `https://stamaria.cloud/compartilhar/...` (e-mails de compartilhamento) apontam sempre para a produção — no teste o Gmail fica desligado. |
 
 ### Instalação (uma vez)
 1. Banco e usuário (executado pelo usuário em 05/10/2026): `CREATE DATABASE stamariabd_dev`, `CREATE USER 'app_dev'@'%'`, `GRANT ALL ON stamariabd_dev.*`.
@@ -119,12 +125,27 @@ stamaria.cloud/api-dev/v1/...  → backend-dev (dev)   → stamariabd_dev  (clon
    systemctl daemon-reload && systemctl enable --now clone-banco-dev.timer
    systemctl start clone-banco-dev.service   # primeiro clone
    ```
-5. Subir o dev: `cd /root/projects/financeiro-web-dev && docker compose -f docker-compose.dev.yml -p financeiro-web-dev up -d --build`
-6. Rebuild do frontend de produção (nova rota `/api-dev/`): `cd /root/projects/financeiro-web && docker compose up -d --build frontend`
-7. nginx do host: `proxy_read_timeout 300s; proxy_send_timeout 300s; proxy_buffering off;` no `location /` de `stamaria.cloud`, seguido de `nginx -t && systemctl reload nginx`.
+5. Subir o teste: `cd /root/projects/financeiro-web-dev && docker compose -f docker-compose.dev.yml up -d --build`
+6. nginx do host, no bloco `server` HTTPS de `/etc/nginx/sites-available/stamaria.cloud` (antes do `location /`):
+   ```nginx
+   location = /teste { return 301 /teste/; }
+
+   location /teste/ {
+       proxy_pass http://127.0.0.1:8081/;
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_read_timeout 300s;
+       proxy_send_timeout 300s;
+       proxy_buffering off;
+   }
+   ```
+   No `location /` existente, acrescentar os mesmos `proxy_read_timeout`/`proxy_send_timeout`/`proxy_buffering`. Depois: `nginx -t && systemctl reload nginx`.
+7. Rebuild do frontend de produção (timeouts no `nginx.conf` do container e `apiUrl` derivada do base href): `cd /root/projects/financeiro-web && docker compose up -d --build frontend`
 
 ### Operação
-- Deploy do dev: `cd /root/projects/financeiro-web-dev && git pull && docker compose -f docker-compose.dev.yml -p financeiro-web-dev up -d --build`
+- Deploy do teste: `cd /root/projects/financeiro-web-dev && git pull && docker compose -f docker-compose.dev.yml up -d --build`
 - Clone fora de hora: `systemctl start clone-banco-dev.service`
 - Próxima execução: `systemctl list-timers clone-banco-dev.timer`
 

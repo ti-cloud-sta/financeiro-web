@@ -23,13 +23,10 @@
         <p class="subtitle">Bem-vindo de volta! Acesse sua conta.</p>
       </div>
 
-      @if (ambienteApi.isDev) {
-        <div class="login-env-dev">
-          <div class="login-env-dev-text">
-            <span class="login-env-dev-title"><i class="fa-solid fa-flask"></i> Ambiente DEV</span>
-            <span>Dados de teste, copiados da produção toda sexta-feira.</span>
-          </div>
-          <button type="button" class="login-env-dev-back" (click)="voltarParaProducao()">Voltar para Produção</button>
+      @if (isAmbienteTeste) {
+        <div class="login-env-teste">
+          <span class="login-env-teste-title"><i class="fa-solid fa-flask"></i> Ambiente de Teste</span>
+          <span>Dados copiados da produção toda sexta-feira. Nada feito aqui afeta a produção.</span>
         </div>
       }
 

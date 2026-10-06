@@ -1,10 +1,7 @@
-import { lerAmbienteApi } from '../app/core/config/ambiente-api';
-
-const ambienteApi = lerAmbienteApi();
+import { basePath } from '../app/core/config/ambiente';
 
 export const environment = {
   production: true,
-  ambienteApi,
-  // Mesmo domínio: o nginx encaminha /api/ para o backend de produção e /api-dev/ para o backend dev.
-  apiUrl: ambienteApi === 'dev' ? '/api-dev/v1' : '/api/v1'
+  // Relativo ao caminho base: "/api/v1" na produção e "/teste/api/v1" no ambiente de teste.
+  apiUrl: `${basePath}api/v1`
 };

@@ -6,7 +6,9 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build -- --configuration production
+# Caminho base do site: "/" na produção; "/teste/" no ambiente de teste (docker-compose.dev.yml).
+ARG BASE_HREF=/
+RUN npm run build -- --configuration production --base-href "$BASE_HREF"
 
 FROM nginx:alpine
 

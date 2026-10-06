@@ -2,6 +2,7 @@ import { Injectable, NgZone } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { chaveStorage } from '../config/ambiente';
 
 export interface Importacao {
   idImportacoes: number;
@@ -252,7 +253,7 @@ export class ImportacoesService {
       const formData = new FormData();
       formData.append('file', file);
       
-      const token = localStorage.getItem('erp_access_token') || localStorage.getItem('access_token');
+      const token = localStorage.getItem(chaveStorage('erp_access_token')) || localStorage.getItem('access_token');
       const headers: Record<string, string> = {};
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -863,7 +864,7 @@ export class ImportacoesService {
     }
 
     return new Observable(observer => {
-      const token = localStorage.getItem('erp_access_token');
+      const token = localStorage.getItem(chaveStorage('erp_access_token'));
       const headers: any = {};
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
