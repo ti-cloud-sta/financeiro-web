@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 from typing import Optional
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -7,7 +8,12 @@ from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.importacao import Importacao
-from app.schemas.previsao_caixa import ImportacaoApbResponse, ImportacaoAcrResponse, ImportacaoTitulosLiquidadosResponse
+from app.schemas.previsao_caixa import (
+    ImportacaoApbResponse,
+    ImportacaoAcrResponse,
+    ImportacaoTitulosLiquidadosResponse,
+    DashboardVisaoGeralResponse
+)
 from app.services.previsao_caixa_service import PrevisaoCaixaService
 
 logger = logging.getLogger("santamaria")
@@ -133,4 +139,25 @@ def excluir_importacao_previsao(
         db.rollback()
         logger.exception("Erro ao excluir importação %s: %s", id_importacao, str(e))
         raise HTTPException(status_code=500, detail=f"Erro ao excluir importação: {str(e)}")
+
+
+@router.get(
+    "/visao-geral",
+    response_model=DashboardVisaoGeralResponse,
+    summary="Dashboard consolidado de Visão Geral da Previsão de Caixa",
+    description="Retorna indicadores e listas de Contas a Pagar e Receber para a data de referência (padrão: data atual)."
+)
+def get_dashboard_visao_geral(
+    data: Optional[date] = Query(None, description="Data de referência (padrão: data atual)"),
+    service: PrevisaoCaixaService = Depends(get_previsao_caixa_service),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        return service.get_visao_geral(data_ref=data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Erro ao obter dashboard de visão geral: %s", str(e))
+        raise HTTPException(status_code=500, detail=f"Erro ao carregar dados de visão geral: {str(e)}")
+
 

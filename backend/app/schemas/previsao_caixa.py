@@ -101,3 +101,76 @@ class ImportacaoTitulosLiquidadosResponse(BaseModel):
     nomeArquivo: str
     totalRegistros: int
     totalValor: float
+
+class ContaPagarItemDto(BaseModel):
+    id: int
+    banco: str
+    favorecido: str
+    categoria: str
+    descricao: str
+    valor: float
+    dataVencimento: str
+    tipo: str
+    status: str = 'PROGRAMADO'
+    numeroDocumento: Optional[str] = None
+    idMatriz: Optional[int] = None
+    codigoMatriz: Optional[str] = None
+    nomeMatriz: Optional[str] = None
+    clienteCodigo: Optional[int] = None
+    clienteNome: Optional[str] = None
+
+class MatrizAgrupadaTituloDto(BaseModel):
+    id: int
+    numeroDocumento: Optional[str] = None
+    valor: float
+    clienteCodigo: Optional[int] = None
+    clienteNome: Optional[str] = None
+    dataVencimento: Optional[str] = None
+    banco: Optional[str] = None
+    categoria: Optional[str] = None
+    descricao: Optional[str] = None
+
+class MatrizAgrupadaDto(BaseModel):
+    idMatriz: Optional[int] = None
+    codigoMatriz: Optional[str] = None
+    nomeMatriz: str
+    banco: str
+    tipo: str
+    valorTotal: float
+    qtdTitulos: int
+    titulos: List[MatrizAgrupadaTituloDto] = []
+
+class DashboardVisaoGeralResponse(BaseModel):
+    data_referencia: str
+    data_formatada: str
+    is_hoje: bool
+
+    # KPIs Contas a Pagar
+    total_provisao: float
+    qtd_provisoes: int
+    total_pagar: float
+    qtd_pagar_real: int
+    total_bb: float
+    total_itau: float
+
+    # Listas Contas a Pagar
+    contas_bb: List[ContaPagarItemDto] = []
+    contas_itau: List[ContaPagarItemDto] = []
+    contas_provisao: List[ContaPagarItemDto] = []
+
+    # Matrizes agrupadas para cards
+    matrizes_agrupadas: List[MatrizAgrupadaDto] = []
+
+    # Demais campos da Visão Geral
+    total_receber: float = 0.0
+    qtd_receber: int = 0
+    total_receber_carteira: float = 0.0
+    total_receber_boleto: float = 0.0
+    receber_menor_igual_80: float = 0.0
+    receber_maior_80: float = 0.0
+    saldo_previsibilidade: float = 0.0
+    saldo_real_nominal: float = 0.0
+    valor_investido_resgatavel: float = 0.0
+    contas_receber: List[dict] = []
+
+

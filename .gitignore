@@ -22,3 +22,6 @@ __pycache__/
 # OS & Editor
 .DS_Store
 Thumbs.db
+
+# Arquivos locais e planilhas de carga
+files/

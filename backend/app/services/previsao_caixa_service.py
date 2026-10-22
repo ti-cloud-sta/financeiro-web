@@ -5,13 +5,16 @@ from decimal import Decimal
 from typing import Optional, List, Dict, Any
 
 from fastapi import UploadFile, HTTPException
+from sqlalchemy import func, cast, Integer, text
 from sqlalchemy.orm import Session
 import openpyxl
 
 from app.models.importacao import Importacao
-from app.models.previsao_apb import PrevisaoApb
+from app.models.previsao_apb import PrevisaoApb, VwPrevisaoApb
 from app.models.previsao_acr import PrevisaoAcr
 from app.models.previsao_titulos_liquidados import PrevisaoTitulosLiquidados
+from app.models.cliente import Cliente
+from app.models.matriz_cliente import MatrizCliente
 from app.models.user import User
 
 logger = logging.getLogger("santamaria")
@@ -294,9 +297,9 @@ class PrevisaoCaixaService:
                 detail=f"Não foi possível abrir o arquivo Excel. Verifique se o arquivo não está corrompido: {str(e)}"
             )
 
-        # Localiza a aba ACR ou Resumo (ou fallback primeira aba)
+        # Localiza a aba Resumo (que contém Dt Entrega e Tipo Pedido) ou fallback para ACR/DADOS
         sheet_target = None
-        for cand in ["ACR", "RESUMO", "DADOS"]:
+        for cand in ["RESUMO", "ACR", "DADOS"]:
             for name in wb.sheetnames:
                 if name.strip().upper() == cand:
                     sheet_target = name
@@ -637,3 +640,298 @@ class PrevisaoCaixaService:
             "totalRegistros": total_registros,
             "totalValor": float(total_valor_somado)
         }
+
+    def get_visao_geral(self, data_ref: Optional[date] = None) -> Dict[str, Any]:
+        """
+        Retorna os dados consolidados do painel Visão Geral de Previsão de Caixa.
+        Primeira parte: Contas a Pagar (APB) classificadas em Provisão, Banco do Brasil e Itaú.
+        Sempre traz a posição da data atual (ou mais recente disponível se o dia ainda não tiver registros).
+        """
+        hoje = date.today()
+        if not data_ref:
+            tem_hoje = self.db.query(VwPrevisaoApb.id).filter(VwPrevisaoApb.data == hoje).first()
+            data_consulta = hoje if tem_hoje else (self.db.query(func.max(VwPrevisaoApb.data)).scalar() or hoje)
+        else:
+            data_consulta = data_ref
+
+        titulos_apb = (
+            self.db.query(
+                VwPrevisaoApb,
+                Cliente.codigo.label("cliente_codigo"),
+                Cliente.nome.label("cliente_nome"),
+                MatrizCliente.idmatrizCliente.label("id_matriz"),
+                MatrizCliente.codigo.label("codigo_matriz"),
+                MatrizCliente.nome.label("nome_matriz")
+            )
+            .outerjoin(Cliente, Cliente.codigo == cast(VwPrevisaoApb.numero_fornecedor, Integer))
+            .outerjoin(MatrizCliente, MatrizCliente.idmatrizCliente == Cliente.idMatriz)
+            .filter(VwPrevisaoApb.data == data_consulta)
+            .order_by(VwPrevisaoApb.valor.desc())
+            .all()
+        )
+
+        contas_bb = []
+        contas_itau = []
+        contas_provisao = []
+
+        total_provisao = 0.0
+        total_bb = 0.0
+        total_itau = 0.0
+
+        grupos_matriz: Dict[tuple, Dict[str, Any]] = {}
+
+        for row in titulos_apb:
+            t, c_cod, c_nome, m_id, m_cod, m_nome = row
+            vlr = float(t.valor or 0.0)
+            fav = (t.nome_emitente or t.nome_abrev or "Não informado").strip()
+            cat = (t.cod_tp_fluxo or t.esp or "").strip()
+            desc = (t.trans or t.modulo or "Despesa").strip()
+            doc = f"{t.n_titulo or ''}/{t.parcela or ''}".strip('/')
+            dt_venc = t.data.strftime("%d/%m/%Y") if t.data else ""
+
+            id_matriz = m_id
+            cod_matriz = m_cod
+            nome_matriz = m_nome or fav
+            if not cod_matriz:
+                cod_matriz = t.nome_abrev or fav
+
+            cli_cod = c_cod or (int(t.numero_fornecedor) if (t.numero_fornecedor and t.numero_fornecedor.isdigit()) else None)
+            cli_nome = c_nome or fav
+
+            item_dto = {
+                "id": t.id,
+                "banco": t.banco_destino or "ITAU",
+                "favorecido": fav,
+                "categoria": cat,
+                "descricao": desc,
+                "valor": vlr,
+                "dataVencimento": dt_venc,
+                "tipo": t.tipo_conta or "REAL",
+                "status": "PROGRAMADO",
+                "numeroDocumento": doc,
+                "idMatriz": id_matriz,
+                "codigoMatriz": cod_matriz,
+                "nomeMatriz": nome_matriz,
+                "clienteCodigo": cli_cod,
+                "clienteNome": cli_nome
+            }
+
+            if t.banco_destino == 'PROVISAO' or t.tipo_conta == 'PROVISAO':
+                contas_provisao.append(item_dto)
+                total_provisao += vlr
+            elif t.banco_destino == 'BANCO_DO_BRASIL':
+                contas_bb.append(item_dto)
+                total_bb += vlr
+            else:
+                contas_itau.append(item_dto)
+                total_itau += vlr
+
+            chave_matriz = (id_matriz, cod_matriz, nome_matriz, t.banco_destino or "ITAU", t.tipo_conta or "REAL")
+            if chave_matriz not in grupos_matriz:
+                grupos_matriz[chave_matriz] = {
+                    "idMatriz": id_matriz,
+                    "codigoMatriz": cod_matriz,
+                    "nomeMatriz": nome_matriz,
+                    "banco": t.banco_destino or "ITAU",
+                    "tipo": t.tipo_conta or "REAL",
+                    "valorTotal": 0.0,
+                    "qtdTitulos": 0,
+                    "titulos": []
+                }
+            grupos_matriz[chave_matriz]["valorTotal"] = round(grupos_matriz[chave_matriz]["valorTotal"] + vlr, 2)
+            grupos_matriz[chave_matriz]["qtdTitulos"] += 1
+            grupos_matriz[chave_matriz]["titulos"].append({
+                "id": t.id,
+                "numeroDocumento": doc,
+                "valor": vlr,
+                "clienteCodigo": cli_cod,
+                "clienteNome": cli_nome,
+                "dataVencimento": dt_venc,
+                "banco": t.banco_destino or "ITAU",
+                "categoria": cat,
+                "descricao": desc
+            })
+
+        matrizes_agrupadas = sorted(grupos_matriz.values(), key=lambda x: x["valorTotal"], reverse=True)
+
+        total_pagar_real = total_bb + total_itau
+        qtd_pagar_real = len(contas_bb) + len(contas_itau)
+        qtd_provisoes = len(contas_provisao)
+
+        # Contas a Receber a partir da view vw_previsao_acr
+        contas_receber: List[Dict[str, Any]] = []
+        total_receber_carteira = 0.0
+        total_receber_boleto = 0.0
+        receber_menor_igual_80 = 0.0
+        receber_maior_80 = 0.0
+        receber_ponderado = 0.0
+
+        try:
+            titulos_acr = self.db.execute(text("""
+                SELECT 
+                    id, esp, ser, titulo, parcela, modalidade, cliente, nome_cliente, vencto, saldo
+                FROM vw_previsao_acr
+                ORDER BY saldo DESC
+            """)).fetchall()
+
+            codigos_clientes = list(set([str(r.cliente).strip() for r in titulos_acr if r.cliente]))
+            historico_map: Dict[str, Dict[str, Any]] = {}
+
+            if codigos_clientes:
+                format_cli = "', '".join(codigos_clientes)
+                liq_rows = self.db.execute(text(f"""
+                    SELECT 
+                        cliente, 
+                        titulo, 
+                        parcela, 
+                        data_vencimento, 
+                        liquidacao, 
+                        data_credito, 
+                        val_movimento, 
+                        valor_liquido
+                    FROM previsao_titulos_liquidados
+                    WHERE cliente IN ('{format_cli}')
+                    ORDER BY liquidacao DESC
+                """)).fetchall()
+
+                from collections import defaultdict
+                por_cli = defaultdict(list)
+                for lr in liq_rows:
+                    por_cli[str(lr.cliente).strip()].append(lr)
+
+                for c_cod, l_list in por_cli.items():
+                    em_dia = 0
+                    atraso = 0
+                    soma_dias_atraso = 0
+                    valor_total_pago = 0.0
+                    lancamentos = []
+
+                    for row in l_list:
+                        dt_v = row.data_vencimento
+                        dt_p = row.liquidacao or row.data_credito
+                        vlr = float(row.valor_liquido or row.val_movimento or 0.0)
+                        valor_total_pago += vlr
+
+                        dias = (dt_p - dt_v).days if dt_p and dt_v else 0
+                        is_atrasado = dias > 0
+                        if is_atrasado:
+                            atraso += 1
+                            soma_dias_atraso += dias
+                        else:
+                            em_dia += 1
+
+                        if len(lancamentos) < 5:
+                            lancamentos.append({
+                                "titulo": f"NF {row.titulo}/{row.parcela}".strip('/'),
+                                "valor": round(vlr, 2),
+                                "dataVencimento": dt_v.strftime("%d/%m/%Y") if dt_v else "",
+                                "dataPagamento": dt_p.strftime("%d/%m/%Y") if dt_p else "",
+                                "diasAtraso": max(0, dias),
+                                "status": "ATRASADO" if is_atrasado else "EM_DIA"
+                            })
+
+                    total_t = em_dia + atraso
+                    score = round((em_dia / total_t) * 100) if total_t > 0 else 85
+                    media_dias = round(soma_dias_atraso / atraso, 1) if atraso > 0 else 0.0
+
+                    if score >= 90:
+                        classif = "Excelente (Altíssima Previsibilidade)"
+                    elif score >= 80:
+                        classif = "Bom (Alta Previsibilidade)"
+                    elif score >= 70:
+                        classif = "Regular (Previsibilidade Média)"
+                    else:
+                        classif = "Atenção (Baixa Previsibilidade)"
+
+                    historico_map[c_cod] = {
+                        "score": score,
+                        "classificacao": classif,
+                        "titulosEmDia": em_dia,
+                        "titulosEmAtraso": atraso,
+                        "percentualPontualidade": score,
+                        "mediaDiasAtraso": media_dias,
+                        "valorTotalPago": round(valor_total_pago, 2),
+                        "lancamentos": lancamentos
+                    }
+
+            for r in titulos_acr:
+                c_cod = str(r.cliente).strip() if r.cliente else ""
+                c_nome = (r.nome_cliente or 'Cliente').strip()
+                hist = historico_map.get(c_cod, {
+                    "clienteCodigo": c_cod,
+                    "clienteNome": c_nome,
+                    "score": 85,
+                    "classificacao": "Bom (Padrão)",
+                    "titulosEmDia": 0,
+                    "titulosEmAtraso": 0,
+                    "percentualPontualidade": 85,
+                    "mediaDiasAtraso": 0,
+                    "valorTotalPago": 0.0,
+                    "lancamentos": []
+                })
+                hist["clienteCodigo"] = c_cod
+                hist["clienteNome"] = c_nome
+
+                v_val = float(r.saldo or 0.0)
+                v_score = hist.get("score", 85)
+
+                item = {
+                    "id": str(r.id),
+                    "modalidade": r.modalidade or "BOLETO",
+                    "clienteCodigo": c_cod,
+                    "clienteNome": c_nome,
+                    "documento": f"{r.titulo}/{r.parcela}".strip('/'),
+                    "valor": round(v_val, 2),
+                    "dataVencimento": r.vencto.strftime("%d/%m/%Y") if r.vencto else "",
+                    "score": v_score,
+                    "historico": hist
+                }
+                contas_receber.append(item)
+
+                if item["modalidade"] == "CARTEIRA":
+                    total_receber_carteira += v_val
+                else:
+                    total_receber_boleto += v_val
+
+                if v_score <= 80:
+                    receber_menor_igual_80 += v_val
+                else:
+                    receber_maior_80 += v_val
+
+                receber_ponderado += v_val * (v_score / 100.0)
+
+        except Exception as e:
+            logger.exception("Erro ao carregar contas a receber de vw_previsao_acr: %s", str(e))
+
+        total_receber = total_receber_carteira + total_receber_boleto
+        qtd_receber = len(contas_receber)
+
+        saldo_previsibilidade = receber_ponderado - total_pagar_real
+        saldo_real_nominal = total_receber - total_pagar_real
+
+        return {
+            "data_referencia": data_consulta.strftime("%Y-%m-%d"),
+            "data_formatada": data_consulta.strftime("%d/%m/%Y"),
+            "is_hoje": data_consulta == hoje,
+            "total_provisao": round(total_provisao, 2),
+            "qtd_provisoes": qtd_provisoes,
+            "total_pagar": round(total_pagar_real, 2),
+            "qtd_pagar_real": qtd_pagar_real,
+            "total_bb": round(total_bb, 2),
+            "total_itau": round(total_itau, 2),
+            "contas_bb": contas_bb,
+            "contas_itau": contas_itau,
+            "contas_provisao": contas_provisao,
+            "matrizes_agrupadas": matrizes_agrupadas,
+            "total_receber": round(total_receber, 2),
+            "qtd_receber": qtd_receber,
+            "total_receber_carteira": round(total_receber_carteira, 2),
+            "total_receber_boleto": round(total_receber_boleto, 2),
+            "receber_menor_igual_80": round(receber_menor_igual_80, 2),
+            "receber_maior_80": round(receber_maior_80, 2),
+            "saldo_previsibilidade": round(saldo_previsibilidade, 2),
+            "saldo_real_nominal": round(saldo_real_nominal, 2),
+            "valor_investido_resgatavel": 0.0,
+            "contas_receber": contas_receber
+        }
+

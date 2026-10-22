@@ -26,6 +26,7 @@ export interface PendenciaDetalhe {
   valorOriginal: number;
   saldo: number;
   fase: string;
+  sitTitulo?: string | null;
 }
 
 export interface TratativaItem {
@@ -549,7 +550,9 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
         this.salvandoStatus = false;
         if (this.card) {
           this.card.status = res.status;
-          this.card.statusColor = this.detalhe?.fase === 'FINALIZADO' && res.status === 'OK' ? 'success' : 'warning';
+          this.card.statusColor = this.detalhe?.fase === 'FINALIZADO' && res.status === 'OK' 
+            ? 'success' 
+            : (res.status === 'PERDAS' || res.status === 'PROTESTADO' ? 'danger' : 'warning');
         }
         this.atualizado.emit();
         this.carregarHistorico();
@@ -581,7 +584,8 @@ Ficamos à disposição para esclarecimentos.<br>Atenciosamente,${assinaturaHtml
       dataVencimento: card.dtVencimento,
       valorOriginal: card.valorOriginal || 0,
       saldo: card.valorSaldo || 0,
-      fase: card.fase || '-'
+      fase: card.fase || '-',
+      sitTitulo: card.sitTitulo
     };
 
     this.statusSelecionado = this.statusOptions.includes(card.status) ? card.status : this.statusOptions[0];

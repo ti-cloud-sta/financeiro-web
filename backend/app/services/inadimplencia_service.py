@@ -182,7 +182,15 @@ class InadimplenciaService:
             yield json.dumps({"erro": f"Erro ao registrar importação: {e}"}) + "\n"
             return
 
-        linhas = (self._linha_planilha_para_dict(row) for _, row in df.iterrows())
+        # Detecta dinamicamente se a coluna sitTitulo existe na planilha
+        col_sit_titulo = None
+        for col_name in df.columns:
+            norm = str(col_name).strip().lower().replace("_", "").replace(" ", "").replace(".", "").replace("ç", "c").replace("ã", "a")
+            if norm in ("sittitulo", "situacaotitulo", "situacaodotitulo", "sittit", "situacao", "sit"):
+                col_sit_titulo = col_name
+                break
+
+        linhas = (self._linha_planilha_para_dict(row, col_sit_titulo) for _, row in df.iterrows())
         try:
             for evento in self._processar_linhas_pendencias(
                 linhas=linhas,
@@ -234,8 +242,14 @@ class InadimplenciaService:
             self.db.rollback()
             raise
 
-    def _linha_planilha_para_dict(self, row) -> dict:
+    def _linha_planilha_para_dict(self, row, col_sit_titulo: Optional[str] = None) -> dict:
         """Converte uma linha do DataFrame (layout fixo por coluna) para os campos nomeados."""
+        sit_val = None
+        if col_sit_titulo is not None and col_sit_titulo in row.index:
+            val = row[col_sit_titulo]
+            if pd.notna(val):
+                sit_val = str(val).strip()
+
         return {
             "estabelecimento": row.iloc[self.COL_ESTABELECIMENTO],
             "especie": row.iloc[self.COL_ESPECIE],
@@ -254,6 +268,7 @@ class InadimplenciaService:
             "dtVencimento": row.iloc[self.COL_VENCIMENTO],
             "valorOriginal": row.iloc[self.COL_VALOR_ORIGINAL],
             "valorSaldo": row.iloc[self.COL_SALDO],
+            "sitTitulo": sit_val,
         }
 
     def _processar_linhas_pendencias(
@@ -343,6 +358,8 @@ class InadimplenciaService:
             data_entrega = _excel_serial_to_date(linha.get("dtEntrega"))
             valor_original = _to_float(linha.get("valorOriginal"))
             saldo = _to_float(linha.get("valorSaldo"))
+            sit_titulo_raw = _clean_str(linha.get("sitTitulo"))
+            sit_titulo = sit_titulo_raw[:20] if sit_titulo_raw else None
 
             codigo_cliente = _to_int(linha.get("codigoCliente"))
             nome_cliente = _clean_str(linha.get("nomeCliente"))
@@ -357,10 +374,6 @@ class InadimplenciaService:
 
             codigo_matriz = _to_int(linha.get("codigoMatriz"))
             id_matriz = None
-            if codigo_matriz is not None:
-                id_matriz, criado_matriz = self._obter_ou_criar_matriz(codigo_matriz)
-                if criado_matriz:
-                    matrizes_criadas += 1
 
             pendencia_existente = self._obter_pendencia_existente(
                 id_unidade=id_unidade,
@@ -473,8 +486,9 @@ class InadimplenciaService:
                 if id_cliente is not None and id_cliente != pendencia_existente.idCliente:
                     pendencia_existente.idCliente = id_cliente
 
-                if id_matriz is not None and id_matriz != pendencia_existente.idClienteMatriz:
-                    pendencia_existente.idClienteMatriz = id_matriz
+                if sit_titulo is not None and sit_titulo != pendencia_existente.sitTitulo:
+                    mudancas.append(f"Situação do Título: de {pendencia_existente.sitTitulo or '-'} para {sit_titulo}")
+                    pendencia_existente.sitTitulo = sit_titulo
 
                 # Se a pendência estava marcada como encerrada por ausência anterior mas voltou na planilha
                 if not is_prorrogacao and pendencia_existente.encerrado == 'S':
@@ -557,7 +571,7 @@ class InadimplenciaService:
                     nrPedidoCliente=_to_int(linha.get("nrPedidoCliente")),
                     tipoPedido=tipo_pedido,
                     idCliente=id_cliente,
-                    idClienteMatriz=id_matriz,
+                    idClienteMatriz=None,
                     portador=_to_int(linha.get("portador")),
                     carteira=carteira,
                     dtEmissao=_excel_serial_to_date(linha.get("dtEmissao")),
@@ -565,6 +579,7 @@ class InadimplenciaService:
                     dtVencimento=vencimento,
                     valorOriginal=valor_original,
                     valorSaldo=saldo,
+                    sitTitulo=sit_titulo,
                     encerrado='N'
                 )
                 self.db.add(nf)
@@ -682,6 +697,7 @@ class InadimplenciaService:
                 "dtEntrega": vw.dtEntrega.isoformat() if vw.dtEntrega else None,
                 "valorOriginal": vw.valorOriginal,
                 "valorSaldo": vw.valorSaldo,
+                "sitTitulo": vw.sitTitulo,
             })
         return resultados
 
@@ -1324,20 +1340,9 @@ class InadimplenciaService:
         self._cache_clientes[codigo] = cliente.idclientes
         return cliente.idclientes, True
 
-    def _obter_ou_criar_matriz(self, codigo: int) -> Tuple[int, bool]:
-        if codigo in self._cache_matrizes:
-            return self._cache_matrizes[codigo], False
-
-        matriz = self.db.query(MatrizCliente).filter(MatrizCliente.codigo == codigo).first()
-        if matriz:
-            self._cache_matrizes[codigo] = matriz.idmatrizCliente
-            return matriz.idmatrizCliente, False
-
-        matriz = MatrizCliente(codigo=codigo)
-        self.db.add(matriz)
-        self.db.flush()
-        self._cache_matrizes[codigo] = matriz.idmatrizCliente
-        return matriz.idmatrizCliente, True
+    def _obter_ou_criar_matriz(self, codigo: int) -> Tuple[Optional[int], bool]:
+        """Desativado: não cria e não vincula matrizcliente a pendências."""
+        return None, False
 
     def _buscar_unidade(self, codigo_estabelecimento: Optional[int]) -> Optional[int]:
         """Apenas consulta - não cadastra unidade automaticamente (fora do escopo pedido)."""
@@ -2006,7 +2011,12 @@ class InadimplenciaService:
                 VwNfPendenciaFase.status
             )
             .outerjoin(Cliente, Cliente.idclientes == VwNfPendenciaFase.idCliente)
-            .filter(VwNfPendenciaFase.fase == 'PENDENCIAS')
+            .filter(
+                or_(
+                    VwNfPendenciaFase.fase == 'PENDENCIAS',
+                    VwNfPendenciaFase.status.in_(['COMISSAO', 'COMISSÃO', 'MARTINS'])
+                )
+            )
             .order_by(VwNfPendenciaFase.dtVencimento.asc())
             .limit(1000)
             .all()

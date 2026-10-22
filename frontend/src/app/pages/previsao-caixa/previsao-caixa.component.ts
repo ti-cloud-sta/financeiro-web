@@ -7,20 +7,19 @@ import { ConfirmModalComponent } from '../../shared/components/confirm-modal/con
 import { BadgeComponent } from '../../shared/components/badge/badge.component';
 import { PrevisaoCaixaService } from '../../core/services/previsao-caixa.service';
 import { ToastService } from '../../core/services/toast.service';
+import { SkeletonComponent } from '../../shared/components/skeleton/skeleton.component';
 import {
   ContaPagarItem,
   ContaReceberItem,
   HistoricoCliente,
-  MOCK_CONTAS_PAGAR,
-  MOCK_CONTAS_RECEBER,
-  MOCK_VALOR_INVESTIDO_RESGATAVEL,
-  AtualizacaoHistoryItem
+  AtualizacaoHistoryItem,
+  MatrizCardItem
 } from './previsao-caixa.mock';
 
 @Component({
   selector: 'app-previsao-caixa',
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonComponent, ModalComponent, ConfirmModalComponent, BadgeComponent],
+  imports: [CommonModule, FormsModule, ButtonComponent, ModalComponent, ConfirmModalComponent, BadgeComponent, SkeletonComponent],
   templateUrl: './previsao-caixa.component.html',
   styleUrls: ['./previsao-caixa.component.scss']
 })
@@ -29,9 +28,11 @@ export class PrevisaoCaixaComponent implements OnInit {
   private toastService = inject(ToastService);
 
   isSidebarCollapsed = false;
-  activeSidebarTab = signal<'dashboards' | 'atualizacao-dados'>('atualizacao-dados');
+  activeSidebarTab = signal<'dashboards' | 'atualizacao-dados'>('dashboards');
   activeNav = signal<'visao-geral'>('visao-geral');
   dataHoje = new Date().toLocaleDateString('pt-BR');
+  dataReferenciaBackend = signal<string>('');
+  isLoadingVisaoGeral = signal<boolean>(true);
 
   // Termos de busca
   pesquisaPagar = signal<string>('');
@@ -41,7 +42,7 @@ export class PrevisaoCaixaComponent implements OnInit {
   somenteProvisao = signal<boolean>(false);
 
   // Valor investido disponível para resgate
-  valorInvestidoResgatavel = signal<number>(MOCK_VALOR_INVESTIDO_RESGATAVEL);
+  valorInvestidoResgatavel = signal<number>(0);
 
   // Estado de Upload automático por card/input
   uploadStates = signal<Record<'pagar' | 'receber' | 'provisao' | 'investimento', {
@@ -78,9 +79,9 @@ export class PrevisaoCaixaComponent implements OnInit {
   itemDeleteId = signal<string | null>(null);
   itemDeleteIdImportacoes = signal<number | null>(null);
 
-  // Dados Mockados
-  contasPagar = signal<ContaPagarItem[]>(MOCK_CONTAS_PAGAR);
-  contasReceber = signal<ContaReceberItem[]>(MOCK_CONTAS_RECEBER);
+  // Contas reais carregadas do backend
+  contasPagar = signal<ContaPagarItem[]>([]);
+  contasReceber = signal<ContaReceberItem[]>([]);
 
   // Estado do Modal de Histórico do Cliente
   isHistoricoModalOpen = signal<boolean>(false);
@@ -90,6 +91,10 @@ export class PrevisaoCaixaComponent implements OnInit {
   isDetalhePagarModalOpen = signal<boolean>(false);
   pagarSelecionado = signal<ContaPagarItem | null>(null);
 
+  // Estado do Modal de Títulos Agrupados por Matriz
+  isMatrizModalOpen = signal<boolean>(false);
+  matrizSelecionada = signal<MatrizCardItem | null>(null);
+
   // Estado do Modal de Ação de Receber (Simular Recebimento)
   isAcaoReceberModalOpen = signal<boolean>(false);
   receberSelecionado = signal<ContaReceberItem | null>(null);
@@ -97,6 +102,32 @@ export class PrevisaoCaixaComponent implements OnInit {
   ngOnInit() {
     this.isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
     this.carregarHistoricoImportacoes();
+    this.carregarVisaoGeral();
+  }
+
+  carregarVisaoGeral(data?: string) {
+    this.isLoadingVisaoGeral.set(true);
+    this.previsaoService.obterVisaoGeral(data).subscribe({
+      next: (res) => {
+        this.isLoadingVisaoGeral.set(false);
+        this.dataHoje = res.data_formatada || new Date().toLocaleDateString('pt-BR');
+        this.dataReferenciaBackend.set(res.data_referencia);
+        this.valorInvestidoResgatavel.set(res.valor_investido_resgatavel || 0);
+
+        const todasContasPagar: ContaPagarItem[] = [
+          ...(res.contas_bb || []),
+          ...(res.contas_itau || []),
+          ...(res.contas_provisao || [])
+        ];
+        this.contasPagar.set(todasContasPagar);
+        this.contasReceber.set(res.contas_receber || []);
+      },
+      error: (err) => {
+        this.isLoadingVisaoGeral.set(false);
+        const msg = err.error?.detail || err.message || 'Erro ao carregar dados da Visão Geral.';
+        this.toastService.show(msg, 'error');
+      }
+    });
   }
 
   toggleSidebar() {
@@ -204,7 +235,10 @@ export class PrevisaoCaixaComponent implements OnInit {
       item.favorecido.toLowerCase().includes(termo) ||
       item.categoria.toLowerCase().includes(termo) ||
       item.descricao.toLowerCase().includes(termo) ||
-      (item.numeroDocumento && item.numeroDocumento.toLowerCase().includes(termo))
+      (item.numeroDocumento && item.numeroDocumento.toLowerCase().includes(termo)) ||
+      (item.nomeMatriz && item.nomeMatriz.toLowerCase().includes(termo)) ||
+      (item.codigoMatriz && item.codigoMatriz.toLowerCase().includes(termo)) ||
+      (item.clienteNome && item.clienteNome.toLowerCase().includes(termo))
     );
   });
 
@@ -235,6 +269,76 @@ export class PrevisaoCaixaComponent implements OnInit {
   totalContasProvisao = computed(() => {
     return this.contasProvisao().reduce((acc, curr) => acc + curr.valor, 0);
   });
+
+  // ==========================================
+  // AGRUPAMENTO DE CARDS POR MATRIZ
+  // ==========================================
+  agruparContasPorMatriz(itens: ContaPagarItem[]): MatrizCardItem[] {
+    const mapa = new Map<string, MatrizCardItem>();
+
+    for (const item of itens) {
+      const key = item.idMatriz ? `id_${item.idMatriz}` : (item.codigoMatriz ? `cod_${item.codigoMatriz}` : `nome_${item.favorecido}`);
+      const nomeMatriz = item.nomeMatriz || item.favorecido;
+      const codigoMatriz = item.codigoMatriz || item.categoria || '';
+
+      if (!mapa.has(key)) {
+        mapa.set(key, {
+          idMatriz: item.idMatriz,
+          codigoMatriz: codigoMatriz,
+          nomeMatriz: nomeMatriz,
+          banco: item.banco,
+          tipo: item.tipo,
+          valorTotal: 0,
+          qtdTitulos: 0,
+          titulos: []
+        });
+      }
+
+      const grupo = mapa.get(key)!;
+      grupo.valorTotal += item.valor;
+      grupo.qtdTitulos += 1;
+      grupo.titulos.push({
+        id: Number(item.id),
+        numeroDocumento: item.numeroDocumento,
+        valor: item.valor,
+        clienteCodigo: item.clienteCodigo,
+        clienteNome: item.clienteNome || item.favorecido,
+        dataVencimento: item.dataVencimento,
+        banco: item.banco,
+        categoria: item.categoria,
+        descricao: item.descricao
+      });
+    }
+
+    return Array.from(mapa.values())
+      .map(g => ({
+        ...g,
+        valorTotal: Math.round((g.valorTotal + Number.EPSILON) * 100) / 100
+      }))
+      .sort((a, b) => b.valorTotal - a.valorTotal);
+  }
+
+  matrizesBB = computed(() => {
+    return this.agruparContasPorMatriz(this.contasBB());
+  });
+
+  matrizesItau = computed(() => {
+    return this.agruparContasPorMatriz(this.contasItau());
+  });
+
+  matrizesProvisao = computed(() => {
+    return this.agruparContasPorMatriz(this.contasProvisao());
+  });
+
+  abrirModalMatriz(matriz: MatrizCardItem) {
+    this.matrizSelecionada.set(matriz);
+    this.isMatrizModalOpen.set(true);
+  }
+
+  fecharModalMatriz() {
+    this.isMatrizModalOpen.set(false);
+    this.matrizSelecionada.set(null);
+  }
 
   // Filtro Contas a Receber
   contasReceberFiltradas = computed(() => {
@@ -385,6 +489,7 @@ export class PrevisaoCaixaComponent implements OnInit {
           }));
           this.toastService.show(res.mensagem || 'Arquivo APB importado com sucesso!', 'success');
           this.carregarHistoricoImportacoes();
+          this.carregarVisaoGeral();
           input.value = '';
         },
         error: (err) => {
@@ -450,6 +555,7 @@ export class PrevisaoCaixaComponent implements OnInit {
           }));
           this.toastService.show(res.mensagem || 'Arquivo ACR importado com sucesso!', 'success');
           this.carregarHistoricoImportacoes();
+          this.carregarVisaoGeral();
           input.value = '';
         },
         error: (err) => {
@@ -515,6 +621,7 @@ export class PrevisaoCaixaComponent implements OnInit {
           }));
           this.toastService.show(res.mensagem || 'Títulos Liquidados importados com sucesso!', 'success');
           this.carregarHistoricoImportacoes();
+          this.carregarVisaoGeral();
           input.value = '';
         },
         error: (err) => {

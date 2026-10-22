@@ -20,8 +20,31 @@ export interface HistoricoCliente {
   lancamentos: LancamentoHistorico[];
 }
 
+export interface TituloMatrizItem {
+  id: number;
+  numeroDocumento?: string;
+  valor: number;
+  clienteCodigo?: number;
+  clienteNome?: string;
+  dataVencimento: string;
+  banco: string;
+  categoria: string;
+  descricao: string;
+}
+
+export interface MatrizCardItem {
+  idMatriz?: number;
+  codigoMatriz?: string;
+  nomeMatriz: string;
+  banco: 'BANCO_DO_BRASIL' | 'ITAU' | 'PROVISAO';
+  tipo: 'REAL' | 'PROVISAO';
+  valorTotal: number;
+  qtdTitulos: number;
+  titulos: TituloMatrizItem[];
+}
+
 export interface ContaPagarItem {
-  id: string;
+  id: string | number;
   banco: 'BANCO_DO_BRASIL' | 'ITAU' | 'PROVISAO';
   favorecido: string;
   categoria: string;
@@ -31,6 +54,11 @@ export interface ContaPagarItem {
   tipo: 'REAL' | 'PROVISAO';
   status: 'PENDENTE' | 'PROGRAMADO' | 'PAGO';
   numeroDocumento?: string;
+  idMatriz?: number;
+  codigoMatriz?: string;
+  nomeMatriz?: string;
+  clienteCodigo?: number;
+  clienteNome?: string;
 }
 
 export interface ContaReceberItem {

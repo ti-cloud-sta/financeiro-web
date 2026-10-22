@@ -331,6 +331,7 @@ class PendenciaDatasulItem(BaseModel):
     dtVencimento: Optional[date] = Field(None, description="Coluna P - Vencto (YYYY-MM-DD). Linhas sem vencimento são ignoradas")
     valorOriginal: Optional[float] = Field(None, description="Coluna T - Val Original")
     valorSaldo: Optional[float] = Field(None, description="Coluna U - Saldo")
+    sitTitulo: Optional[str] = Field(None, description="Situação do título (máx 20 caracteres)")
 
 class ImportarPendenciasDatasulPayload(BaseModel):
     pendencias: List[PendenciaDatasulItem] = Field(..., min_length=1)

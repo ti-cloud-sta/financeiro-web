@@ -33,6 +33,7 @@ export interface KanbanCard {
   dtEntrega: Date | null;
   valorOriginal: number | null;
   valorSaldo: number | null;
+  sitTitulo?: string | null;
 }
 
 export interface KanbanColumn {
@@ -200,12 +201,13 @@ export class PendenciasComponent implements OnInit {
         id: item.idnfpendencias.toString(),
         title: item.titulo || '-',
         status: item.status || '-',
-        statusColor: item.status === 'OK' ? 'success' : (item.status === 'PRORROGADO' ? 'info' : (item.status === 'DEVOLUCAO' ? 'orange' : (item.status === 'PROTESTADO' ? 'danger' : (item.status === 'ATRASADO' ? 'warning' : coluna.colorClass)))),
+        statusColor: item.status === 'OK' ? 'success' : (item.status === 'PRORROGADO' ? 'info' : (item.status === 'DEVOLUCAO' ? 'orange' : (item.status === 'PROTESTADO' || item.status === 'PERDAS' ? 'danger' : (item.status === 'ATRASADO' ? 'warning' : coluna.colorClass)))),
         clientName: this.sliceClientName(item.clienteNome),
         fullClientName: item.clienteNome || '-',
         dtVencimento: item.dtVencimento ? new Date(item.dtVencimento + 'T00:00:00') : null,
         leadTimeDays: this.calcularDiasDesdeImportacao(item.createdAt),
         isDevolucao: item.devolucao === 'S',
+        sitTitulo: item.sitTitulo,
         
         fase: item.fase,
         idCliente: item.idCliente,

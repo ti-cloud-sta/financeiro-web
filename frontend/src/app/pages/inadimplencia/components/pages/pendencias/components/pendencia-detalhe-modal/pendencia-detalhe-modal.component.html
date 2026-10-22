@@ -71,6 +71,12 @@
             <option *ngFor="let s of statusOptions" [value]="s">{{ s }}</option>
         </select>
       </div>
+      @if (d.sitTitulo) {
+      <div class="detail-field">
+        <label>Sit. Título</label>
+        <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1" style="font-size: 0.75rem; font-weight: 600;" [title]="d.sitTitulo">{{ d.sitTitulo }}</span>
+      </div>
+      }
     </div>
 
     <!-- Abas -->

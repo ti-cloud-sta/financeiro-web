@@ -61,6 +61,7 @@ export interface PendenciaKanban {
   dtEntrega: string | null;
   valorOriginal: number | null;
   valorSaldo: number | null;
+  sitTitulo?: string | null;
 }
 
 export interface HistoricoApi {

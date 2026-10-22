@@ -42,7 +42,7 @@ export class InadimplenciaPublicaComponent implements OnInit {
   activeTab = 'dashboards';
   dashboardTab = signal<'visao-geral' | 'financeiro' | 'logistica' | 'comercial' | 'fiscal' | 'pendencias-acr'>('visao-geral');
   financeiroTab = signal<'gerencial' | 'gerente'>('gerencial');
-  pendenciasAcrTab = signal<'atrasados' | 'protestados' | 'sem_data_entrega' | 'devolucao' | 'acordo' | 'an' | 'ad' | 'rj' | 'pr' | 'variados'>('atrasados');
+  pendenciasAcrTab = signal<'atrasados' | 'protestados' | 'sem_data_entrega' | 'devolucao' | 'acordo' | 'an' | 'ad' | 'perdas' | 'rj' | 'pr' | 'variados'>('atrasados');
 
   // Modal Tratativas
   isTratativasModalOpen = false;
@@ -654,6 +654,18 @@ export class InadimplenciaPublicaComponent implements OnInit {
     return Math.ceil(filtered.length / this.pageSize) || 1;
   }
 
+  gridPerdas: any[] = []; searchAcrPerdas = ''; pageAcrPerdas = 1;
+  get paginatedAcrPerdas() {
+    const s = this.searchAcrPerdas.toLowerCase();
+    const filtered = s ? this.gridPerdas.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridPerdas;
+    return filtered.slice((this.pageAcrPerdas - 1) * this.pageSize, this.pageAcrPerdas * this.pageSize);
+  }
+  get totalPagesAcrPerdas() {
+    const s = this.searchAcrPerdas.toLowerCase();
+    const filtered = s ? this.gridPerdas.filter(a => (a.titulo?.toLowerCase().includes(s)) || (a.cliente?.toLowerCase().includes(s))) : this.gridPerdas;
+    return Math.ceil(filtered.length / this.pageSize) || 1;
+  }
+
   gridRJ: any[] = []; searchAcrRJ = ''; pageAcrRJ = 1;
   get paginatedAcrRJ() {
     const s = this.searchAcrRJ.toLowerCase();
@@ -924,11 +936,12 @@ export class InadimplenciaPublicaComponent implements OnInit {
 
         this.aplicarFiltroCarteira();
 
-        // Pendências ACR (AN, AD, RJ, PR)
+        // Pendências ACR (AN, AD, PERDAS, RJ, PR)
         const acrPendencias = (res.gridPendencias || []).map((x: any) => {
           const statusColorMap: Record<string, string> = {
             'AN': 'danger',
             'AD': 'warning',
+            'PERDAS': 'danger',
             'RJ': 'primary',
             'PR': 'info'
           };
@@ -940,6 +953,7 @@ export class InadimplenciaPublicaComponent implements OnInit {
         
         this.gridAN = acrPendencias.filter((t: any) => t.status === 'AN');
         this.gridAD = acrPendencias.filter((t: any) => t.status === 'AD');
+        this.gridPerdas = acrPendencias.filter((t: any) => t.status === 'PERDAS');
         this.gridRJ = acrPendencias.filter((t: any) => t.status === 'RJ');
         this.gridPR = acrPendencias.filter((t: any) => t.status === 'PR');
 
@@ -955,12 +969,13 @@ export class InadimplenciaPublicaComponent implements OnInit {
         this.gridAcordos.forEach(t => idsUsados.add(t.id));
         this.gridAN.forEach(t => idsUsados.add(t.id));
         this.gridAD.forEach(t => idsUsados.add(t.id));
+        this.gridPerdas.forEach(t => idsUsados.add(t.id));
         this.gridRJ.forEach(t => idsUsados.add(t.id));
         this.gridPR.forEach(t => idsUsados.add(t.id));
 
         this.gridVariados = todosVencidos.filter((t: any) => !idsUsados.has(t.id) && t.status !== 'OK').map((x: any) => {
           const statusColorMap: Record<string, string> = {
-            'AN': 'danger', 'AD': 'warning', 'RJ': 'primary', 'PR': 'info',
+            'AN': 'danger', 'AD': 'warning', 'PERDAS': 'danger', 'RJ': 'primary', 'PR': 'info',
             'ATRASADO': 'warning', 'PROTESTADO': 'danger', 'ACORDO': 'primary',
             'DEVOLUCAO': 'warning', 'SEM DATA DE ENTREGA': 'warning'
           };
