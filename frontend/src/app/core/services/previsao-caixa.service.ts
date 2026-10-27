@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AtualizacaoHistoryItem, ContaPagarItem, MatrizCardItem } from '../../pages/previsao-caixa/previsao-caixa.mock';
+import { AtualizacaoHistoryItem, ContaPagarItem, MatrizCardItem, MatrizReceberCardItem } from '../../pages/previsao-caixa/previsao-caixa.mock';
 
 export interface ImportacaoApbResult {
   sucesso: boolean;
@@ -32,6 +32,9 @@ export interface DashboardVisaoGeral {
   contas_itau: ContaPagarItem[];
   contas_provisao: ContaPagarItem[];
   matrizes_agrupadas?: MatrizCardItem[];
+  matrizes_receber?: MatrizReceberCardItem[];
+  matrizes_carteira?: MatrizReceberCardItem[];
+  matrizes_boleto?: MatrizReceberCardItem[];
 
   total_receber: number;
   qtd_receber: number;

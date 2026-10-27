@@ -13,7 +13,8 @@ import {
   ContaReceberItem,
   HistoricoCliente,
   AtualizacaoHistoryItem,
-  MatrizCardItem
+  MatrizCardItem,
+  MatrizReceberCardItem
 } from './previsao-caixa.mock';
 
 @Component({
@@ -99,6 +100,14 @@ export class PrevisaoCaixaComponent implements OnInit {
   isAcaoReceberModalOpen = signal<boolean>(false);
   receberSelecionado = signal<ContaReceberItem | null>(null);
 
+  // Matrizes de Receber agrupadas por Matriz e Modalidade
+  matrizesReceber = signal<MatrizReceberCardItem[]>([]);
+  matrizReceberSelecionada = signal<MatrizReceberCardItem | null>(null);
+  isMatrizReceberModalOpen = signal<boolean>(false);
+
+  // Filtro por Pílulas de Score no Header do Receber ou Clique nos KPI Cards (TODOS, ALTO, MEDIO, BAIXO, NOVOS, MENOR_IGUAL_80, MAIOR_80)
+  filtroScore = signal<'TODOS' | 'ALTO' | 'MEDIO' | 'BAIXO' | 'NOVOS' | 'MENOR_IGUAL_80' | 'MAIOR_80'>('TODOS');
+
   ngOnInit() {
     this.isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
     this.carregarHistoricoImportacoes();
@@ -121,6 +130,7 @@ export class PrevisaoCaixaComponent implements OnInit {
         ];
         this.contasPagar.set(todasContasPagar);
         this.contasReceber.set(res.contas_receber || []);
+        this.matrizesReceber.set(res.matrizes_receber || []);
       },
       error: (err) => {
         this.isLoadingVisaoGeral.set(false);
@@ -340,7 +350,7 @@ export class PrevisaoCaixaComponent implements OnInit {
     this.matrizSelecionada.set(null);
   }
 
-  // Filtro Contas a Receber
+  // Filtro Contas a Receber (Itens Individuais para contadores e KPIs)
   contasReceberFiltradas = computed(() => {
     const termo = this.pesquisaReceber().toLowerCase().trim();
     if (!termo) return this.contasReceber();
@@ -355,16 +365,88 @@ export class PrevisaoCaixaComponent implements OnInit {
     return this.contasReceberFiltradas().filter(item => item.modalidade === 'CARTEIRA');
   });
 
-  totalCarteira = computed(() => {
-    return this.contasCarteira().reduce((acc, curr) => acc + curr.valor, 0);
-  });
-
   contasBoleto = computed(() => {
     return this.contasReceberFiltradas().filter(item => item.modalidade === 'BOLETO');
   });
 
+  // Filtro Matrizes a Receber (Cards Agrupados por Matriz, Pílula de Score e Busca Textual)
+  matrizesReceberFiltradas = computed(() => {
+    let lista = this.matrizesReceber();
+
+    // 1. Filtro por Pílula de Score
+    const fScore = this.filtroScore();
+    if (fScore === 'ALTO') {
+      lista = lista.filter(m => m.score >= 80);
+    } else if (fScore === 'MEDIO') {
+      lista = lista.filter(m => m.score >= 60 && m.score < 80);
+    } else if (fScore === 'BAIXO') {
+      lista = lista.filter(m => m.score < 60);
+    } else if (fScore === 'NOVOS') {
+      lista = lista.filter(m => m.isNovo || m.score === 0 || (m.titulosEmDia + m.titulosEmAtraso === 0));
+    } else if (fScore === 'MENOR_IGUAL_80') {
+      lista = lista.filter(m => m.score <= 80);
+    } else if (fScore === 'MAIOR_80') {
+      lista = lista.filter(m => m.score > 80);
+    }
+
+    // 2. Filtro de Busca Textual
+    const termo = this.pesquisaReceber().toLowerCase().trim();
+    if (!termo) return lista;
+
+    return lista.filter(m =>
+      (m.nomeMatriz && m.nomeMatriz.toLowerCase().includes(termo)) ||
+      (m.codigoMatriz && m.codigoMatriz.toLowerCase().includes(termo)) ||
+      (m.titulos && m.titulos.some(t =>
+        (t.numeroDocumento && String(t.numeroDocumento).toLowerCase().includes(termo)) ||
+        (t.clienteNome && t.clienteNome.toLowerCase().includes(termo)) ||
+        (t.clienteCodigo && String(t.clienteCodigo).toLowerCase().includes(termo))
+      ))
+    );
+  });
+
+  // Quantidade total de títulos a receber filtrados
+  totalTitulosReceberFiltrados = computed(() => {
+    return this.matrizesReceberFiltradas().reduce((acc, curr) => acc + curr.qtdTitulos, 0);
+  });
+
+  setFiltroScore(tipo: 'TODOS' | 'ALTO' | 'MEDIO' | 'BAIXO' | 'NOVOS' | 'MENOR_IGUAL_80' | 'MAIOR_80') {
+    if (this.filtroScore() === tipo) {
+      this.filtroScore.set('TODOS');
+    } else {
+      this.filtroScore.set(tipo);
+    }
+  }
+
+  filtrarMenorIgual80() {
+    if (this.filtroScore() === 'MENOR_IGUAL_80') {
+      this.filtroScore.set('TODOS');
+    } else {
+      this.filtroScore.set('MENOR_IGUAL_80');
+    }
+  }
+
+  filtrarMaior80() {
+    if (this.filtroScore() === 'MAIOR_80') {
+      this.filtroScore.set('TODOS');
+    } else {
+      this.filtroScore.set('MAIOR_80');
+    }
+  }
+
+  matrizesCarteira = computed(() => {
+    return this.matrizesReceberFiltradas().filter(item => item.modalidade === 'CARTEIRA');
+  });
+
+  totalCarteira = computed(() => {
+    return this.matrizesCarteira().reduce((acc, curr) => acc + curr.valorTotal, 0);
+  });
+
+  matrizesBoleto = computed(() => {
+    return this.matrizesReceberFiltradas().filter(item => item.modalidade === 'BOLETO');
+  });
+
   totalBoleto = computed(() => {
-    return this.contasBoleto().reduce((acc, curr) => acc + curr.valor, 0);
+    return this.matrizesBoleto().reduce((acc, curr) => acc + curr.valorTotal, 0);
   });
 
   // ==========================================
@@ -401,6 +483,16 @@ export class PrevisaoCaixaComponent implements OnInit {
     this.receberSelecionado.set(null);
   }
 
+  abrirModalMatrizReceber(matriz: MatrizReceberCardItem) {
+    this.matrizReceberSelecionada.set(matriz);
+    this.isMatrizReceberModalOpen.set(true);
+  }
+
+  fecharModalMatrizReceber() {
+    this.isMatrizReceberModalOpen.set(false);
+    this.matrizReceberSelecionada.set(null);
+  }
+
   // ==========================================
   // FORMATADORES AUXILIARES
   // ==========================================
@@ -410,14 +502,14 @@ export class PrevisaoCaixaComponent implements OnInit {
   }
 
   getScoreBadgeClass(score: number): string {
-    if (score >= 85) return 'score-high';
-    if (score >= 70) return 'score-medium';
+    if (score >= 80) return 'score-high';
+    if (score >= 60) return 'score-medium';
     return 'score-low';
   }
 
   getScoreVariant(score: number): 'success' | 'warning' | 'danger' {
-    if (score >= 85) return 'success';
-    if (score >= 70) return 'warning';
+    if (score >= 80) return 'success';
+    if (score >= 60) return 'warning';
     return 'danger';
   }
 

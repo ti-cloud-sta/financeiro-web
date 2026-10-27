@@ -13,6 +13,7 @@ from app.models.importacao import Importacao
 from app.models.previsao_apb import PrevisaoApb, VwPrevisaoApb
 from app.models.previsao_acr import PrevisaoAcr
 from app.models.previsao_titulos_liquidados import PrevisaoTitulosLiquidados
+from app.models.previsao_cliente_score import PrevisaoClienteScore
 from app.models.cliente import Cliente
 from app.models.matriz_cliente import MatrizCliente
 from app.models.user import User
@@ -540,8 +541,26 @@ class PrevisaoCaixaService:
         id_importacao = nova_importacao.idImportacoes
         data_agora = datetime.now()
 
+        # Carrega chaves existentes para validação anti-duplicidade em memória (ultra-rápido via set)
+        chaves_existentes = set(
+            self.db.execute(text("""
+                SELECT CONCAT_WS('|',
+                    COALESCE(TRIM(estabelecimento), ''),
+                    COALESCE(TRIM(especie_documento), ''),
+                    COALESCE(TRIM(serie_documento), ''),
+                    COALESCE(TRIM(titulo), ''),
+                    COALESCE(TRIM(parcela), ''),
+                    COALESCE(TRIM(cliente), ''),
+                    COALESCE(liquidacao, ''),
+                    COALESCE(ROUND(val_movimento, 2), '')
+                )
+                FROM previsao_titulos_liquidados
+            """)).scalars().all()
+        )
+
         registros_batch: List[Dict[str, Any]] = []
         total_registros = 0
+        total_ignorados_duplicados = 0
         total_valor_somado = Decimal("0.00")
         BATCH_SIZE = 5000
 
@@ -553,9 +572,27 @@ class PrevisaoCaixaService:
                 def col(idx: int) -> Any:
                     return row[idx] if idx < len(row) else None
 
+                estab = self._parse_str(col(0), 20) or ""
+                especie = self._parse_str(col(1), 20) or ""
+                serie = self._parse_str(col(2), 20) or ""
+                tit = self._parse_str(col(3), 50) or ""
+                parc = self._parse_str(col(4), 20) or ""
+                cli = self._parse_str(col(5), 50) or ""
+                dt_liq = self._parse_data(col(29))
                 val_mov = self._parse_decimal(col(22))
                 val_liq = self._parse_decimal(col(26))
                 val_orig = self._parse_decimal(col(37))
+
+                # Monta chave de unicidade da movimentação
+                dt_liq_str = dt_liq.strftime("%Y-%m-%d") if dt_liq else ""
+                vlr_chave = f"{val_mov:.2f}" if val_mov is not None else ""
+                chave = f"{estab.strip()}|{especie.strip()}|{serie.strip()}|{tit.strip()}|{parc.strip()}|{cli.strip()}|{dt_liq_str}|{vlr_chave}"
+
+                if chave in chaves_existentes:
+                    total_ignorados_duplicados += 1
+                    continue
+
+                chaves_existentes.add(chave)
 
                 if val_mov:
                     total_valor_somado += val_mov
@@ -565,12 +602,12 @@ class PrevisaoCaixaService:
                     total_valor_somado += val_orig
 
                 reg = {
-                    "estabelecimento": self._parse_str(col(0), 20),
-                    "especie_documento": self._parse_str(col(1), 20),
-                    "serie_documento": self._parse_str(col(2), 20),
-                    "titulo": self._parse_str(col(3), 50),
-                    "parcela": self._parse_str(col(4), 20),
-                    "cliente": self._parse_str(col(5), 50),
+                    "estabelecimento": estab or None,
+                    "especie_documento": especie or None,
+                    "serie_documento": serie or None,
+                    "titulo": tit or None,
+                    "parcela": parc or None,
+                    "cliente": cli or None,
                     "nome_cliente": self._parse_str(col(6), 255),
                     "portador": self._parse_str(col(7), 50),
                     "matriz": self._parse_str(col(8), 100),
@@ -594,7 +631,7 @@ class PrevisaoCaixaService:
                     "valor_liquido": val_liq,
                     "valor_pendente": self._parse_decimal(col(27)),
                     "retencoes": self._parse_decimal(col(28)),
-                    "liquidacao": self._parse_data(col(29)),
+                    "liquidacao": dt_liq,
                     "vl_cheque": self._parse_decimal(col(30)),
                     "grupo_cliente": self._parse_str(col(31), 50),
                     "numero_plaqueta": self._parse_str(col(32), 50),
@@ -622,29 +659,189 @@ class PrevisaoCaixaService:
 
             if total_registros == 0:
                 self.db.rollback()
-                raise HTTPException(status_code=400, detail="Nenhum registro válido foi encontrado na planilha de Títulos Liquidados.")
+                if total_ignorados_duplicados > 0:
+                    return {
+                        "sucesso": True,
+                        "mensagem": f"Nenhum novo registro a acrescentar. Todos os {total_ignorados_duplicados} títulos da planilha já constam no banco de dados.",
+                        "idImportacoes": id_importacao,
+                        "nomeArquivo": filename,
+                        "totalRegistros": 0,
+                        "totalIgnorados": total_ignorados_duplicados,
+                        "totalValor": 0.0
+                    }
+                else:
+                    raise HTTPException(status_code=400, detail="Nenhum registro válido foi encontrado na planilha de Títulos Liquidados.")
 
             self.db.commit()
             self.db.refresh(nova_importacao)
 
+            # Recalcula e persiste a tabela consolidada de scores por cliente
+            try:
+                self.recalcular_scores_clientes(id_importacao=id_importacao)
+            except Exception as e_score:
+                logger.exception("Aviso: erro ao recalcular scores das matrizes: %s", str(e_score))
+
+        except HTTPException:
+            raise
         except Exception as e:
             self.db.rollback()
             logger.exception("Erro ao persistir registros de PrevisaoTitulosLiquidados: %s", str(e))
             raise HTTPException(status_code=500, detail=f"Erro ao salvar registros no banco de dados: {str(e)}")
 
+        msg = f"Planilha de Títulos Liquidados importada com sucesso: {total_registros} novos registros inseridos"
+        if total_ignorados_duplicados > 0:
+            msg += f" ({total_ignorados_duplicados} já existentes foram ignorados)"
+        msg += " e scores recalculados."
+
         return {
             "sucesso": True,
-            "mensagem": f"Planilha de Títulos Liquidados importada com sucesso ({total_registros} registros inseridos).",
+            "mensagem": msg,
             "idImportacoes": id_importacao,
             "nomeArquivo": filename,
             "totalRegistros": total_registros,
+            "totalIgnorados": total_ignorados_duplicados,
             "totalValor": float(total_valor_somado)
         }
+
+    def recalcular_scores_clientes(self, id_importacao: Optional[int] = None) -> int:
+        """
+        Calcula e persiste o score ponderado de 100% consolidado por MATRIZ
+        com base no histórico de todos os títulos em 'previsao_titulos_liquidados'.
+        
+        Composição do Score (Total: 100%):
+          1. Últimos 5 títulos da Matriz (Peso: 50%): Proporcional à pontualidade recente
+          2. Recorrência / Histórico da Matriz (Peso: 40%): 40 pontos para Matriz com histórico (0 para nova)
+          3. Média Geral Histórica da Matriz (Peso: 10%):
+             - BOM   (>= 80% pontualidade): 10 pontos
+             - MÉDIO (50% a 79% pontualidade): 5 pontos
+             - RUIM  (< 50% pontualidade): 0 pontos
+        """
+        rows = self.db.execute(text("""
+            SELECT 
+                COALESCE(c.idMatriz, CAST(ptl.cliente AS SIGNED)) as id_matriz,
+                COALESCE(m.codigo, ptl.cliente) as cod_matriz,
+                COALESCE(m.nome, ptl.nome_cliente, 'Matriz') as nome_matriz,
+                ptl.cliente, 
+                ptl.nome_cliente,
+                ptl.titulo, 
+                ptl.parcela, 
+                ptl.data_vencimento, 
+                ptl.liquidacao, 
+                ptl.data_credito, 
+                ptl.val_movimento, 
+                ptl.valor_liquido
+            FROM previsao_titulos_liquidados ptl
+            LEFT JOIN clientes c ON c.codigo = CAST(ptl.cliente AS SIGNED)
+            LEFT JOIN matrizcliente m ON m.idmatrizCliente = c.idMatriz
+            WHERE ptl.cliente IS NOT NULL AND TRIM(ptl.cliente) != ''
+            ORDER BY COALESCE(c.idMatriz, CAST(ptl.cliente AS SIGNED)), COALESCE(ptl.liquidacao, ptl.data_credito, ptl.data_vencimento) DESC
+        """)).fetchall()
+
+        from collections import defaultdict
+        por_matriz = defaultdict(list)
+        matriz_info = {}
+
+        for r in rows:
+            m_id = int(r.id_matriz) if r.id_matriz is not None else 0
+            if m_id not in matriz_info:
+                matriz_info[m_id] = {
+                    "codigoMatriz": str(r.cod_matriz or r.cliente or ""),
+                    "nomeMatriz": str(r.nome_matriz or r.nome_cliente or "Matriz")
+                }
+            por_matriz[m_id].append(r)
+
+        scores_batch = []
+        for m_id, titulos in por_matriz.items():
+            info = matriz_info[m_id]
+            cod_matriz = info["codigoMatriz"]
+            nome_matriz = info["nomeMatriz"]
+            total_hist = len(titulos)
+
+            # 1. Recorrência / Histórico (40 pts)
+            pontos_rec = 40.0 if total_hist > 0 else 0.0
+
+            # 2. Últimos 5 títulos da Matriz (50 pts)
+            ultimos_5 = titulos[:5]
+            u5_total = len(ultimos_5)
+            u5_em_dia = 0
+            for t in ultimos_5:
+                dt_v = t.data_vencimento
+                dt_p = t.liquidacao or t.data_credito
+                if dt_v and dt_p:
+                    if (dt_p - dt_v).days <= 0:
+                        u5_em_dia += 1
+                else:
+                    u5_em_dia += 1
+
+            pontos_u5 = round((u5_em_dia / u5_total) * 50.0, 2) if u5_total > 0 else 0.0
+
+            # 3. Média geral histórica da Matriz (10 pts)
+            total_em_dia = 0
+            total_atraso = 0
+            soma_dias_atraso = 0
+            valor_total = 0.0
+            for t in titulos:
+                dt_v = t.data_vencimento
+                dt_p = t.liquidacao or t.data_credito
+                vlr = float(t.valor_liquido or t.val_movimento or 0.0)
+                valor_total += vlr
+                if dt_v and dt_p:
+                    dias = (dt_p - dt_v).days
+                    if dias > 0:
+                        total_atraso += 1
+                        soma_dias_atraso += dias
+                    else:
+                        total_em_dia += 1
+                else:
+                    total_em_dia += 1
+
+            taxa_pontualidade = (total_em_dia / total_hist) * 100.0 if total_hist > 0 else 100.0
+            if taxa_pontualidade >= 80.0:
+                pontos_media = 10.0
+                classif = "BOM"
+            elif taxa_pontualidade >= 50.0:
+                pontos_media = 5.0
+                classif = "MEDIO"
+            else:
+                pontos_media = 0.0
+                classif = "RUIM"
+
+            score_final = min(100.0, max(0.0, round(pontos_u5 + pontos_rec + pontos_media, 2)))
+            media_dias = round(soma_dias_atraso / total_atraso, 1) if total_atraso > 0 else 0.0
+
+            scores_batch.append({
+                "id_matriz": m_id,
+                "codigo_matriz": cod_matriz,
+                "nome_matriz": nome_matriz,
+                "cliente": cod_matriz,
+                "nome_cliente": nome_matriz,
+                "score_final": score_final,
+                "pontos_ultimos_5": pontos_u5,
+                "pontos_recorrencia": pontos_rec,
+                "pontos_media_geral": pontos_media,
+                "classificacao_media": classif,
+                "total_titulos_historico": total_hist,
+                "titulos_em_dia": total_em_dia,
+                "titulos_em_atraso": total_atraso,
+                "media_dias_atraso": media_dias,
+                "valor_total_liquidado": round(valor_total, 2),
+                "ultimos_5_em_dia": u5_em_dia,
+                "ultimos_5_total": u5_total,
+                "idImportacoes": id_importacao
+            })
+
+        if scores_batch:
+            self.db.execute(text("DELETE FROM previsao_cliente_score"))
+            self.db.bulk_insert_mappings(PrevisaoClienteScore, scores_batch)
+            self.db.commit()
+
+        return len(scores_batch)
 
     def get_visao_geral(self, data_ref: Optional[date] = None) -> Dict[str, Any]:
         """
         Retorna os dados consolidados do painel Visão Geral de Previsão de Caixa.
         Primeira parte: Contas a Pagar (APB) classificadas em Provisão, Banco do Brasil e Itaú.
+        Segunda parte: Contas a Receber (ACR) agrupadas por Matriz em Carteira e Boleto.
         Sempre traz a posição da data atual (ou mais recente disponível se o dia ainda não tiver registros).
         """
         hoje = date.today()
@@ -758,8 +955,9 @@ class PrevisaoCaixaService:
         qtd_pagar_real = len(contas_bb) + len(contas_itau)
         qtd_provisoes = len(contas_provisao)
 
-        # Contas a Receber a partir da view vw_previsao_acr
+        # Contas a Receber a partir da view vw_previsao_acr agrupadas por Matriz
         contas_receber: List[Dict[str, Any]] = []
+        grupos_receber_matriz: Dict[tuple, Dict[str, Any]] = {}
         total_receber_carteira = 0.0
         total_receber_boleto = 0.0
         receber_menor_igual_80 = 0.0
@@ -769,139 +967,225 @@ class PrevisaoCaixaService:
         try:
             titulos_acr = self.db.execute(text("""
                 SELECT 
-                    id, esp, ser, titulo, parcela, modalidade, cliente, nome_cliente, vencto, saldo
-                FROM vw_previsao_acr
-                ORDER BY saldo DESC
+                    acr.id, 
+                    acr.esp, 
+                    acr.ser, 
+                    acr.titulo, 
+                    acr.parcela, 
+                    acr.modalidade, 
+                    acr.cliente as cliente_codigo, 
+                    acr.nome_cliente, 
+                    acr.vencto, 
+                    acr.saldo,
+                    c.idMatriz as id_matriz,
+                    m.codigo as codigo_matriz,
+                    m.nome as nome_matriz
+                FROM vw_previsao_acr acr
+                LEFT JOIN clientes c ON c.codigo = CAST(acr.cliente AS SIGNED)
+                LEFT JOIN matrizcliente m ON m.idmatrizCliente = c.idMatriz
+                ORDER BY acr.saldo DESC
             """)).fetchall()
 
-            codigos_clientes = list(set([str(r.cliente).strip() for r in titulos_acr if r.cliente]))
-            historico_map: Dict[str, Dict[str, Any]] = {}
+            # Lista única de id_matriz presentes nos títulos a receber
+            ids_matrizes = list(set([
+                int(r.id_matriz) for r in titulos_acr 
+                if r.id_matriz is not None
+            ]))
 
-            if codigos_clientes:
-                format_cli = "', '".join(codigos_clientes)
+            historico_map: Dict[int, Dict[str, Any]] = {}
+
+            if ids_matrizes:
+                # 1. Carrega os scores consolidados da tabela previsao_cliente_score por id_matriz
+                score_rows = (
+                    self.db.query(PrevisaoClienteScore)
+                    .filter(PrevisaoClienteScore.id_matriz.in_(ids_matrizes))
+                    .all()
+                )
+                score_map = {s.id_matriz: s for s in score_rows}
+
+                # 2. Carrega até 5 títulos recentes de cada matriz para o modal de histórico
+                format_ids = ", ".join(str(i) for i in ids_matrizes)
                 liq_rows = self.db.execute(text(f"""
                     SELECT 
-                        cliente, 
-                        titulo, 
-                        parcela, 
-                        data_vencimento, 
-                        liquidacao, 
-                        data_credito, 
-                        val_movimento, 
-                        valor_liquido
-                    FROM previsao_titulos_liquidados
-                    WHERE cliente IN ('{format_cli}')
-                    ORDER BY liquidacao DESC
+                        c.idMatriz as id_matriz,
+                        ptl.cliente, 
+                        ptl.titulo, 
+                        ptl.parcela, 
+                        ptl.data_vencimento, 
+                        ptl.liquidacao, 
+                        ptl.data_credito, 
+                        ptl.val_movimento, 
+                        ptl.valor_liquido
+                    FROM previsao_titulos_liquidados ptl
+                    JOIN clientes c ON c.codigo = CAST(ptl.cliente AS SIGNED)
+                    WHERE c.idMatriz IN ({format_ids})
+                    ORDER BY c.idMatriz, COALESCE(ptl.liquidacao, ptl.data_credito, ptl.data_vencimento) DESC
                 """)).fetchall()
 
                 from collections import defaultdict
-                por_cli = defaultdict(list)
+                lancamentos_map = defaultdict(list)
                 for lr in liq_rows:
-                    por_cli[str(lr.cliente).strip()].append(lr)
-
-                for c_cod, l_list in por_cli.items():
-                    em_dia = 0
-                    atraso = 0
-                    soma_dias_atraso = 0
-                    valor_total_pago = 0.0
-                    lancamentos = []
-
-                    for row in l_list:
-                        dt_v = row.data_vencimento
-                        dt_p = row.liquidacao or row.data_credito
-                        vlr = float(row.valor_liquido or row.val_movimento or 0.0)
-                        valor_total_pago += vlr
-
+                    m_key = int(lr.id_matriz)
+                    if len(lancamentos_map[m_key]) < 5:
+                        dt_v = lr.data_vencimento
+                        dt_p = lr.liquidacao or lr.data_credito
+                        vlr = float(lr.valor_liquido or lr.val_movimento or 0.0)
                         dias = (dt_p - dt_v).days if dt_p and dt_v else 0
                         is_atrasado = dias > 0
-                        if is_atrasado:
-                            atraso += 1
-                            soma_dias_atraso += dias
+                        lancamentos_map[m_key].append({
+                            "titulo": f"NF {lr.titulo}/{lr.parcela}".strip('/'),
+                            "valor": round(vlr, 2),
+                            "dataVencimento": dt_v.strftime("%d/%m/%Y") if dt_v else "",
+                            "dataPagamento": dt_p.strftime("%d/%m/%Y") if dt_p else "",
+                            "diasAtraso": max(0, dias),
+                            "status": "ATRASADO" if is_atrasado else "EM_DIA"
+                        })
+
+                # Monta historico_map usando a tabela previsao_cliente_score por matriz
+                for m_id in ids_matrizes:
+                    s = score_map.get(m_id)
+                    if s:
+                        score_val = float(s.score_final)
+                        total_h = s.total_titulos_historico
+                        taxa_p = round((s.titulos_em_dia / total_h) * 100) if total_h > 0 else 85
+                        if score_val >= 90:
+                            classif = f"Excelente ({score_val:.0f}%)"
+                        elif score_val >= 80:
+                            classif = f"Bom ({score_val:.0f}%)"
+                        elif score_val >= 70:
+                            classif = f"Regular ({score_val:.0f}%)"
                         else:
-                            em_dia += 1
+                            classif = f"Atenção ({score_val:.0f}%)"
 
-                        if len(lancamentos) < 5:
-                            lancamentos.append({
-                                "titulo": f"NF {row.titulo}/{row.parcela}".strip('/'),
-                                "valor": round(vlr, 2),
-                                "dataVencimento": dt_v.strftime("%d/%m/%Y") if dt_v else "",
-                                "dataPagamento": dt_p.strftime("%d/%m/%Y") if dt_p else "",
-                                "diasAtraso": max(0, dias),
-                                "status": "ATRASADO" if is_atrasado else "EM_DIA"
-                            })
-
-                    total_t = em_dia + atraso
-                    score = round((em_dia / total_t) * 100) if total_t > 0 else 85
-                    media_dias = round(soma_dias_atraso / atraso, 1) if atraso > 0 else 0.0
-
-                    if score >= 90:
-                        classif = "Excelente (Altíssima Previsibilidade)"
-                    elif score >= 80:
-                        classif = "Bom (Alta Previsibilidade)"
-                    elif score >= 70:
-                        classif = "Regular (Previsibilidade Média)"
+                        historico_map[m_id] = {
+                            "idMatriz": m_id,
+                            "codigoMatriz": s.codigo_matriz or "",
+                            "nomeMatriz": s.nome_matriz or "",
+                            "score": round(score_val),
+                            "classificacao": classif,
+                            "isNovo": False,
+                            "titulosEmDia": s.titulos_em_dia,
+                            "titulosEmAtraso": s.titulos_em_atraso,
+                            "percentualPontualidade": taxa_p,
+                            "mediaDiasAtraso": float(s.media_dias_atraso),
+                            "valorTotalPago": float(s.valor_total_liquidado),
+                            "lancamentos": lancamentos_map.get(m_id, [])
+                        }
                     else:
-                        classif = "Atenção (Baixa Previsibilidade)"
-
-                    historico_map[c_cod] = {
-                        "score": score,
-                        "classificacao": classif,
-                        "titulosEmDia": em_dia,
-                        "titulosEmAtraso": atraso,
-                        "percentualPontualidade": score,
-                        "mediaDiasAtraso": media_dias,
-                        "valorTotalPago": round(valor_total_pago, 2),
-                        "lancamentos": lancamentos
-                    }
+                        # Matriz Nova (Sem Histórico): score 0% para projeção conservadora de fluxo de caixa
+                        historico_map[m_id] = {
+                            "idMatriz": m_id,
+                            "codigoMatriz": "",
+                            "nomeMatriz": "",
+                            "score": 0,
+                            "classificacao": "Sem Histórico (0%)",
+                            "isNovo": True,
+                            "titulosEmDia": 0,
+                            "titulosEmAtraso": 0,
+                            "percentualPontualidade": 0,
+                            "mediaDiasAtraso": 0.0,
+                            "valorTotalPago": 0.0,
+                            "lancamentos": []
+                        }
 
             for r in titulos_acr:
-                c_cod = str(r.cliente).strip() if r.cliente else ""
-                c_nome = (r.nome_cliente or 'Cliente').strip()
-                hist = historico_map.get(c_cod, {
-                    "clienteCodigo": c_cod,
-                    "clienteNome": c_nome,
-                    "score": 85,
-                    "classificacao": "Bom (Padrão)",
+                m_id = int(r.id_matriz) if r.id_matriz is not None else (int(r.cliente_codigo) if (r.cliente_codigo and str(r.cliente_codigo).isdigit()) else 0)
+                cod_m = (r.codigo_matriz or str(r.cliente_codigo or "")).strip()
+                nome_m = (r.nome_matriz or r.nome_cliente or "Cliente").strip()
+                mod = (r.modalidade or "BOLETO").strip().upper()
+                vlr = float(r.saldo or 0.0)
+                doc = f"{r.titulo or ''}/{r.parcela or ''}".strip('/')
+                dt_v = r.vencto.strftime("%d/%m/%Y") if r.vencto else ""
+
+                hist = historico_map.get(m_id, {
+                    "idMatriz": m_id,
+                    "codigoMatriz": cod_m,
+                    "nomeMatriz": nome_m,
+                    "score": 0,
+                    "classificacao": "Sem Histórico (0%)",
+                    "isNovo": True,
                     "titulosEmDia": 0,
                     "titulosEmAtraso": 0,
-                    "percentualPontualidade": 85,
-                    "mediaDiasAtraso": 0,
+                    "percentualPontualidade": 0,
+                    "mediaDiasAtraso": 0.0,
                     "valorTotalPago": 0.0,
                     "lancamentos": []
                 })
-                hist["clienteCodigo"] = c_cod
-                hist["clienteNome"] = c_nome
+                hist["idMatriz"] = m_id
+                hist["codigoMatriz"] = cod_m
+                hist["nomeMatriz"] = nome_m
+                v_score = hist.get("score", 0)
 
-                v_val = float(r.saldo or 0.0)
-                v_score = hist.get("score", 85)
-
+                # Objeto individual do título para manter retrocompatibilidade
                 item = {
                     "id": str(r.id),
-                    "modalidade": r.modalidade or "BOLETO",
-                    "clienteCodigo": c_cod,
-                    "clienteNome": c_nome,
-                    "documento": f"{r.titulo}/{r.parcela}".strip('/'),
-                    "valor": round(v_val, 2),
-                    "dataVencimento": r.vencto.strftime("%d/%m/%Y") if r.vencto else "",
+                    "modalidade": mod,
+                    "clienteCodigo": str(r.cliente_codigo or ""),
+                    "clienteNome": (r.nome_cliente or "").strip(),
+                    "idMatriz": m_id,
+                    "codigoMatriz": cod_m,
+                    "nomeMatriz": nome_m,
+                    "documento": doc,
+                    "valor": round(vlr, 2),
+                    "dataVencimento": dt_v,
                     "score": v_score,
+                    "isNovo": hist.get("isNovo", False),
                     "historico": hist
                 }
                 contas_receber.append(item)
 
-                if item["modalidade"] == "CARTEIRA":
-                    total_receber_carteira += v_val
+                # Agrupamento por Matriz e Modalidade (Carteira ou Boleto)
+                chave_m = (m_id, cod_m, nome_m, mod)
+                if chave_m not in grupos_receber_matriz:
+                    grupos_receber_matriz[chave_m] = {
+                        "idMatriz": m_id,
+                        "codigoMatriz": cod_m,
+                        "nomeMatriz": nome_m,
+                        "modalidade": mod,
+                        "valorTotal": 0.0,
+                        "qtdTitulos": 0,
+                        "score": v_score,
+                        "classificacao": hist.get("classificacao", ""),
+                        "isNovo": hist.get("isNovo", False),
+                        "titulosEmDia": hist.get("titulosEmDia", 0),
+                        "titulosEmAtraso": hist.get("titulosEmAtraso", 0),
+                        "percentualPontualidade": hist.get("percentualPontualidade", 0),
+                        "mediaDiasAtraso": hist.get("mediaDiasAtraso", 0.0),
+                        "valorTotalPago": hist.get("valorTotalPago", 0.0),
+                        "titulos": [],
+                        "lancamentos": hist.get("lancamentos", [])
+                    }
+
+                grupos_receber_matriz[chave_m]["valorTotal"] = round(grupos_receber_matriz[chave_m]["valorTotal"] + vlr, 2)
+                grupos_receber_matriz[chave_m]["qtdTitulos"] += 1
+                grupos_receber_matriz[chave_m]["titulos"].append({
+                    "id": str(r.id),
+                    "numeroDocumento": doc,
+                    "valor": round(vlr, 2),
+                    "clienteCodigo": str(r.cliente_codigo or ""),
+                    "clienteNome": (r.nome_cliente or "").strip(),
+                    "dataVencimento": dt_v,
+                    "modalidade": mod
+                })
+
+                if mod == "CARTEIRA":
+                    total_receber_carteira += vlr
                 else:
-                    total_receber_boleto += v_val
+                    total_receber_boleto += vlr
 
                 if v_score <= 80:
-                    receber_menor_igual_80 += v_val
+                    receber_menor_igual_80 += vlr
                 else:
-                    receber_maior_80 += v_val
+                    receber_maior_80 += vlr
 
-                receber_ponderado += v_val * (v_score / 100.0)
+                receber_ponderado += vlr * (v_score / 100.0)
 
         except Exception as e:
             logger.exception("Erro ao carregar contas a receber de vw_previsao_acr: %s", str(e))
+
+        matrizes_receber_agrupadas = sorted(grupos_receber_matriz.values(), key=lambda x: x["valorTotal"], reverse=True)
+        matrizes_carteira = [m for m in matrizes_receber_agrupadas if m["modalidade"] == "CARTEIRA"]
+        matrizes_boleto = [m for m in matrizes_receber_agrupadas if m["modalidade"] == "BOLETO"]
 
         total_receber = total_receber_carteira + total_receber_boleto
         qtd_receber = len(contas_receber)
@@ -923,6 +1207,9 @@ class PrevisaoCaixaService:
             "contas_itau": contas_itau,
             "contas_provisao": contas_provisao,
             "matrizes_agrupadas": matrizes_agrupadas,
+            "matrizes_receber": matrizes_receber_agrupadas,
+            "matrizes_carteira": matrizes_carteira,
+            "matrizes_boleto": matrizes_boleto,
             "total_receber": round(total_receber, 2),
             "qtd_receber": qtd_receber,
             "total_receber_carteira": round(total_receber_carteira, 2),

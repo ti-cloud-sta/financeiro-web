@@ -342,6 +342,7 @@ Apenas placeholder ("em construção"), sem regra implementada.
 - 🔴 **Sem backup automático** do banco de produção.
 - 🟠 A view e a função de corte dependem do `DEFINER` (problema ao restaurar backups em outro MySQL).
 - 🟠 Ambiente de teste é recriado toda sexta a partir da produção: mudanças de banco precisam ir para a produção ou ser reaplicadas.
+- 🔴 **Congelamentos da VPS:** a máquina congelou por inteiro (sem ping/SSH/HTTP) em 21/10 02:17, 22/10 ~19:10 e 23/10 18:30 UTC, ociosa e sem nenhum erro nos logs (journald/sysstat simplesmente param). Suspeita: servidor físico da Hostinger (em 17/10 a VPS ficou 46 min fora e o agente QEMU passou a rodar telemetria de hora em hora). Recomendado abrir chamado na Hostinger pedindo migração de node. Em 23/10 foi criado `/etc/sysctl.d/90-reinicio-automatico.conf` (`kernel.panic=10`, `panic_on_oops`, `softlockup_panic`, `hardlockup_panic`, `nmi_watchdog=1`): se o travamento for dentro da VPS, ela reinicia sozinha em segundos. Não há watchdog de hardware virtual na VPS.
 - 🟡 SSH root com senha habilitado; kernel aguardando correção da falha "PwnEscape" (CVE-2026-99999) — reiniciar a VPS quando o Ubuntu publicar o kernel corrigido (`/var/run/reboot-required`).
 - Em andamento: lançamento do nível Comercial - Vendas na produção (SQL `usuarios_convite_comercial.sql` + deploy), depois níveis por departamento.
 

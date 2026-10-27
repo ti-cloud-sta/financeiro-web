@@ -172,5 +172,8 @@ class DashboardVisaoGeralResponse(BaseModel):
     saldo_real_nominal: float = 0.0
     valor_investido_resgatavel: float = 0.0
     contas_receber: List[dict] = []
+    matrizes_receber: List[dict] = []
+    matrizes_carteira: List[dict] = []
+    matrizes_boleto: List[dict] = []
 
 

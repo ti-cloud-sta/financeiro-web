@@ -30,7 +30,7 @@
       <div class="config-layout">
         
         <!-- Dashboard Header com Abas Horizontais (Idêntico ao Módulo Pendências) -->
-        <div class="dashboard-header d-flex justify-content-between align-items-center border-bottom pt-2 px-1">
+        <div class="dashboard-header d-flex justify-content-between align-items-center border-bottom pt-1 pb-1 px-1">
           <ul class="config-nav mb-0 border-bottom-0 pb-0">
             <li class="config-nav-item">
               <button class="config-nav-link" [class.active]="activeNav() === 'visao-geral'" (click)="activeNav.set('visao-geral')">
@@ -39,33 +39,29 @@
             </li>
           </ul>
 
-          <div class="d-flex gap-3 text-secondary align-items-center info-hoje-pill border px-3 py-1 rounded-3 mb-2" style="font-size: 0.82rem;">
+          <div class="d-flex text-secondary align-items-center info-hoje-pill border px-3 py-1 rounded-3 mb-0" style="font-size: 0.82rem;">
             @if (isLoadingVisaoGeral()) {
               <app-skeleton type="text" width="110px" height="14px"></app-skeleton>
-              <div class="vr text-secondary opacity-25 mx-1" style="height: 14px;"></div>
-              <app-skeleton type="text" width="140px" height="14px"></app-skeleton>
             } @else {
               <span class="text-muted"><i class="fa-regular fa-calendar me-2"></i>Hoje, {{ dataHoje }}</span>
-              <div class="vr text-secondary opacity-25 mx-1" style="height: 14px;"></div>
-              <span><span class="text-muted me-1">Previsão Saldo:</span> <strong [class.text-success]="isSaldoPrevisibilidadePositivo()" [class.text-danger]="!isSaldoPrevisibilidadePositivo()">{{ formatarMoeda(saldoPrevisibilidade()) }}</strong></span>
             }
           </div>
         </div>
 
         <!-- Dashboard Content -->
-        <div class="dashboard-content px-1 pb-1 pt-2 d-flex flex-column flex-grow-1" style="min-height: 0;">
+        <div class="dashboard-content px-1 pb-1 pt-1 d-flex flex-column flex-grow-1" style="min-height: 0;">
 
           @if (isLoadingVisaoGeral()) {
             <!-- SKELETON: TOP 7 KPI CARDS -->
             <section class="kpis-dashboard-grid mb-2">
               @for (i of [1,2,3,4,5,6,7]; track i) {
                 <div class="kpi-metric-card" style="pointer-events: none;">
-                  <div class="d-flex justify-content-between align-items-center mb-2">
-                    <app-skeleton type="text" width="60%" height="13px"></app-skeleton>
-                    <app-skeleton type="circle" width="22px" height="22px"></app-skeleton>
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <app-skeleton type="text" width="60%" height="11px"></app-skeleton>
+                    <app-skeleton type="circle" width="18px" height="18px"></app-skeleton>
                   </div>
-                  <app-skeleton type="rect" width="75%" height="24px" class="my-2" style="border-radius: 6px;"></app-skeleton>
-                  <app-skeleton type="text" width="50%" height="12px"></app-skeleton>
+                  <app-skeleton type="rect" width="75%" height="18px" class="my-1" style="border-radius: 4px;"></app-skeleton>
+                  <app-skeleton type="text" width="50%" height="10px"></app-skeleton>
                 </div>
               }
             </section>
@@ -77,11 +73,11 @@
               <div class="bloco-operacional painel-pagar">
                 <div class="bloco-header">
                   <div class="d-flex align-items-center justify-content-between w-100 mb-2">
-                    <app-skeleton type="text" width="140px" height="20px"></app-skeleton>
-                    <app-skeleton type="rect" width="120px" height="26px" style="border-radius: 6px;"></app-skeleton>
+                    <app-skeleton type="text" width="120px" height="18px"></app-skeleton>
+                    <app-skeleton type="rect" width="100px" height="22px" style="border-radius: 6px;"></app-skeleton>
                   </div>
                   <div class="bloco-toolbar">
-                    <app-skeleton type="rect" width="100%" height="32px" style="border-radius: 6px;"></app-skeleton>
+                    <app-skeleton type="rect" width="100%" height="28px" style="border-radius: 6px;"></app-skeleton>
                   </div>
                 </div>
                 <div class="bloco-body">
@@ -89,22 +85,22 @@
                     <div class="subcoluna subcoluna-bb">
                       <div class="subcoluna-header bb-header">
                         <div class="d-flex align-items-center gap-2">
-                          <app-skeleton type="circle" width="28px" height="28px"></app-skeleton>
-                          <app-skeleton type="text" width="90px" height="16px"></app-skeleton>
+                          <app-skeleton type="circle" width="22px" height="22px"></app-skeleton>
+                          <app-skeleton type="text" width="80px" height="14px"></app-skeleton>
                         </div>
-                        <app-skeleton type="text" width="70px" height="16px"></app-skeleton>
+                        <app-skeleton type="text" width="60px" height="14px"></app-skeleton>
                       </div>
                       <div class="cards-scroll-container">
                         @for (c of [1,2,3]; track c) {
                           <div class="card-item-caixa pagar-card mb-2" style="pointer-events: none;">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                              <app-skeleton type="text" width="40%" height="18px"></app-skeleton>
-                              <app-skeleton type="rect" width="60px" height="18px" style="border-radius: 12px;"></app-skeleton>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                              <app-skeleton type="text" width="40%" height="15px"></app-skeleton>
+                              <app-skeleton type="rect" width="50px" height="15px" style="border-radius: 10px;"></app-skeleton>
                             </div>
-                            <app-skeleton type="text" width="70%" height="14px" class="mb-2"></app-skeleton>
-                            <div class="d-flex justify-content-between align-items-center pt-2">
-                              <app-skeleton type="rect" width="70px" height="18px" style="border-radius: 4px;"></app-skeleton>
-                              <app-skeleton type="rect" width="80px" height="24px" style="border-radius: 6px;"></app-skeleton>
+                            <app-skeleton type="text" width="70%" height="12px" class="mb-1"></app-skeleton>
+                            <div class="d-flex justify-content-between align-items-center pt-1">
+                              <app-skeleton type="rect" width="60px" height="15px" style="border-radius: 3px;"></app-skeleton>
+                              <app-skeleton type="rect" width="70px" height="20px" style="border-radius: 4px;"></app-skeleton>
                             </div>
                           </div>
                         }
@@ -113,22 +109,22 @@
                     <div class="subcoluna subcoluna-itau">
                       <div class="subcoluna-header itau-header">
                         <div class="d-flex align-items-center gap-2">
-                          <app-skeleton type="circle" width="28px" height="28px"></app-skeleton>
-                          <app-skeleton type="text" width="70px" height="16px"></app-skeleton>
+                          <app-skeleton type="circle" width="22px" height="22px"></app-skeleton>
+                          <app-skeleton type="text" width="60px" height="14px"></app-skeleton>
                         </div>
-                        <app-skeleton type="text" width="80px" height="16px"></app-skeleton>
+                        <app-skeleton type="text" width="70px" height="14px"></app-skeleton>
                       </div>
                       <div class="cards-scroll-container">
                         @for (c of [1,2,3]; track c) {
                           <div class="card-item-caixa pagar-card mb-2" style="pointer-events: none;">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                              <app-skeleton type="text" width="45%" height="18px"></app-skeleton>
-                              <app-skeleton type="rect" width="60px" height="18px" style="border-radius: 12px;"></app-skeleton>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                              <app-skeleton type="text" width="45%" height="15px"></app-skeleton>
+                              <app-skeleton type="rect" width="50px" height="15px" style="border-radius: 10px;"></app-skeleton>
                             </div>
-                            <app-skeleton type="text" width="80%" height="14px" class="mb-2"></app-skeleton>
-                            <div class="d-flex justify-content-between align-items-center pt-2">
-                              <app-skeleton type="rect" width="75px" height="18px" style="border-radius: 4px;"></app-skeleton>
-                              <app-skeleton type="rect" width="80px" height="24px" style="border-radius: 6px;"></app-skeleton>
+                            <app-skeleton type="text" width="80%" height="12px" class="mb-1"></app-skeleton>
+                            <div class="d-flex justify-content-between align-items-center pt-1">
+                              <app-skeleton type="rect" width="65px" height="15px" style="border-radius: 3px;"></app-skeleton>
+                              <app-skeleton type="rect" width="70px" height="20px" style="border-radius: 4px;"></app-skeleton>
                             </div>
                           </div>
                         }
@@ -142,10 +138,10 @@
               <div class="bloco-operacional painel-receber">
                 <div class="bloco-header">
                   <div class="d-flex align-items-center justify-content-between w-100 mb-2">
-                    <app-skeleton type="text" width="150px" height="20px"></app-skeleton>
+                    <app-skeleton type="text" width="130px" height="18px"></app-skeleton>
                   </div>
                   <div class="bloco-toolbar">
-                    <app-skeleton type="rect" width="100%" height="32px" style="border-radius: 6px;"></app-skeleton>
+                    <app-skeleton type="rect" width="100%" height="28px" style="border-radius: 6px;"></app-skeleton>
                   </div>
                 </div>
                 <div class="bloco-body">
@@ -153,25 +149,25 @@
                     <div class="subcoluna subcoluna-carteira">
                       <div class="subcoluna-header carteira-header">
                         <div class="d-flex align-items-center gap-2">
-                          <app-skeleton type="circle" width="28px" height="28px"></app-skeleton>
+                          <app-skeleton type="circle" width="22px" height="22px"></app-skeleton>
                           <div>
-                            <app-skeleton type="text" width="60px" height="14px"></app-skeleton>
-                            <app-skeleton type="text" width="90px" height="11px" class="mt-1"></app-skeleton>
+                            <app-skeleton type="text" width="50px" height="12px"></app-skeleton>
+                            <app-skeleton type="text" width="80px" height="10px" class="mt-1"></app-skeleton>
                           </div>
                         </div>
-                        <app-skeleton type="text" width="75px" height="16px"></app-skeleton>
+                        <app-skeleton type="text" width="65px" height="14px"></app-skeleton>
                       </div>
                       <div class="cards-scroll-container">
                         @for (c of [1,2,3]; track c) {
                           <div class="card-item-caixa receber-card mb-2" style="pointer-events: none;">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                              <app-skeleton type="text" width="45%" height="18px"></app-skeleton>
-                              <app-skeleton type="rect" width="75px" height="18px" style="border-radius: 12px;"></app-skeleton>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                              <app-skeleton type="text" width="45%" height="15px"></app-skeleton>
+                              <app-skeleton type="rect" width="65px" height="15px" style="border-radius: 10px;"></app-skeleton>
                             </div>
-                            <app-skeleton type="text" width="65%" height="14px" class="mb-2"></app-skeleton>
-                            <div class="d-flex justify-content-between align-items-center pt-2">
-                              <app-skeleton type="rect" width="80px" height="18px" style="border-radius: 4px;"></app-skeleton>
-                              <app-skeleton type="rect" width="80px" height="24px" style="border-radius: 6px;"></app-skeleton>
+                            <app-skeleton type="text" width="65%" height="12px" class="mb-1"></app-skeleton>
+                            <div class="d-flex justify-content-between align-items-center pt-1">
+                              <app-skeleton type="rect" width="70px" height="15px" style="border-radius: 3px;"></app-skeleton>
+                              <app-skeleton type="rect" width="70px" height="20px" style="border-radius: 4px;"></app-skeleton>
                             </div>
                           </div>
                         }
@@ -180,25 +176,25 @@
                     <div class="subcoluna subcoluna-boleto">
                       <div class="subcoluna-header boleto-header">
                         <div class="d-flex align-items-center gap-2">
-                          <app-skeleton type="circle" width="28px" height="28px"></app-skeleton>
+                          <app-skeleton type="circle" width="22px" height="22px"></app-skeleton>
                           <div>
-                            <app-skeleton type="text" width="55px" height="14px"></app-skeleton>
-                            <app-skeleton type="text" width="85px" height="11px" class="mt-1"></app-skeleton>
+                            <app-skeleton type="text" width="45px" height="12px"></app-skeleton>
+                            <app-skeleton type="text" width="75px" height="10px" class="mt-1"></app-skeleton>
                           </div>
                         </div>
-                        <app-skeleton type="text" width="75px" height="16px"></app-skeleton>
+                        <app-skeleton type="text" width="65px" height="14px"></app-skeleton>
                       </div>
                       <div class="cards-scroll-container">
                         @for (c of [1,2,3]; track c) {
                           <div class="card-item-caixa receber-card mb-2" style="pointer-events: none;">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                              <app-skeleton type="text" width="45%" height="18px"></app-skeleton>
-                              <app-skeleton type="rect" width="75px" height="18px" style="border-radius: 12px;"></app-skeleton>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                              <app-skeleton type="text" width="45%" height="15px"></app-skeleton>
+                              <app-skeleton type="rect" width="65px" height="15px" style="border-radius: 10px;"></app-skeleton>
                             </div>
-                            <app-skeleton type="text" width="70%" height="14px" class="mb-2"></app-skeleton>
-                            <div class="d-flex justify-content-between align-items-center pt-2">
-                              <app-skeleton type="rect" width="80px" height="18px" style="border-radius: 4px;"></app-skeleton>
-                              <app-skeleton type="rect" width="80px" height="24px" style="border-radius: 6px;"></app-skeleton>
+                            <app-skeleton type="text" width="70%" height="12px" class="mb-1"></app-skeleton>
+                            <div class="d-flex justify-content-between align-items-center pt-1">
+                              <app-skeleton type="rect" width="70px" height="15px" style="border-radius: 3px;"></app-skeleton>
+                              <app-skeleton type="rect" width="70px" height="20px" style="border-radius: 4px;"></app-skeleton>
                             </div>
                           </div>
                         }
@@ -217,97 +213,127 @@
               
               <!-- Card: Valor Investido Resgatável -->
               <div class="kpi-metric-card kpi-investimento">
-              <div class="kpi-header">
-                <span class="kpi-label">Investimento Resgatável</span>
+                <div class="kpi-header">
+                  <span class="kpi-label">Investimento</span>
+                </div>
+                <div class="kpi-value text-info">{{ formatarMoeda(valorInvestidoResgatavel()) }}</div>
               </div>
-              <div class="kpi-value text-info">{{ formatarMoeda(valorInvestidoResgatavel()) }}</div>
-            </div>
 
-            <!-- Card 1: Total em Provisão -->
-            <div class="kpi-metric-card kpi-provisao">
-              <div class="kpi-header">
-                <span class="kpi-label">Total a Provisão</span>
-                <div class="kpi-icon-badge provisao-icon">
-                  <i class="fa-solid fa-receipt"></i>
+              <!-- Card 1: Total em Provisão -->
+              <div class="kpi-metric-card kpi-provisao">
+                <div class="kpi-header">
+                  <span class="kpi-label">Total Provisão</span>
+                  <div class="kpi-icon-badge provisao-icon">
+                    <i class="fa-solid fa-receipt"></i>
+                  </div>
+                </div>
+                <div class="kpi-value">{{ formatarMoeda(totalProvisao()) }}</div>
+                <div class="kpi-footer">
+                  <span class="kpi-subtext">
+                    <i class="fa-solid fa-layer-group me-1"></i>{{ qtdProvisoes() }} provisões ativas
+                  </span>
                 </div>
               </div>
-              <div class="kpi-value">{{ formatarMoeda(totalProvisao()) }}</div>
-              <div class="kpi-footer">
-                <span class="kpi-subtext">
-                  <i class="fa-solid fa-layer-group me-1"></i>{{ qtdProvisoes() }} provisões ativas
-                </span>
-              </div>
-            </div>
 
-            <!-- Card 2: Total a Pagar -->
-            <div class="kpi-metric-card kpi-pagar">
-              <div class="kpi-header">
-                <span class="kpi-label">Total a Pagar</span>
-                <div class="kpi-icon-badge pagar-icon">
-                  <i class="fa-solid fa-arrow-trend-down"></i>
+              <!-- Card 2: Total a Pagar -->
+              <div class="kpi-metric-card kpi-pagar">
+                <div class="kpi-header">
+                  <span class="kpi-label">Total a Pagar</span>
+                  <div class="kpi-icon-badge pagar-icon">
+                    <i class="fa-solid fa-arrow-trend-down"></i>
+                  </div>
+                </div>
+                <div class="kpi-value text-danger">{{ formatarMoeda(totalPagar()) }}</div>
+                <div class="kpi-footer d-flex justify-content-between gap-1">
+                  <span class="kpi-subtext">BB: {{ formatarMoeda(totalBB()) }}</span>
+                  <span class="kpi-subtext">Itaú: {{ formatarMoeda(totalItau()) }}</span>
                 </div>
               </div>
-              <div class="kpi-value text-danger">{{ formatarMoeda(totalPagar()) }}</div>
-              <div class="kpi-footer d-flex justify-content-between">
-                <span class="kpi-subtext">BB: {{ formatarMoeda(totalBB()) }}</span>
-                <span class="kpi-subtext">Itaú: {{ formatarMoeda(totalItau()) }}</span>
-              </div>
-            </div>
 
-            <!-- Card 3: Total a Receber -->
-            <div class="kpi-metric-card kpi-receber">
-              <div class="kpi-header">
-                <span class="kpi-label">Total a Receber</span>
-                <div class="kpi-icon-badge receber-icon">
-                  <i class="fa-solid fa-arrow-trend-up"></i>
+              <!-- Card 3: Total a Receber -->
+              <div class="kpi-metric-card kpi-receber">
+                <div class="kpi-header">
+                  <span class="kpi-label">Total a Receber</span>
+                  <div class="kpi-icon-badge receber-icon">
+                    <i class="fa-solid fa-arrow-trend-up"></i>
+                  </div>
+                </div>
+                <div class="kpi-value text-success">{{ formatarMoeda(totalReceber()) }}</div>
+                <div class="kpi-footer d-flex justify-content-between gap-1">
+                  <span class="kpi-subtext">Cart.: {{ formatarMoeda(totalCarteira()) }}</span>
+                  <span class="kpi-subtext">Boleto: {{ formatarMoeda(totalBoleto()) }}</span>
                 </div>
               </div>
-              <div class="kpi-value text-success">{{ formatarMoeda(totalReceber()) }}</div>
-              <div class="kpi-footer d-flex justify-content-between">
-                <span class="kpi-subtext">Cart.: {{ formatarMoeda(totalCarteira()) }}</span>
-                <span class="kpi-subtext">Boleto: {{ formatarMoeda(totalBoleto()) }}</span>
-              </div>
-            </div>
 
-            <!-- Card 4: Previsão <= 80% (Atenção / Risco) -->
-            <div class="kpi-metric-card kpi-score-baixo">
-              <div class="kpi-header">
-                <span class="kpi-label">Previsão &le; 80% de Chance</span>
-                <div class="kpi-icon-badge score-baixo-icon">
-                  <i class="fa-solid fa-triangle-exclamation"></i>
+              <!-- Card 4: Previsão <= 80% (Atenção / Risco) -->
+              <div
+                class="kpi-metric-card kpi-score-baixo kpi-card-clickable"
+                [class.active]="filtroScore() === 'MENOR_IGUAL_80'"
+                (click)="filtrarMenorIgual80()"
+                role="button"
+                tabindex="0"
+                title="Clique para filtrar Contas a Receber com Score ≤ 80%"
+              >
+                <div class="kpi-header">
+                  <span class="kpi-label">Previsão &le; 80%</span>
+                  <div class="kpi-icon-badge score-baixo-icon">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                  </div>
+                </div>
+                <div class="kpi-value text-warning">{{ formatarMoeda(receberMenorIgual80()) }}</div>
+                <div class="kpi-footer d-flex justify-content-between align-items-center">
+                  <span class="kpi-subtext">
+                    <i class="fa-solid fa-filter me-1"></i>{{ filtroScore() === 'MENOR_IGUAL_80' ? 'Filtro Ativo' : 'Filtrar lista' }}
+                  </span>
+                  @if (filtroScore() === 'MENOR_IGUAL_80') {
+                    <span class="badge bg-warning text-dark py-0 px-1" style="font-size: 0.58rem;">Ativo</span>
+                  }
                 </div>
               </div>
-              <div class="kpi-value text-warning">{{ formatarMoeda(receberMenorIgual80()) }}</div>
-            </div>
 
-            <!-- Card 5: Previsão > 80% (Alta Certeza) -->
-            <div class="kpi-metric-card kpi-score-alto">
-              <div class="kpi-header">
-                <span class="kpi-label">Previsão &gt; 80% de Chance</span>
-                <div class="kpi-icon-badge score-alto-icon">
-                  <i class="fa-solid fa-shield-halved"></i>
+              <!-- Card 5: Previsão > 80% (Alta Certeza) -->
+              <div
+                class="kpi-metric-card kpi-score-alto kpi-card-clickable"
+                [class.active]="filtroScore() === 'MAIOR_80'"
+                (click)="filtrarMaior80()"
+                role="button"
+                tabindex="0"
+                title="Clique para filtrar Contas a Receber com Score > 80%"
+              >
+                <div class="kpi-header">
+                  <span class="kpi-label">Previsão &gt; 80%</span>
+                  <div class="kpi-icon-badge score-alto-icon">
+                    <i class="fa-solid fa-shield-halved"></i>
+                  </div>
+                </div>
+                <div class="kpi-value text-primary">{{ formatarMoeda(receberMaior80()) }}</div>
+                <div class="kpi-footer d-flex justify-content-between align-items-center">
+                  <span class="kpi-subtext">
+                    <i class="fa-solid fa-filter me-1"></i>{{ filtroScore() === 'MAIOR_80' ? 'Filtro Ativo' : 'Filtrar lista' }}
+                  </span>
+                  @if (filtroScore() === 'MAIOR_80') {
+                    <span class="badge bg-primary py-0 px-1" style="font-size: 0.58rem;">Ativo</span>
+                  }
                 </div>
               </div>
-              <div class="kpi-value text-primary">{{ formatarMoeda(receberMaior80()) }}</div>
-            </div>
 
-            <!-- Card 6: Previsão de Saldo (Sobrar ou Faltar) -->
-            <div class="kpi-metric-card kpi-saldo" [class.superavit]="isSaldoPrevisibilidadePositivo()" [class.deficit]="!isSaldoPrevisibilidadePositivo()">
-              <div class="kpi-header">
-                <span class="kpi-label">Previsão de Saldo (Projetado)</span>
-                <div class="kpi-icon-badge saldo-icon">
-                  <i class="fa-solid fa-scale-balanced"></i>
+              <!-- Card 6: Previsão de Saldo (Sobrar ou Faltar) -->
+              <div class="kpi-metric-card kpi-saldo" [class.superavit]="isSaldoPrevisibilidadePositivo()" [class.deficit]="!isSaldoPrevisibilidadePositivo()">
+                <div class="kpi-header">
+                  <span class="kpi-label">Previsão de Saldo</span>
+                  <div class="kpi-icon-badge saldo-icon">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                  </div>
+                </div>
+                <div class="kpi-value" [class.text-success]="isSaldoPrevisibilidadePositivo()" [class.text-danger]="!isSaldoPrevisibilidadePositivo()">
+                  {{ formatarMoeda(saldoPrevisibilidade()) }}
+                </div>
+                <div class="kpi-footer text-end">
+                  <span class="saldo-nominal-text" title="Saldo sem ponderação de score: Receber Total - Pagar Total">
+                    Nominal: <strong>{{ formatarMoeda(saldoRealNominal()) }}</strong>
+                  </span>
                 </div>
               </div>
-              <div class="kpi-value" [class.text-success]="isSaldoPrevisibilidadePositivo()" [class.text-danger]="!isSaldoPrevisibilidadePositivo()">
-                {{ formatarMoeda(saldoPrevisibilidade()) }}
-              </div>
-              <div class="kpi-footer text-end">
-                <span class="saldo-nominal-text" title="Saldo sem ponderação de score: Receber Total - Pagar Total">
-                  Nominal: <strong>{{ formatarMoeda(saldoRealNominal()) }}</strong>
-                </span>
-              </div>
-            </div>
 
           </section>
 
@@ -379,7 +405,7 @@
 
                       <div class="cards-scroll-container">
                         @for (matriz of matrizesBB(); track (matriz.idMatriz || matriz.nomeMatriz)) {
-                          <div class="card-item-caixa pagar-card matriz-card">
+                          <div class="card-item-caixa pagar-card matriz-card" (click)="abrirModalMatriz(matriz)" role="button" tabindex="0">
                             <div class="card-item-top">
                               <span class="card-item-valor">{{ formatarMoeda(matriz.valorTotal) }}</span>
                               <span class="badge-qtd-titulos">
@@ -397,9 +423,9 @@
                                   <span class="categoria-tag">{{ matriz.codigoMatriz }}</span>
                                 }
                               </div>
-                              <button class="btn-inline-detalhes" (click)="abrirModalMatriz(matriz)">
-                                <i class="fa-regular fa-eye me-1"></i> Visualizar
-                              </button>
+                              <span class="text-muted small click-hint">
+                                <i class="fa-solid fa-chevron-right"></i>
+                              </span>
                             </div>
                           </div>
                         } @empty {
@@ -423,7 +449,7 @@
 
                       <div class="cards-scroll-container">
                         @for (matriz of matrizesItau(); track (matriz.idMatriz || matriz.nomeMatriz)) {
-                          <div class="card-item-caixa pagar-card matriz-card">
+                          <div class="card-item-caixa pagar-card matriz-card" (click)="abrirModalMatriz(matriz)" role="button" tabindex="0">
                             <div class="card-item-top">
                               <span class="card-item-valor">{{ formatarMoeda(matriz.valorTotal) }}</span>
                               <span class="badge-qtd-titulos">
@@ -441,9 +467,9 @@
                                   <span class="categoria-tag">{{ matriz.codigoMatriz }}</span>
                                 }
                               </div>
-                              <button class="btn-inline-detalhes" (click)="abrirModalMatriz(matriz)">
-                                <i class="fa-regular fa-eye me-1"></i> Visualizar
-                              </button>
+                              <span class="text-muted small click-hint">
+                                <i class="fa-solid fa-chevron-right"></i>
+                              </span>
                             </div>
                           </div>
                         } @empty {
@@ -475,7 +501,7 @@
 
                       <div class="cards-scroll-container">
                         @for (matriz of matrizesProvisao(); track (matriz.idMatriz || matriz.nomeMatriz)) {
-                          <div class="card-item-caixa provisao-card matriz-card">
+                          <div class="card-item-caixa provisao-card matriz-card" (click)="abrirModalMatriz(matriz)" role="button" tabindex="0">
                             <div class="card-item-top">
                               <span class="card-item-valor">{{ formatarMoeda(matriz.valorTotal) }}</span>
                               <span class="badge-qtd-titulos">
@@ -493,9 +519,9 @@
                                   <span class="categoria-tag provisao-tag">{{ matriz.codigoMatriz }}</span>
                                 }
                               </div>
-                              <button class="btn-inline-detalhes" (click)="abrirModalMatriz(matriz)">
-                                <i class="fa-regular fa-eye me-1"></i> Visualizar
-                              </button>
+                              <span class="text-muted small click-hint">
+                                <i class="fa-solid fa-chevron-right"></i>
+                              </span>
                             </div>
                           </div>
                         } @empty {
@@ -521,7 +547,56 @@
                 <div class="d-flex align-items-center justify-content-between w-100 mb-2">
                   <div class="d-flex align-items-center gap-2">
                     <h4 class="bloco-title mb-0">Contas a Receber</h4>
-                    <span class="contador-badge receber">{{ contasCarteira().length + contasBoleto().length }}</span>
+                    <span class="contador-badge receber">{{ totalTitulosReceberFiltrados() }}</span>
+                  </div>
+
+                  <!-- Pílulas de Filtro de Score à Direita -->
+                  <div class="score-pills-filter d-flex align-items-center gap-1">
+                    <button
+                      type="button"
+                      class="score-pill"
+                      [class.active]="filtroScore() === 'TODOS'"
+                      (click)="setFiltroScore('TODOS')"
+                      title="Exibir todos os scores"
+                    >
+                      Todos
+                    </button>
+                    <button
+                      type="button"
+                      class="score-pill pill-alto"
+                      [class.active]="filtroScore() === 'ALTO'"
+                      (click)="setFiltroScore('ALTO')"
+                      title="Filtrar por Score Alto (≥80%)"
+                    >
+                      <span class="pill-dot bg-success"></span> Alto
+                    </button>
+                    <button
+                      type="button"
+                      class="score-pill pill-medio"
+                      [class.active]="filtroScore() === 'MEDIO'"
+                      (click)="setFiltroScore('MEDIO')"
+                      title="Filtrar por Score Médio (60% a 79%)"
+                    >
+                      <span class="pill-dot bg-warning"></span> Médio
+                    </button>
+                    <button
+                      type="button"
+                      class="score-pill pill-baixo"
+                      [class.active]="filtroScore() === 'BAIXO'"
+                      (click)="setFiltroScore('BAIXO')"
+                      title="Filtrar por Score Baixo (<60%)"
+                    >
+                      <span class="pill-dot bg-danger"></span> Baixo
+                    </button>
+                    <button
+                      type="button"
+                      class="score-pill pill-novo"
+                      [class.active]="filtroScore() === 'NOVOS'"
+                      (click)="setFiltroScore('NOVOS')"
+                      title="Filtrar clientes novos sem histórico"
+                    >
+                      <span class="pill-dot bg-info"></span> Novos
+                    </button>
                   </div>
                 </div>
 
@@ -565,30 +640,39 @@
                     </div>
 
                     <div class="cards-scroll-container">
-                      @for (item of contasCarteira(); track item.id) {
-                        <div class="card-item-caixa receber-card">
+                      @for (matriz of matrizesCarteira(); track (matriz.idMatriz || matriz.nomeMatriz)) {
+                        <div class="card-item-caixa receber-card matriz-card" (click)="abrirModalMatrizReceber(matriz)" role="button" tabindex="0">
                           <div class="card-item-top">
-                            <span class="card-item-valor text-success">{{ formatarMoeda(item.valor) }}</span>
-                            <!-- SCORE NO CANTO SUPERIOR DIREITO -->
-                            <span class="score-badge" [ngClass]="getScoreBadgeClass(item.score)" title="Score de pontualidade do cliente: {{ item.score }}%">
-                              <i class="fa-solid fa-star me-1"></i>Score {{ item.score }}%
-                            </span>
+                            <span class="card-item-valor text-success">{{ formatarMoeda(matriz.valorTotal) }}</span>
+                            <div class="d-flex align-items-center gap-1">
+                              @if (matriz.isNovo || matriz.score === 0 || (matriz.titulosEmDia + matriz.titulosEmAtraso === 0)) {
+                                <span class="badge-cliente-novo" title="Cliente sem histórico anterior de pagamentos">
+                                  <i class="fa-solid fa-sparkles me-1"></i>Novo
+                                </span>
+                              }
+                              <!-- SCORE CONSOLIDADO DA MATRIZ -->
+                              <span class="score-badge" [ngClass]="getScoreBadgeClass(matriz.score)" title="Score de pontualidade da matriz: {{ matriz.score }}%">
+                                <i class="fa-solid fa-star me-1"></i>Score {{ matriz.score }}%
+                              </span>
+                            </div>
                           </div>
 
-                          <div class="card-item-nome" title="{{ item.clienteNome }}">
-                            {{ item.clienteNome }}
+                          <div class="card-item-nome" [title]="matriz.nomeMatriz">
+                            {{ matriz.nomeMatriz }}
                           </div>
 
                           <div class="card-item-detalhe">
                             <div class="d-flex align-items-center gap-2">
-                              <span class="documento-tag">{{ item.documento }}</span>
-                              <span class="vencimento-text">
-                                <i class="fa-regular fa-calendar-check me-1"></i>{{ item.dataVencimento }}
+                              @if (matriz.codigoMatriz) {
+                                <span class="categoria-tag">{{ matriz.codigoMatriz }}</span>
+                              }
+                              <span class="badge-qtd-titulos">
+                                <i class="fa-solid fa-layer-group me-1"></i>{{ matriz.qtdTitulos }} {{ matriz.qtdTitulos === 1 ? 'título' : 'títulos' }}
                               </span>
                             </div>
-                            <button class="btn-inline-historico" (click)="abrirHistoricoCliente(item)">
-                              <i class="fa-solid fa-clock-rotate-left me-1"></i> Histórico
-                            </button>
+                            <span class="text-muted small click-hint">
+                              <i class="fa-solid fa-chevron-right"></i>
+                            </span>
                           </div>
                         </div>
                       } @empty {
@@ -616,30 +700,39 @@
                     </div>
 
                     <div class="cards-scroll-container">
-                      @for (item of contasBoleto(); track item.id) {
-                        <div class="card-item-caixa receber-card">
+                      @for (matriz of matrizesBoleto(); track (matriz.idMatriz || matriz.nomeMatriz)) {
+                        <div class="card-item-caixa receber-card matriz-card" (click)="abrirModalMatrizReceber(matriz)" role="button" tabindex="0">
                           <div class="card-item-top">
-                            <span class="card-item-valor text-success">{{ formatarMoeda(item.valor) }}</span>
-                            <!-- SCORE NO CANTO SUPERIOR DIREITO -->
-                            <span class="score-badge" [ngClass]="getScoreBadgeClass(item.score)" title="Score de pontualidade do cliente: {{ item.score }}%">
-                              <i class="fa-solid fa-star me-1"></i>Score {{ item.score }}%
-                            </span>
+                            <span class="card-item-valor text-success">{{ formatarMoeda(matriz.valorTotal) }}</span>
+                            <div class="d-flex align-items-center gap-1">
+                              @if (matriz.isNovo || matriz.score === 0 || (matriz.titulosEmDia + matriz.titulosEmAtraso === 0)) {
+                                <span class="badge-cliente-novo" title="Cliente sem histórico anterior de pagamentos">
+                                  <i class="fa-solid fa-sparkles me-1"></i>Novo
+                                </span>
+                              }
+                              <!-- SCORE CONSOLIDADO DA MATRIZ -->
+                              <span class="score-badge" [ngClass]="getScoreBadgeClass(matriz.score)" title="Score de pontualidade da matriz: {{ matriz.score }}%">
+                                <i class="fa-solid fa-star me-1"></i>Score {{ matriz.score }}%
+                              </span>
+                            </div>
                           </div>
 
-                          <div class="card-item-nome" title="{{ item.clienteNome }}">
-                            {{ item.clienteNome }}
+                          <div class="card-item-nome" [title]="matriz.nomeMatriz">
+                            {{ matriz.nomeMatriz }}
                           </div>
 
                           <div class="card-item-detalhe">
                             <div class="d-flex align-items-center gap-2">
-                              <span class="documento-tag">{{ item.documento }}</span>
-                              <span class="vencimento-text">
-                                <i class="fa-regular fa-calendar-check me-1"></i>{{ item.dataVencimento }}
+                              @if (matriz.codigoMatriz) {
+                                <span class="categoria-tag">{{ matriz.codigoMatriz }}</span>
+                              }
+                              <span class="badge-qtd-titulos">
+                                <i class="fa-solid fa-layer-group me-1"></i>{{ matriz.qtdTitulos }} {{ matriz.qtdTitulos === 1 ? 'título' : 'títulos' }}
                               </span>
                             </div>
-                            <button class="btn-inline-historico" (click)="abrirHistoricoCliente(item)">
-                              <i class="fa-solid fa-clock-rotate-left me-1"></i> Histórico
-                            </button>
+                            <span class="text-muted small click-hint">
+                              <i class="fa-solid fa-chevron-right"></i>
+                            </span>
                           </div>
                         </div>
                       } @empty {
@@ -1081,7 +1174,11 @@
             <div class="mini-kpi-box success">
               <span class="mini-kpi-label">Pagos em Dia</span>
               <span class="mini-kpi-value text-success">{{ cliente.titulosEmDia }}</span>
-              <span class="mini-kpi-sub">{{ cliente.percentualPontualidade }}% pontual</span>
+              @if (cliente.titulosEmDia + cliente.titulosEmAtraso > 0) {
+                <span class="mini-kpi-sub">{{ cliente.percentualPontualidade }}% pontual</span>
+              } @else {
+                <span class="mini-kpi-sub text-muted">sem histórico</span>
+              }
             </div>
           </div>
 
@@ -1089,7 +1186,11 @@
             <div class="mini-kpi-box warning">
               <span class="mini-kpi-label">Pagos com Atraso</span>
               <span class="mini-kpi-value text-warning">{{ cliente.titulosEmAtraso }}</span>
-              <span class="mini-kpi-sub">{{ 100 - cliente.percentualPontualidade }}% atrasados</span>
+              @if (cliente.titulosEmDia + cliente.titulosEmAtraso > 0) {
+                <span class="mini-kpi-sub">{{ 100 - cliente.percentualPontualidade }}% atrasados</span>
+              } @else {
+                <span class="mini-kpi-sub text-muted">sem histórico</span>
+              }
             </div>
           </div>
 
@@ -1307,6 +1408,206 @@
 
       <div class="d-flex justify-content-end mt-3">
         <app-button variant="secondary" (clicked)="fecharModalMatriz()">Fechar</app-button>
+      </div>
+    </div>
+  }
+</app-modal>
+
+<!-- ============================================================== -->
+<!-- MODAL: DETALHES, TÍTULOS E SCORE DA MATRIZ A RECEBER           -->
+<!-- ============================================================== -->
+<app-modal
+  [isOpen]="isMatrizReceberModalOpen()"
+  [title]="'Matriz: ' + (matrizReceberSelecionada()?.nomeMatriz || '')"
+  size="lg"
+  (closed)="fecharModalMatrizReceber()"
+>
+  @if (matrizReceberSelecionada(); as matriz) {
+    <div class="historico-modal-content">
+      
+      <!-- Cabeçalho com Score e Métricas da Matriz -->
+      <div class="cliente-info-header p-3 mb-3 rounded-3 border">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h5 class="mb-1 fw-bold text-dark">{{ matriz.nomeMatriz }}</h5>
+            <div class="d-flex align-items-center gap-2 mt-1">
+              @if (matriz.codigoMatriz) {
+                <span class="badge bg-secondary-subtle text-secondary fs-6 px-2 py-0 border">
+                  {{ matriz.codigoMatriz }}
+                </span>
+              }
+              <span class="badge bg-light text-dark border">
+                {{ matriz.modalidade === 'CARTEIRA' ? 'Carteira (TED / PIX)' : 'Boleto Bancário' }}
+              </span>
+              <span class="text-muted small">
+                {{ matriz.qtdTitulos }} {{ matriz.qtdTitulos === 1 ? 'título em aberto' : 'títulos em aberto' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="text-end">
+            <div class="d-flex align-items-center justify-content-end gap-1 mb-1">
+              @if (matriz.isNovo || matriz.score === 0 || (matriz.titulosEmDia + matriz.titulosEmAtraso === 0)) {
+                <span class="badge-cliente-novo-modal" title="Cliente sem histórico anterior de pagamentos">
+                  <i class="fa-solid fa-sparkles me-1"></i>Cliente Novo
+                </span>
+              }
+              <span class="score-badge-modal" [ngClass]="getScoreBadgeClass(matriz.score)">
+                <i class="fa-solid fa-award me-1"></i> Score {{ matriz.score }}%
+              </span>
+            </div>
+            <div class="small text-muted">{{ matriz.classificacao }}</div>
+          </div>
+        </div>
+
+        <!-- 4 Mini KPIs da Matriz no Topo -->
+        <div class="row g-2 text-center">
+          <div class="col-3">
+            <div class="mini-kpi-box success">
+              <span class="mini-kpi-label">Pagos em Dia</span>
+              <span class="mini-kpi-value text-success">{{ matriz.titulosEmDia }}</span>
+              @if (matriz.titulosEmDia + matriz.titulosEmAtraso > 0) {
+                <span class="mini-kpi-sub">{{ matriz.percentualPontualidade }}% pontual</span>
+              } @else {
+                <span class="mini-kpi-sub text-muted">sem histórico</span>
+              }
+            </div>
+          </div>
+
+          <div class="col-3">
+            <div class="mini-kpi-box warning">
+              <span class="mini-kpi-label">Pagos com Atraso</span>
+              <span class="mini-kpi-value text-warning">{{ matriz.titulosEmAtraso }}</span>
+              @if (matriz.titulosEmDia + matriz.titulosEmAtraso > 0) {
+                <span class="mini-kpi-sub">{{ 100 - matriz.percentualPontualidade }}% atrasados</span>
+              } @else {
+                <span class="mini-kpi-sub text-muted">sem histórico</span>
+              }
+            </div>
+          </div>
+
+          <div class="col-3">
+            <div class="mini-kpi-box info">
+              <span class="mini-kpi-label">Média de Atraso</span>
+              <span class="mini-kpi-value text-info">{{ matriz.mediaDiasAtraso }}d</span>
+              <span class="mini-kpi-sub">dias corridos</span>
+            </div>
+          </div>
+
+          <div class="col-3">
+            <div class="mini-kpi-box primary">
+              <span class="mini-kpi-label">Volume Liquidado</span>
+              <span class="mini-kpi-value text-primary">{{ formatarMoeda(matriz.valorTotalPago) }}</span>
+              <span class="mini-kpi-sub">histórico consolidado</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEÇÃO 1: Títulos em Aberto desta Matriz -->
+      <h6 class="fw-semibold mb-2 text-dark d-flex align-items-center justify-content-between">
+        <span><i class="fa-solid fa-file-invoice-dollar me-1 text-success"></i> Títulos em Aberto (Previsão Atual)</span>
+        <span class="text-success fw-bold">{{ formatarMoeda(matriz.valorTotal) }}</span>
+      </h6>
+
+      <div class="table-responsive rounded border mb-4">
+        <table class="table table-hover align-middle mb-0 saas-table">
+          <thead>
+            <tr>
+              <th>Título / Doc</th>
+              <th>Filial / Cliente</th>
+              <th>Vencimento</th>
+              <th>Modalidade</th>
+              <th class="text-end">Valor em Aberto</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of matriz.titulos; track t.id) {
+              <tr>
+                <td class="fw-medium font-monospace">{{ t.numeroDocumento || t.id }}</td>
+                <td>
+                  <div class="fw-medium text-dark text-truncate" style="max-width: 250px;" [title]="t.clienteNome">
+                    {{ t.clienteNome || '-' }}
+                  </div>
+                  @if (t.clienteCodigo) {
+                    <small class="text-muted font-monospace">Cód: {{ t.clienteCodigo }}</small>
+                  }
+                </td>
+                <td>
+                  <span class="text-secondary small"><i class="fa-regular fa-calendar me-1"></i>{{ t.dataVencimento }}</span>
+                </td>
+                <td>
+                  <span class="badge" [class.bg-info-subtle]="t.modalidade === 'CARTEIRA'" [class.text-info]="t.modalidade === 'CARTEIRA'" [class.bg-light]="t.modalidade === 'BOLETO'" [class.text-dark]="t.modalidade === 'BOLETO'">
+                    {{ t.modalidade }}
+                  </span>
+                </td>
+                <td class="text-end tabular-nums fw-bold text-success">
+                  {{ formatarMoeda(t.valor) }}
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot class="table-light border-top">
+            <tr>
+              <th colspan="4" class="text-end text-muted">Total em Aberto:</th>
+              <th class="text-end fw-bold text-success fs-6 tabular-nums">
+                {{ formatarMoeda(matriz.valorTotal) }}
+              </th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- SEÇÃO 2: Histórico de Pagamentos Liquidados -->
+      <h6 class="fw-semibold mb-2 text-dark">
+        <i class="fa-solid fa-clock-rotate-left me-1 text-primary"></i> Últimos Títulos Liquidados (Histórico Matriz)
+      </h6>
+
+      <div class="table-responsive rounded border mb-3">
+        <table class="table table-hover align-middle mb-0 saas-table">
+          <thead>
+            <tr>
+              <th>Título / Doc</th>
+              <th>Vencimento</th>
+              <th>Data Pagamento</th>
+              <th>Atraso</th>
+              <th class="text-end">Valor Pago</th>
+              <th class="text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (lanc of matriz.lancamentos; track lanc.titulo) {
+              <tr>
+                <td class="fw-medium font-monospace">{{ lanc.titulo }}</td>
+                <td>{{ lanc.dataVencimento }}</td>
+                <td>{{ lanc.dataPagamento }}</td>
+                <td>
+                  @if (lanc.diasAtraso === 0) {
+                    <span class="badge bg-success-subtle text-success rounded-pill fw-medium">Em dia</span>
+                  } @else {
+                    <span class="badge bg-warning-subtle text-warning rounded-pill fw-medium">+{{ lanc.diasAtraso }} dias</span>
+                  }
+                </td>
+                <td class="text-end tabular-nums fw-medium">{{ formatarMoeda(lanc.valor) }}</td>
+                <td class="text-center">
+                  <span class="badge" [class.bg-success]="lanc.status === 'EM_DIA'" [class.bg-warning]="lanc.status === 'ATRASADO'">
+                    {{ lanc.status === 'EM_DIA' ? 'Liquidado no Prazo' : 'Liquidado com Atraso' }}
+                  </span>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="text-center text-muted py-3">
+                  Nenhum título liquidado registrado para esta matriz
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-end mt-3">
+        <app-button variant="secondary" (clicked)="fecharModalMatrizReceber()">Fechar</app-button>
       </div>
     </div>
   }

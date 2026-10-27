@@ -43,6 +43,35 @@ export interface MatrizCardItem {
   titulos: TituloMatrizItem[];
 }
 
+export interface TituloReceberMatrizItem {
+  id: string | number;
+  numeroDocumento?: string;
+  valor: number;
+  clienteCodigo?: string;
+  clienteNome?: string;
+  dataVencimento: string;
+  modalidade: 'CARTEIRA' | 'BOLETO';
+}
+
+export interface MatrizReceberCardItem {
+  idMatriz?: number;
+  codigoMatriz?: string;
+  nomeMatriz: string;
+  modalidade: 'CARTEIRA' | 'BOLETO';
+  valorTotal: number;
+  qtdTitulos: number;
+  score: number;
+  classificacao: string;
+  isNovo?: boolean;
+  titulosEmDia: number;
+  titulosEmAtraso: number;
+  percentualPontualidade: number;
+  mediaDiasAtraso: number;
+  valorTotalPago: number;
+  titulos: TituloReceberMatrizItem[];
+  lancamentos: LancamentoHistorico[];
+}
+
 export interface ContaPagarItem {
   id: string | number;
   banco: 'BANCO_DO_BRASIL' | 'ITAU' | 'PROVISAO';
@@ -66,6 +95,9 @@ export interface ContaReceberItem {
   modalidade: 'CARTEIRA' | 'BOLETO';
   clienteCodigo: string;
   clienteNome: string;
+  idMatriz?: number;
+  codigoMatriz?: string;
+  nomeMatriz?: string;
   documento: string;
   valor: number;
   dataVencimento: string;
