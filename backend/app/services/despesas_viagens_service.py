@@ -35,17 +35,20 @@ class DespesasViagensService:
         # Lançamento: cria um registro de importação (seja IA ou Manual)
         # -----------------------------------------------------------------------
         empresa_manual = None
-        if payload.isManualEntry and payload.idEmpresaManual:
-            empresa_manual = self.emp_repo.get_by_id(payload.idEmpresaManual)
+        if payload.isManualEntry:
+            if payload.idEmpresaManual:
+                empresa_manual = self.emp_repo.get_by_id(payload.idEmpresaManual)
+            elif payload.despesas and payload.despesas[0].empresa:
+                empresa_manual = self.emp_repo.get_by_nome(payload.despesas[0].empresa)
             if not empresa_manual:
-                raise HTTPException(status_code=400, detail="Empresa selecionada não encontrada.")
+                raise HTTPException(status_code=400, detail="Empresa / Origem não selecionada ou não encontrada para a despesa manual.")
 
         extensao = payload.nomeArquivo.split('.')[-1] if '.' in payload.nomeArquivo else 'MANUAL'
         tipo_importacao = "MANUAL_DESPESAS" if payload.isManualEntry else "IA_DESPESAS"
 
         id_empresa_importacao = None
-        if payload.isManualEntry and payload.idEmpresaManual:
-            id_empresa_importacao = payload.idEmpresaManual
+        if payload.isManualEntry:
+            id_empresa_importacao = empresa_manual.idEmpresas
         elif payload.despesas:
             emp = self.emp_repo.get_by_nome(payload.despesas[0].empresa)
             if emp:
@@ -187,7 +190,7 @@ class DespesasViagensService:
                 q = q.filter(Movimentacao.idUnidade == id_unidade)
             # Apenas importações do tipo IA_DESPESAS ou MANUAL_DESPESAS
             q = q.join(Importacao, Movimentacao.idImportacoes == Importacao.idImportacoes)
-            q = q.filter(Importacao.tipo.in_(["IA_DESPESAS", "MANUAL_DESPESAS"]))
+            q = q.filter(Importacao.tipo.in_(["IA_DESPESAS", "MANUAL_DESPESAS", "Despesa Manual"]))
             return q
 
         # ---- KPI: Total e Quantidade ----
@@ -211,7 +214,7 @@ class DespesasViagensService:
         def soma_mes(inicio, fim):
             q = db.query(func.coalesce(func.sum(Movimentacao.valor), 0))
             q = q.join(Importacao, Movimentacao.idImportacoes == Importacao.idImportacoes)
-            q = q.filter(Importacao.tipo.in_(["IA_DESPESAS", "MANUAL_DESPESAS"]))
+            q = q.filter(Importacao.tipo.in_(["IA_DESPESAS", "MANUAL_DESPESAS", "Despesa Manual"]))
             q = q.filter(Movimentacao.createdAt >= inicio, Movimentacao.createdAt <= fim)
             if id_empresa:
                 q = q.filter(Movimentacao.idEmpresa == id_empresa)
@@ -464,7 +467,7 @@ class DespesasViagensService:
         def base_q():
             q = self.db.query(Movimentacao)
             q = q.join(Importacao, Movimentacao.idImportacoes == Importacao.idImportacoes)
-            q = q.filter(Importacao.tipo.in_(["IA_DESPESAS", "MANUAL_DESPESAS"]))
+            q = q.filter(Importacao.tipo.in_(["IA_DESPESAS", "MANUAL_DESPESAS", "Despesa Manual"]))
             if data_inicio_str:
                 di = datetime.strptime(data_inicio_str, "%Y-%m-%d")
                 q = q.filter(Movimentacao.createdAt >= di)
@@ -674,7 +677,7 @@ class DespesasViagensService:
          .outerjoin(CentroCusto, Colaborador.idCentroCusto == CentroCusto.idCentroCusto) \
          .outerjoin(Empresa, Movimentacao.idEmpresa == Empresa.idEmpresas) \
          .outerjoin(Unidade, Movimentacao.idUnidade == Unidade.idUnidade) \
-         .filter(Importacao.tipo.in_(["IA_DESPESAS", "MANUAL_DESPESAS"]))
+         .filter(Importacao.tipo.in_(["IA_DESPESAS", "MANUAL_DESPESAS", "Despesa Manual"]))
 
         if filtros.get("data_inicio"):
             q = q.filter(Movimentacao.createdAt >= f"{filtros['data_inicio']} 00:00:00")

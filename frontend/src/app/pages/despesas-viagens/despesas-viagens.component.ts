@@ -463,7 +463,7 @@ export class DespesasViagensComponent implements OnInit {
 
   carregarImportacoes() {
     this.isImportacoesLoading = true;
-    this.importacoesService.listar(this.currentImportacaoPage, this.itemsImportacaoPerPage, this.searchImportacaoTerm, 'IA_DESPESAS').subscribe({
+    this.importacoesService.listar(this.currentImportacaoPage, this.itemsImportacaoPerPage, this.searchImportacaoTerm, 'IA_DESPESAS,MANUAL_DESPESAS,Despesa Manual').subscribe({
       next: (res: any) => {
         this.listaImportacoes = res.items;
         this.totalImportacoes = res.total;
@@ -504,6 +504,7 @@ export class DespesasViagensComponent implements OnInit {
           next: () => {
             this.closeConfirmModal();
             this.carregarImportacoes();
+        this.carregarDadosDashboard();
             this.carregarEmpresas();
             this.toastService.show('Importação excluída com sucesso.', 'success');
           },
@@ -633,6 +634,7 @@ export class DespesasViagensComponent implements OnInit {
       this.empresaSelecionada = null;
       this.despesasExtraidas = [];
       this.selectedFileName = 'Lançamento Manual';
+      this.startAddDespesa();
       this.uploadState = 'done';
       this.isImportModalOpen = true;
     }
@@ -646,8 +648,29 @@ export class DespesasViagensComponent implements OnInit {
   isSalvandoExtraidos = false;
 
   salvarExtraidos() {
-    const desc = true; if (desc) return; // TODO: DESCONECTADO DO BACKEND ANTIGO
-    if (this.despesasExtraidas.length === 0) return;
+    return; // TODO: DESCONECTADO DO BACKEND ANTIGO
+    // Se estiver adicionando despesa manual e os campos estiverem preenchidos, confirma a linha automaticamente
+    if (this.isAddingDespesa() && this.newDespesaColaborador() && this.newDespesaCategoria()) {
+      this.confirmAddDespesa();
+    }
+
+    if (this.isManualEntry && !this.empresaSelecionada) {
+      this.toastService.show('Selecione a Empresa / Origem das despesas antes de confirmar.', 'error');
+      return;
+    }
+
+    if (this.despesasExtraidas.length === 0) {
+      this.toastService.show('Adicione ao menos uma despesa antes de confirmar.', 'error');
+      return;
+    }
+
+    if (this.isManualEntry && this.empresaSelecionada) {
+      this.despesasExtraidas.forEach(d => {
+        if (!d.empresa) {
+          d.empresa = this.empresaSelecionada?.nome || '';
+        }
+      });
+    }
 
     this.isSalvandoExtraidos = true;
     const idUserLogado = this.authService.currentUser()?.iduser;
@@ -659,7 +682,8 @@ export class DespesasViagensComponent implements OnInit {
         this.closeImportModal();
         this.despesasExtraidas = [];
         this.selectedFileName = '';
-        this.carregarImportacoes(); // Recarrega a tabela de historico
+        this.carregarImportacoes();
+        this.carregarDadosDashboard(); // Recarrega a tabela de historico
         // Como não temos um toast de sucesso global no momento, o modal se fechará e a grid atualizará.
       },
       error: (err) => {
@@ -872,7 +896,28 @@ export class DespesasViagensComponent implements OnInit {
   }
 
   confirmarESalvar() {
-    if (this.despesasExtraidas.length === 0) return;
+    // Se estiver adicionando despesa manual e os campos estiverem preenchidos, confirma a linha automaticamente
+    if (this.isAddingDespesa() && this.newDespesaColaborador() && this.newDespesaCategoria()) {
+      this.confirmAddDespesa();
+    }
+
+    if (this.isManualEntry && !this.empresaSelecionada) {
+      this.toastService.show('Selecione a Empresa / Origem das despesas antes de confirmar.', 'error');
+      return;
+    }
+
+    if (this.despesasExtraidas.length === 0) {
+      this.toastService.show('Adicione ao menos uma despesa antes de confirmar.', 'error');
+      return;
+    }
+
+    if (this.isManualEntry && this.empresaSelecionada) {
+      this.despesasExtraidas.forEach(d => {
+        if (!d.empresa) {
+          d.empresa = this.empresaSelecionada?.nome || '';
+        }
+      });
+    }
     if (this.isConfirmandoESalvando) return;
 
     if (this.hasDivergencias) {
@@ -910,6 +955,7 @@ export class DespesasViagensComponent implements OnInit {
         this.despesasExtraidas = [];
         this.selectedFileName = '';
         this.carregarImportacoes();
+        this.carregarDadosDashboard();
         this.toastService.show(`${res.totalMovimentacoes} despesa(s) salva(s) com sucesso!`, 'success');
       },
       error: (err: any) => {
