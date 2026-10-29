@@ -51,6 +51,9 @@ export interface TituloReceberMatrizItem {
   clienteNome?: string;
   dataVencimento: string;
   modalidade: 'CARTEIRA' | 'BOLETO';
+  port?: string;
+  bancoCodigo?: string;
+  bancoNome?: string;
 }
 
 export interface MatrizReceberCardItem {
@@ -58,6 +61,12 @@ export interface MatrizReceberCardItem {
   codigoMatriz?: string;
   nomeMatriz: string;
   modalidade: 'CARTEIRA' | 'BOLETO';
+  bancoCodigo?: string;
+  bancoNome?: string;
+  bancoLogo?: string;
+  bancoLogoImg?: string;
+  bancoCor?: string;
+  port?: string;
   valorTotal: number;
   qtdTitulos: number;
   score: number;
@@ -70,6 +79,25 @@ export interface MatrizReceberCardItem {
   valorTotalPago: number;
   titulos: TituloReceberMatrizItem[];
   lancamentos: LancamentoHistorico[];
+}
+
+export interface BancoReceberCardItem {
+  codigo: string;
+  nome: string;
+  logo: string;
+  logoImg?: string;
+  cor: string;
+  valorTotal: number;
+  qtdTitulos: number;
+  valorCarteira: number;
+  qtdCarteira: number;
+  valorBoleto: number;
+  qtdBoleto: number;
+  valorMaior90: number;
+  qtdMaior90: number;
+  matrizes: MatrizReceberCardItem[];
+  matrizesCarteira: MatrizReceberCardItem[];
+  matrizesBoleto: MatrizReceberCardItem[];
 }
 
 export interface ContaPagarItem {
@@ -102,6 +130,11 @@ export interface ContaReceberItem {
   valor: number;
   dataVencimento: string;
   score: number; // 0 a 100
+  port?: string;
+  bancoCodigo?: string;
+  bancoNome?: string;
+  bancoLogo?: string;
+  bancoCor?: string;
   historico: HistoricoCliente;
 }
 

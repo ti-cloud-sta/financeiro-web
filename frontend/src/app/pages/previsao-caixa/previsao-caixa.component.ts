@@ -14,7 +14,8 @@ import {
   HistoricoCliente,
   AtualizacaoHistoryItem,
   MatrizCardItem,
-  MatrizReceberCardItem
+  MatrizReceberCardItem,
+  BancoReceberCardItem
 } from './previsao-caixa.mock';
 
 @Component({
@@ -30,7 +31,7 @@ export class PrevisaoCaixaComponent implements OnInit {
 
   isSidebarCollapsed = false;
   activeSidebarTab = signal<'dashboards' | 'atualizacao-dados'>('dashboards');
-  activeNav = signal<'visao-geral'>('visao-geral');
+  activeNav = signal<'visao-geral' | 'contas-pagar' | 'contas-receber'>('visao-geral');
   dataHoje = new Date().toLocaleDateString('pt-BR');
   dataReferenciaBackend = signal<string>('');
   isLoadingVisaoGeral = signal<boolean>(true);
@@ -105,8 +106,12 @@ export class PrevisaoCaixaComponent implements OnInit {
   matrizReceberSelecionada = signal<MatrizReceberCardItem | null>(null);
   isMatrizReceberModalOpen = signal<boolean>(false);
 
-  // Filtro por Pílulas de Score no Header do Receber ou Clique nos KPI Cards (TODOS, ALTO, MEDIO, BAIXO, NOVOS, MENOR_IGUAL_80, MAIOR_80)
-  filtroScore = signal<'TODOS' | 'ALTO' | 'MEDIO' | 'BAIXO' | 'NOVOS' | 'MENOR_IGUAL_80' | 'MAIOR_80'>('TODOS');
+  // Estado do Modal de Títulos do Banco a Receber
+  bancoReceberSelecionado = signal<BancoReceberCardItem | null>(null);
+  isBancoModalOpen = signal<boolean>(false);
+
+  // Filtro por Pílulas de Score no Header do Receber ou Clique nos KPI Cards (TODOS, ALTO, MEDIO, BAIXO, NOVOS, MENOR_IGUAL_90, MAIOR_90)
+  filtroScore = signal<'TODOS' | 'ALTO' | 'MEDIO' | 'BAIXO' | 'NOVOS' | 'MENOR_IGUAL_80' | 'MAIOR_80' | 'MENOR_IGUAL_90' | 'MAIOR_90'>('TODOS');
 
   ngOnInit() {
     this.isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
@@ -143,6 +148,10 @@ export class PrevisaoCaixaComponent implements OnInit {
   toggleSidebar() {
     this.isSidebarCollapsed = !this.isSidebarCollapsed;
     localStorage.setItem('sidebarCollapsed', String(this.isSidebarCollapsed));
+  }
+
+  setActiveNav(nav: 'visao-geral' | 'contas-pagar' | 'contas-receber') {
+    this.activeNav.set(nav);
   }
 
   toggleSomenteProvisao() {
@@ -184,27 +193,31 @@ export class PrevisaoCaixaComponent implements OnInit {
     return this.contasReceber().length;
   });
 
-  // Card 4: Previsão <= 80% chance de receber
-  receberMenorIgual80 = computed(() => {
+  // Card 4: Previsão < 90% chance de receber
+  receberMenorIgual90 = computed(() => {
     return this.contasReceber()
-      .filter(item => item.score <= 80)
+      .filter(item => item.score < 90)
       .reduce((acc, curr) => acc + curr.valor, 0);
   });
+  receberMenorIgual80 = this.receberMenorIgual90;
 
-  qtdReceberMenorIgual80 = computed(() => {
-    return this.contasReceber().filter(item => item.score <= 80).length;
+  qtdReceberMenorIgual90 = computed(() => {
+    return this.contasReceber().filter(item => item.score < 90).length;
   });
+  qtdReceberMenorIgual80 = this.qtdReceberMenorIgual90;
 
-  // Card 5: Previsão > 80% chance de receber
-  receberMaior80 = computed(() => {
+  // Card 5: Previsão >= 90% chance de receber (Previsto / Bom)
+  receberMaior90 = computed(() => {
     return this.contasReceber()
-      .filter(item => item.score > 80)
+      .filter(item => item.score >= 90)
       .reduce((acc, curr) => acc + curr.valor, 0);
   });
+  receberMaior80 = this.receberMaior90;
 
-  qtdReceberMaior80 = computed(() => {
-    return this.contasReceber().filter(item => item.score > 80).length;
+  qtdReceberMaior90 = computed(() => {
+    return this.contasReceber().filter(item => item.score >= 90).length;
   });
+  qtdReceberMaior80 = this.qtdReceberMaior90;
 
   // Card 6: Previsão de Saldo (Sobrar ou Faltar)
   // Previsibilidade ponderada pelo score dos clientes: sum(valor * score%)
@@ -376,17 +389,17 @@ export class PrevisaoCaixaComponent implements OnInit {
     // 1. Filtro por Pílula de Score
     const fScore = this.filtroScore();
     if (fScore === 'ALTO') {
-      lista = lista.filter(m => m.score >= 80);
+      lista = lista.filter(m => m.score >= 90);
     } else if (fScore === 'MEDIO') {
-      lista = lista.filter(m => m.score >= 60 && m.score < 80);
+      lista = lista.filter(m => m.score >= 60 && m.score < 90);
     } else if (fScore === 'BAIXO') {
       lista = lista.filter(m => m.score < 60);
     } else if (fScore === 'NOVOS') {
       lista = lista.filter(m => m.isNovo || m.score === 0 || (m.titulosEmDia + m.titulosEmAtraso === 0));
-    } else if (fScore === 'MENOR_IGUAL_80') {
-      lista = lista.filter(m => m.score <= 80);
-    } else if (fScore === 'MAIOR_80') {
-      lista = lista.filter(m => m.score > 80);
+    } else if (fScore === 'MENOR_IGUAL_90' || fScore === 'MENOR_IGUAL_80') {
+      lista = lista.filter(m => m.score < 90);
+    } else if (fScore === 'MAIOR_90' || fScore === 'MAIOR_80') {
+      lista = lista.filter(m => m.score >= 90);
     }
 
     // 2. Filtro de Busca Textual
@@ -409,7 +422,7 @@ export class PrevisaoCaixaComponent implements OnInit {
     return this.matrizesReceberFiltradas().reduce((acc, curr) => acc + curr.qtdTitulos, 0);
   });
 
-  setFiltroScore(tipo: 'TODOS' | 'ALTO' | 'MEDIO' | 'BAIXO' | 'NOVOS' | 'MENOR_IGUAL_80' | 'MAIOR_80') {
+  setFiltroScore(tipo: 'TODOS' | 'ALTO' | 'MEDIO' | 'BAIXO' | 'NOVOS' | 'MENOR_IGUAL_80' | 'MAIOR_80' | 'MENOR_IGUAL_90' | 'MAIOR_90') {
     if (this.filtroScore() === tipo) {
       this.filtroScore.set('TODOS');
     } else {
@@ -417,21 +430,80 @@ export class PrevisaoCaixaComponent implements OnInit {
     }
   }
 
-  filtrarMenorIgual80() {
-    if (this.filtroScore() === 'MENOR_IGUAL_80') {
+  filtrarMenorIgual90() {
+    if (this.filtroScore() === 'MENOR_IGUAL_90') {
       this.filtroScore.set('TODOS');
     } else {
-      this.filtroScore.set('MENOR_IGUAL_80');
+      this.filtroScore.set('MENOR_IGUAL_90');
     }
   }
 
-  filtrarMaior80() {
-    if (this.filtroScore() === 'MAIOR_80') {
+  filtrarMaior90() {
+    if (this.filtroScore() === 'MAIOR_90') {
       this.filtroScore.set('TODOS');
     } else {
-      this.filtroScore.set('MAIOR_80');
+      this.filtroScore.set('MAIOR_90');
     }
   }
+
+  filtrarMenorIgual80() {
+    this.filtrarMenorIgual90();
+  }
+
+  filtrarMaior80() {
+    this.filtrarMaior90();
+  }
+
+  filtrarENavegar(tipo: 'MENOR_IGUAL_80' | 'MAIOR_80' | 'MENOR_IGUAL_90' | 'MAIOR_90', event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.filtroScore.set(tipo);
+    this.activeNav.set('contas-receber');
+  }
+
+  limparFiltroScore() {
+    this.filtroScore.set('TODOS');
+  }
+
+  // Proporções para as barras de progresso da Visão Geral
+  porcentagemBB = computed(() => {
+    const total = this.totalPagar();
+    return total > 0 ? (this.totalBB() / total) * 100 : 0;
+  });
+
+  porcentagemItau = computed(() => {
+    const total = this.totalPagar();
+    return total > 0 ? (this.totalItau() / total) * 100 : 0;
+  });
+
+  porcentagemCoberturaReceber = computed(() => {
+    const pagar = this.totalPagar();
+    if (pagar <= 0) return this.totalReceber() > 0 ? 100 : 0;
+    return Math.min(100, (this.totalReceber() / pagar) * 100);
+  });
+
+  porcentagemCarteira = computed(() => {
+    const total = this.totalReceber();
+    return total > 0 ? (this.totalCarteira() / total) * 100 : 0;
+  });
+
+  porcentagemBoleto = computed(() => {
+    const total = this.totalReceber();
+    return total > 0 ? (this.totalBoleto() / total) * 100 : 0;
+  });
+
+  porcentagemMenor90 = computed(() => {
+    const total = this.receberMenorIgual90() + this.receberMaior90();
+    return total > 0 ? (this.receberMenorIgual90() / total) * 100 : 0;
+  });
+  porcentagemMenor80 = this.porcentagemMenor90;
+
+  porcentagemMaior90 = computed(() => {
+    const total = this.receberMenorIgual90() + this.receberMaior90();
+    return total > 0 ? (this.receberMaior90() / total) * 100 : 0;
+  });
+  porcentagemMaior80 = this.porcentagemMaior90;
 
   matrizesCarteira = computed(() => {
     return this.matrizesReceberFiltradas().filter(item => item.modalidade === 'CARTEIRA');
@@ -448,6 +520,145 @@ export class PrevisaoCaixaComponent implements OnInit {
   totalBoleto = computed(() => {
     return this.matrizesBoleto().reduce((acc, curr) => acc + curr.valorTotal, 0);
   });
+
+  // ==========================================
+  // AGRUPAMENTO DE CONTAS A RECEBER POR BANCO
+  // ==========================================
+  bancosReceber = computed<BancoReceberCardItem[]>(() => {
+    const matrizes = this.matrizesReceberFiltradas();
+
+    const bancosConfig: Record<string, { nome: string; logo: string; logoImg?: string; cor: string; ordem: number }> = {
+      'ITAU': { nome: 'Itaú', logo: 'IT', logoImg: 'images/logos/itau.png', cor: '#f97316', ordem: 1 },
+      'BANCO_DO_BRASIL': { nome: 'Banco do Brasil', logo: 'BB', logoImg: 'images/logos/bb.png', cor: '#eab308', ordem: 2 },
+      'SANTANDER': { nome: 'Santander', logo: 'SAN', logoImg: 'images/logos/santander.png', cor: '#dc2626', ordem: 3 },
+      'BRADESCO': { nome: 'Bradesco', logo: 'BRA', logoImg: 'images/logos/bradesco.png', cor: '#cc092f', ordem: 4 },
+      'CARTEIRA': { nome: 'Carteira', logo: 'CRT', cor: '#0891b2', ordem: 5 },
+      'DAYCOVAL': { nome: 'Daycoval', logo: 'DAY', cor: '#1e3a8a', ordem: 6 }
+    };
+
+    const mapa = new Map<string, BancoReceberCardItem>();
+
+    // Inicializa sempre os 4 bancos principais citados na especificação
+    const bancosPrincipais = ['ITAU', 'BANCO_DO_BRASIL', 'SANTANDER', 'BRADESCO'];
+    for (const cod of bancosPrincipais) {
+      const cfg = bancosConfig[cod];
+      mapa.set(cod, {
+        codigo: cod,
+        nome: cfg.nome,
+        logo: cfg.logo,
+        logoImg: cfg.logoImg,
+        cor: cfg.cor,
+        valorTotal: 0,
+        qtdTitulos: 0,
+        valorCarteira: 0,
+        qtdCarteira: 0,
+        valorBoleto: 0,
+        qtdBoleto: 0,
+        valorMaior90: 0,
+        qtdMaior90: 0,
+        matrizes: [],
+        matrizesCarteira: [],
+        matrizesBoleto: []
+      });
+    }
+
+    for (const m of matrizes) {
+      let bCod = m.bancoCodigo || '';
+      if (!bCod) {
+        const portStr = String(m.port || '').trim();
+        if (portStr.endsWith('341') || portStr === '50341' || portStr === '10341') bCod = 'ITAU';
+        else if (portStr.endsWith('001') || portStr === '50001' || portStr === '10001') bCod = 'BANCO_DO_BRASIL';
+        else if (portStr.endsWith('033') || portStr === '50033' || portStr === '10033') bCod = 'SANTANDER';
+        else if (portStr.endsWith('237') || portStr === '50237' || portStr === '10237') bCod = 'BRADESCO';
+        else if (portStr.endsWith('707') || portStr === '10707') bCod = 'DAYCOVAL';
+        else if (m.modalidade === 'CARTEIRA' || portStr === '95000' || portStr === '95100' || portStr === '95080') bCod = 'CARTEIRA';
+        else bCod = portStr ? `OUTRO_${portStr}` : 'OUTROS';
+      }
+
+      if (!mapa.has(bCod)) {
+        const cfg = bancosConfig[bCod] || {
+          nome: m.bancoNome || bCod,
+          logo: m.bancoLogo || 'BC',
+          logoImg: m.bancoLogoImg,
+          cor: m.bancoCor || '#64748b',
+          ordem: 99
+        };
+        mapa.set(bCod, {
+          codigo: bCod,
+          nome: cfg.nome,
+          logo: cfg.logo,
+          logoImg: cfg.logoImg || m.bancoLogoImg,
+          cor: cfg.cor,
+          valorTotal: 0,
+          qtdTitulos: 0,
+          valorCarteira: 0,
+          qtdCarteira: 0,
+          valorBoleto: 0,
+          qtdBoleto: 0,
+          valorMaior90: 0,
+          qtdMaior90: 0,
+          matrizes: [],
+          matrizesCarteira: [],
+          matrizesBoleto: []
+        });
+      }
+
+      const banco = mapa.get(bCod)!;
+      banco.valorTotal = Math.round((banco.valorTotal + m.valorTotal + Number.EPSILON) * 100) / 100;
+      banco.qtdTitulos += m.qtdTitulos;
+      banco.matrizes.push(m);
+
+      if (Number(m.score) >= 90) {
+        banco.valorMaior90 = Math.round((banco.valorMaior90 + m.valorTotal + Number.EPSILON) * 100) / 100;
+        banco.qtdMaior90 += m.qtdTitulos;
+      }
+
+      if (m.modalidade === 'CARTEIRA') {
+        banco.valorCarteira = Math.round((banco.valorCarteira + m.valorTotal + Number.EPSILON) * 100) / 100;
+        banco.qtdCarteira += m.qtdTitulos;
+        banco.matrizesCarteira.push(m);
+      } else {
+        banco.valorBoleto = Math.round((banco.valorBoleto + m.valorTotal + Number.EPSILON) * 100) / 100;
+        banco.qtdBoleto += m.qtdTitulos;
+        banco.matrizesBoleto.push(m);
+      }
+    }
+
+    const lista = Array.from(mapa.values());
+    return lista.sort((a, b) => {
+      const ordemA = bancosConfig[a.codigo]?.ordem ?? 99;
+      const ordemB = bancosConfig[b.codigo]?.ordem ?? 99;
+      if (ordemA !== ordemB) return ordemA - ordemB;
+      return b.valorTotal - a.valorTotal;
+    });
+  });
+
+  bancoModalAtual = computed(() => {
+    const sel = this.bancoReceberSelecionado();
+    if (!sel) return null;
+    const atual = this.bancosReceber().find(b => b.codigo === sel.codigo);
+    return atual || sel;
+  });
+
+  abrirModalBanco(banco: BancoReceberCardItem) {
+    this.bancoReceberSelecionado.set(banco);
+    this.isBancoModalOpen.set(true);
+  }
+
+  fecharModalBanco() {
+    this.isBancoModalOpen.set(false);
+    this.bancoReceberSelecionado.set(null);
+  }
+
+  getBancoLogoImg(codigo: string | undefined): string | null {
+    if (!codigo) return null;
+    const c = codigo.toUpperCase();
+    if (c === 'ITAU' || c === '50341' || c === '10341' || c.endsWith('341')) return 'images/logos/itau.png';
+    if (c === 'BANCO_DO_BRASIL' || c === 'BB' || c === '50001' || c === '10001' || c.endsWith('001')) return 'images/logos/bb.png';
+    if (c === 'SANTANDER' || c === 'SAN' || c === '50033' || c === '10033' || c.endsWith('033')) return 'images/logos/santander.png';
+    if (c === 'BRADESCO' || c === 'BRA' || c === '50237' || c === '10237' || c.endsWith('237')) return 'images/logos/bradesco.png';
+    return null;
+  }
 
   // ==========================================
   // INTERAÇÕES E MODAIS
@@ -502,13 +713,13 @@ export class PrevisaoCaixaComponent implements OnInit {
   }
 
   getScoreBadgeClass(score: number): string {
-    if (score >= 80) return 'score-high';
+    if (score >= 90) return 'score-high';
     if (score >= 60) return 'score-medium';
     return 'score-low';
   }
 
   getScoreVariant(score: number): 'success' | 'warning' | 'danger' {
-    if (score >= 80) return 'success';
+    if (score >= 90) return 'success';
     if (score >= 60) return 'warning';
     return 'danger';
   }

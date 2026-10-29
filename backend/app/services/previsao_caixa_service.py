@@ -712,9 +712,9 @@ class PrevisaoCaixaService:
           1. Últimos 5 títulos da Matriz (Peso: 50%): Proporcional à pontualidade recente
           2. Recorrência / Histórico da Matriz (Peso: 40%): 40 pontos para Matriz com histórico (0 para nova)
           3. Média Geral Histórica da Matriz (Peso: 10%):
-             - BOM   (>= 80% pontualidade): 10 pontos
-             - MÉDIO (50% a 79% pontualidade): 5 pontos
-             - RUIM  (< 50% pontualidade): 0 pontos
+             - BOM   (>= 90% pontualidade): 10 pontos
+             - MÉDIO (60% a 89% pontualidade): 5 pontos
+             - RUIM  (< 60% pontualidade): 0 pontos
         """
         rows = self.db.execute(text("""
             SELECT 
@@ -796,10 +796,10 @@ class PrevisaoCaixaService:
                     total_em_dia += 1
 
             taxa_pontualidade = (total_em_dia / total_hist) * 100.0 if total_hist > 0 else 100.0
-            if taxa_pontualidade >= 80.0:
+            if taxa_pontualidade >= 90.0:
                 pontos_media = 10.0
                 classif = "BOM"
-            elif taxa_pontualidade >= 50.0:
+            elif taxa_pontualidade >= 60.0:
                 pontos_media = 5.0
                 classif = "MEDIO"
             else:
@@ -836,6 +836,41 @@ class PrevisaoCaixaService:
             self.db.commit()
 
         return len(scores_batch)
+
+    def _mapear_banco_receber(self, port_val: Any, cart_val: Any = None, modalidade: Any = None) -> Dict[str, str]:
+        port_str = str(port_val or "").strip()
+        cart_str = str(cart_val or "").strip().upper()
+        mod_str = str(modalidade or "").strip().upper()
+
+        # 1. Itaú (50341, ou sufixo 341)
+        if port_str in ("50341", "10341") or port_str.endswith("341"):
+            return {"codigo": "ITAU", "nome": "Itaú", "logo": "IT", "logoImg": "images/logos/itau.png", "cor": "#f97316"}
+
+        # 2. Santander (50033, 10033, ou sufixo 033)
+        if port_str in ("50033", "10033") or port_str.endswith("033"):
+            return {"codigo": "SANTANDER", "nome": "Santander", "logo": "SAN", "logoImg": "images/logos/santander.png", "cor": "#dc2626"}
+
+        # 3. Bradesco (50237, 10237, ou sufixo 237)
+        if port_str in ("50237", "10237") or port_str.endswith("237"):
+            return {"codigo": "BRADESCO", "nome": "Bradesco", "logo": "BRA", "logoImg": "images/logos/bradesco.png", "cor": "#cc092f"}
+
+        # 4. Banco do Brasil (50001, 10001, ou sufixo 001)
+        if port_str in ("50001", "10001") or port_str.endswith("001"):
+            return {"codigo": "BANCO_DO_BRASIL", "nome": "Banco do Brasil", "logo": "BB", "logoImg": "images/logos/bb.png", "cor": "#eab308"}
+
+        # 5. Daycoval (10707, ou sufixo 707)
+        if port_str in ("10707", "50707") or port_str.endswith("707"):
+            return {"codigo": "DAYCOVAL", "nome": "Daycoval", "logo": "DAY", "logoImg": None, "cor": "#1e3a8a"}
+
+        # 6. Carteira (95000, 95100, ou cart == CAR, ou mod_str == CARTEIRA)
+        if port_str in ("95000", "95100", "95080") or cart_str == "CAR" or mod_str == "CARTEIRA":
+            return {"codigo": "CARTEIRA", "nome": "Carteira", "logo": "CRT", "logoImg": None, "cor": "#0891b2"}
+
+        if mod_str == "CARTEIRA":
+            return {"codigo": "CARTEIRA", "nome": "Carteira", "logo": "CRT", "logoImg": None, "cor": "#0891b2"}
+
+        nome_outro = f"Banco ({port_str})" if port_str else "Outros"
+        return {"codigo": f"OUTRO_{port_str}" if port_str else "OUTROS", "nome": nome_outro, "logo": "OUT", "logoImg": None, "cor": "#64748b"}
 
     def get_visao_geral(self, data_ref: Optional[date] = None) -> Dict[str, Any]:
         """
@@ -960,8 +995,8 @@ class PrevisaoCaixaService:
         grupos_receber_matriz: Dict[tuple, Dict[str, Any]] = {}
         total_receber_carteira = 0.0
         total_receber_boleto = 0.0
-        receber_menor_igual_80 = 0.0
-        receber_maior_80 = 0.0
+        receber_menor_igual_90 = 0.0
+        receber_maior_90 = 0.0
         receber_ponderado = 0.0
 
         try:
@@ -977,6 +1012,8 @@ class PrevisaoCaixaService:
                     acr.nome_cliente, 
                     acr.vencto, 
                     acr.saldo,
+                    acr.port,
+                    acr.cart,
                     c.idMatriz as id_matriz,
                     m.codigo as codigo_matriz,
                     m.nome as nome_matriz
@@ -1049,13 +1086,11 @@ class PrevisaoCaixaService:
                         total_h = s.total_titulos_historico
                         taxa_p = round((s.titulos_em_dia / total_h) * 100) if total_h > 0 else 85
                         if score_val >= 90:
-                            classif = f"Excelente ({score_val:.0f}%)"
-                        elif score_val >= 80:
-                            classif = f"Bom ({score_val:.0f}%)"
-                        elif score_val >= 70:
-                            classif = f"Regular ({score_val:.0f}%)"
+                            classif = f"Previsto (Bom) ({score_val:.0f}%)"
+                        elif score_val >= 60:
+                            classif = f"Médio ({score_val:.0f}%)"
                         else:
-                            classif = f"Atenção ({score_val:.0f}%)"
+                            classif = f"Ruim ({score_val:.0f}%)"
 
                         historico_map[m_id] = {
                             "idMatriz": m_id,
@@ -1096,6 +1131,9 @@ class PrevisaoCaixaService:
                 vlr = float(r.saldo or 0.0)
                 doc = f"{r.titulo or ''}/{r.parcela or ''}".strip('/')
                 dt_v = r.vencto.strftime("%d/%m/%Y") if r.vencto else ""
+                port_val = str(r.port or "").strip()
+                cart_val = str(r.cart or "").strip().upper()
+                b_info = self._mapear_banco_receber(port_val, cart_val, mod)
 
                 hist = historico_map.get(m_id, {
                     "idMatriz": m_id,
@@ -1130,18 +1168,30 @@ class PrevisaoCaixaService:
                     "dataVencimento": dt_v,
                     "score": v_score,
                     "isNovo": hist.get("isNovo", False),
+                    "port": port_val,
+                    "bancoCodigo": b_info["codigo"],
+                    "bancoNome": b_info["nome"],
+                    "bancoLogo": b_info["logo"],
+                    "bancoLogoImg": b_info.get("logoImg"),
+                    "bancoCor": b_info["cor"],
                     "historico": hist
                 }
                 contas_receber.append(item)
 
-                # Agrupamento por Matriz e Modalidade (Carteira ou Boleto)
-                chave_m = (m_id, cod_m, nome_m, mod)
+                # Agrupamento por Matriz, Modalidade e Banco
+                chave_m = (m_id, cod_m, nome_m, mod, b_info["codigo"])
                 if chave_m not in grupos_receber_matriz:
                     grupos_receber_matriz[chave_m] = {
                         "idMatriz": m_id,
                         "codigoMatriz": cod_m,
                         "nomeMatriz": nome_m,
                         "modalidade": mod,
+                        "port": port_val,
+                        "bancoCodigo": b_info["codigo"],
+                        "bancoNome": b_info["nome"],
+                        "bancoLogo": b_info["logo"],
+                        "bancoLogoImg": b_info.get("logoImg"),
+                        "bancoCor": b_info["cor"],
                         "valorTotal": 0.0,
                         "qtdTitulos": 0,
                         "score": v_score,
@@ -1165,7 +1215,10 @@ class PrevisaoCaixaService:
                     "clienteCodigo": str(r.cliente_codigo or ""),
                     "clienteNome": (r.nome_cliente or "").strip(),
                     "dataVencimento": dt_v,
-                    "modalidade": mod
+                    "modalidade": mod,
+                    "port": port_val,
+                    "bancoCodigo": b_info["codigo"],
+                    "bancoNome": b_info["nome"]
                 })
 
                 if mod == "CARTEIRA":
@@ -1173,10 +1226,10 @@ class PrevisaoCaixaService:
                 else:
                     total_receber_boleto += vlr
 
-                if v_score <= 80:
-                    receber_menor_igual_80 += vlr
+                if v_score < 90:
+                    receber_menor_igual_90 += vlr
                 else:
-                    receber_maior_80 += vlr
+                    receber_maior_90 += vlr
 
                 receber_ponderado += vlr * (v_score / 100.0)
 
@@ -1214,8 +1267,10 @@ class PrevisaoCaixaService:
             "qtd_receber": qtd_receber,
             "total_receber_carteira": round(total_receber_carteira, 2),
             "total_receber_boleto": round(total_receber_boleto, 2),
-            "receber_menor_igual_80": round(receber_menor_igual_80, 2),
-            "receber_maior_80": round(receber_maior_80, 2),
+            "receber_menor_igual_90": round(receber_menor_igual_90, 2),
+            "receber_maior_90": round(receber_maior_90, 2),
+            "receber_menor_igual_80": round(receber_menor_igual_90, 2),
+            "receber_maior_80": round(receber_maior_90, 2),
             "saldo_previsibilidade": round(saldo_previsibilidade, 2),
             "saldo_real_nominal": round(saldo_real_nominal, 2),
             "valor_investido_resgatavel": 0.0,

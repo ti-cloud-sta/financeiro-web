@@ -166,6 +166,8 @@ class DashboardVisaoGeralResponse(BaseModel):
     qtd_receber: int = 0
     total_receber_carteira: float = 0.0
     total_receber_boleto: float = 0.0
+    receber_menor_igual_90: float = 0.0
+    receber_maior_90: float = 0.0
     receber_menor_igual_80: float = 0.0
     receber_maior_80: float = 0.0
     saldo_previsibilidade: float = 0.0

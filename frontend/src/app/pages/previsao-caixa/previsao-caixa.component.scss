@@ -100,6 +100,18 @@
   min-height: 0;
 }
 
+.dashboard-content {
+  padding: 0.75rem 0.5rem;
+
+  @media (min-width: 768px) {
+    padding: 0.85rem 1.25rem;
+  }
+
+  @media (min-width: 1200px) {
+    padding: 1rem 1.75rem;
+  }
+}
+
 .main-nav {
   list-style: none;
   padding: 0;
@@ -223,10 +235,28 @@
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 0.25rem;
   background: transparent;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 
   .config-nav {
     border-bottom: none;
     padding-bottom: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .info-hoje-pill {
+      align-self: flex-start;
+      font-size: 0.76rem;
+    }
   }
 }
 
@@ -248,8 +278,454 @@
 }
 
 // ==========================================
-// 1. CARDS KPI DE TOPO (GRID 7 COLUNAS)
+// 1. VISÃO GERAL (LAYOUT CONFORME DESIGN)
 // ==========================================
+.visao-geral-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.visao-geral-row-1 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+
+  @media (min-width: 992px) {
+    grid-template-columns: 38% 1fr;
+  }
+}
+
+.visao-geral-row-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1.4fr 1fr;
+  }
+}
+
+.vg-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 3px var(--color-shadow);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px var(--color-shadow-lg);
+  }
+}
+
+.vg-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vg-card-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.vg-icon-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+
+  &.saldo-badge {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--color-danger);
+
+    .superavit & {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--color-success);
+    }
+  }
+
+  &.pagar-badge {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--color-danger);
+  }
+
+  &.receber-badge {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--color-success);
+  }
+
+  &.alerta-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(234, 179, 8, 0.15);
+    color: #d97706;
+    font-size: 0.95rem;
+  }
+
+  &.seguro-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--color-success);
+    font-size: 0.95rem;
+  }
+
+  &.provisao-compact-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.08);
+    color: var(--color-text-primary);
+    font-size: 0.95rem;
+  }
+
+  &.investimento-compact-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(14, 165, 233, 0.12);
+    color: #0ea5e9;
+    font-size: 0.95rem;
+  }
+}
+
+// Card Saldo
+.card-saldo {
+  justify-content: space-between;
+
+  .vg-saldo-valor {
+    font-size: clamp(1.6rem, 3.5vw, 2.1rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 1.15rem 0;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    word-break: break-word;
+
+    &.text-danger {
+      color: var(--color-danger);
+    }
+    &.text-success {
+      color: var(--color-success);
+    }
+  }
+
+  .vg-nominal-box {
+    background: var(--color-surface-hover);
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+
+    .vg-nominal-label {
+      color: var(--color-text-muted);
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .vg-nominal-value {
+      color: var(--color-text-primary);
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+// Card Fluxo Consolidado (Pagar + Receber)
+.card-fluxo-consolidado {
+  justify-content: space-between;
+
+  .vg-fluxo-section {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .vg-fluxo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.45rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .vg-fluxo-valor {
+    font-size: clamp(1.15rem, 2.5vw, 1.4rem);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+
+    &.text-danger {
+      color: var(--color-danger);
+    }
+    &.text-success {
+      color: var(--color-success);
+    }
+  }
+
+  .vg-progress-track {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-surface-hover);
+    border: 1px solid var(--color-border-light);
+    display: flex;
+    overflow: hidden;
+    margin-bottom: 0.45rem;
+    width: 100%;
+
+    .vg-progress-segment {
+      height: 100%;
+      transition: width 0.3s ease;
+
+      // Cores originais do sistema: BB (Amarelo BB) e Itaú (Laranja Itaú)
+      &.bg-bb {
+        background: #eab308;
+        min-width: 4px;
+      }
+      &.bg-itau {
+        background: #ea580c;
+      }
+      // Cores de Receber no Visão Geral: Carteira (Esmeralda escuro) e Boleto (Verde Esmeralda)
+      &.bg-carteira {
+        background: #059669;
+      }
+      &.bg-boleto {
+        background: #10b981;
+      }
+    }
+
+    .vg-progress-wrapper {
+      height: 100%;
+      display: flex;
+      overflow: hidden;
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+  }
+
+  .vg-fluxo-legenda {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+    flex-wrap: wrap;
+
+    .vg-legenda-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+
+      .vg-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        display: inline-block;
+
+        &.dot-bb {
+          background: #eab308;
+        }
+        &.dot-itau {
+          background: #ea580c;
+        }
+        &.dot-carteira {
+          background: #059669;
+        }
+        &.dot-boleto {
+          background: #10b981;
+        }
+      }
+
+      .vg-legenda-label {
+        color: var(--color-text-muted);
+        font-weight: 500;
+      }
+
+      .vg-legenda-val {
+        color: var(--color-text-primary);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+    }
+  }
+}
+
+// Card Previsões (Row 2)
+.card-previsoes {
+  .vg-progress-previsoes {
+    height: 10px;
+    border-radius: 999px;
+    display: flex;
+    overflow: hidden;
+    background: var(--color-surface-hover);
+    border: 1px solid var(--color-border-light);
+    gap: 2px;
+
+    // Cores dos Scores: Amarelo/Âmbar (≤90%) e Verde (>90%)
+    .vg-bar-menor80,
+    .vg-bar-menor90 {
+      background: #f59e0b;
+      height: 100%;
+      border-radius: 999px 0 0 999px;
+      transition: width 0.3s ease;
+      min-width: 6px;
+    }
+
+    .vg-bar-maior80,
+    .vg-bar-maior90 {
+      background: #10b981;
+      height: 100%;
+      border-radius: 0 999px 999px 0;
+      transition: width 0.3s ease;
+      min-width: 6px;
+    }
+  }
+
+  .vg-previsoes-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+
+    @media (min-width: 768px) {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .vg-inner-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: 10px;
+    padding: 0.85rem 1.15rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    gap: 0.75rem;
+
+    @media (max-width: 480px) {
+      flex-direction: column;
+      align-items: stretch;
+
+      .btn-vg-filtrar {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    &:hover {
+      border-color: var(--color-border);
+      box-shadow: 0 2px 8px var(--color-shadow);
+    }
+
+    .vg-inner-label {
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      margin-bottom: 0.1rem;
+    }
+
+    .vg-inner-value {
+      font-size: clamp(1.05rem, 2.5vw, 1.2rem);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      font-variant-numeric: tabular-nums;
+
+      &.text-alerta {
+        color: #d97706; // Amarelo/Âmbar original do Score Baixo/Médio
+      }
+      &.text-seguro {
+        color: #10b981; // Verde do Score Alto / Previsão Segura
+      }
+    }
+  }
+
+  .btn-vg-filtrar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: var(--color-surface-hover);
+      color: var(--color-text-primary);
+    }
+
+    &.active {
+      background: var(--color-primary-light);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+  }
+}
+
+// Card Compacto (Row 3: Provisão e Investimento)
+.card-info-compacto {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.35rem;
+  gap: 0.75rem;
+
+  @media (max-width: 520px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .vg-compact-val {
+    font-size: clamp(1.1rem, 2.5vw, 1.3rem);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    letter-spacing: -0.01em;
+    margin-top: 0.1rem;
+    font-variant-numeric: tabular-nums;
+
+    &.text-investimento {
+      color: #0ea5e9; // Ciano/Azul info original do Investimento
+    }
+  }
+
+  .vg-pill-provisoes {
+    background: var(--color-surface-hover);
+    border: 1px solid var(--color-border-light);
+    border-radius: 20px;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+}
+
 .kpis-dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -257,6 +733,26 @@
 
   @media (min-width: 1300px) {
     grid-template-columns: repeat(7, 1fr);
+  }
+}
+
+.kpis-grid-pagar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+
+  @media (min-width: 1200px) {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.kpis-grid-receber {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+
+  @media (min-width: 1200px) {
+    grid-template-columns: repeat(6, 1fr);
   }
 }
 
@@ -499,6 +995,68 @@
         color: $green;
       }
     }
+
+    .bloco-header-totais {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+
+    .header-total-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.78rem;
+      padding: 0.18rem 0.55rem;
+      border-radius: 6px;
+      line-height: 1.25;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface-hover);
+
+      .total-chip-label {
+        color: var(--color-text-muted);
+        font-weight: 500;
+        font-size: 0.74rem;
+      }
+
+      .total-chip-val {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .total-chip-sub {
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+      }
+
+      &.total-geral {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: rgba(16, 185, 129, 0.22);
+
+        .total-chip-val {
+          color: #059669;
+        }
+      }
+
+      &.total-geral-pagar {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: rgba(239, 68, 68, 0.22);
+
+        .total-chip-val {
+          color: var(--color-danger, #ef4444);
+        }
+      }
+
+      &.total-previsto {
+        background: rgba(16, 185, 129, 0.12);
+        border-color: rgba(16, 185, 129, 0.28);
+
+        .total-chip-val {
+          color: #059669;
+        }
+      }
+    }
   }
 
   .bloco-toolbar {
@@ -649,6 +1207,14 @@
     grid-template-columns: 1fr;
   }
 
+  &.grid-3-colunas {
+    grid-template-columns: repeat(3, 1fr);
+
+    @media (max-width: 1024px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
   @media (max-width: 680px) {
     grid-template-columns: 1fr;
   }
@@ -705,6 +1271,16 @@
     }
   }
 
+  &.subcoluna-provisao {
+    background: #f8fafc; // Cinza ardósia bem clarinho
+    border-color: #cbd5e1;
+
+    .subcoluna-header {
+      background: #f1f5f9;
+      border-bottom-color: #cbd5e1;
+    }
+  }
+
   .subcoluna-header {
     padding: 0.45rem 0.65rem;
     border-bottom: 1px solid var(--color-border-light);
@@ -755,30 +1331,80 @@
 }
 
 // Logos e Badges dos Bancos e Modalidades
+.banco-logo-img {
+  width: 25px;
+  height: 25px;
+  object-fit: contain;
+  border-radius: 4px;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+
+  &.large {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+  }
+}
+
 .banco-logo-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 800;
-  width: 20px;
-  height: 20px;
+  width: 25px;
+  height: 25px;
   border-radius: 5px;
 
-  &.bb {
+  &.bb,
+  &.banco_do_brasil {
     background: #fef08a;
     color: #1e3a8a;
+    border: 1px solid #fef08a;
   }
 
   &.itau {
     background: #ffedd5;
     color: #c2410c;
+    border: 1px solid #fed7aa;
+  }
+
+  &.santander {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+  }
+
+  &.bradesco {
+    background: #ffe4e6;
+    color: #be123c;
+    border: 1px solid #fda4af;
+  }
+
+  &.carteira {
+    background: #cffafe;
+    color: #0e7490;
+    border: 1px solid #a5f3fc;
+  }
+
+  &.daycoval {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
   }
 
   &.provisao-badge {
     background: #e2e8f0;
     color: #0f172a;
     border: 1px solid #cbd5e1;
+  }
+
+  &.large {
+    width: 38px;
+    height: 38px;
+    font-size: 0.95rem;
+    border-radius: 8px;
   }
 }
 
@@ -802,6 +1428,197 @@
   }
 }
 
+.modalidade-mini-icon {
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+
+  &.carteira {
+    background: rgba(6, 182, 212, 0.15);
+    color: #0891b2;
+  }
+
+  &.boleto {
+    background: rgba($blue, 0.12);
+    color: $blue;
+  }
+}
+
+// ==========================================
+// GRID E CARDS DE BANCOS (CONTAS A RECEBER)
+// ==========================================
+.bancos-receber-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 1.1rem;
+  padding: 0.35rem 0.1rem;
+  width: 100%;
+
+  @media (max-width: 680px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.banco-card-item {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px var(--color-shadow);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: #94a3b8;
+    transition: height 0.2s ease;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px -4px rgba(15, 23, 42, 0.12), 0 4px 8px -2px rgba(15, 23, 42, 0.06);
+    border-color: #cbd5e1;
+
+    &::before {
+      height: 6px;
+    }
+
+    .btn-card-chevron {
+      transform: translateX(4px);
+      color: var(--color-primary);
+    }
+  }
+
+  // Cores por Banco
+  &.banco-itau::before { background: #f97316; }
+  &.banco-banco_do_brasil::before { background: #facc15; }
+  &.banco-santander::before { background: #dc2626; }
+  &.banco-bradesco::before { background: #cc092f; }
+  &.banco-carteira::before { background: #06b6d4; }
+  &.banco-daycoval::before { background: #1e3a8a; }
+
+  .banco-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .banco-card-nome {
+      font-size: 0.96rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+    }
+  }
+
+  .banco-card-valor-bloco {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+
+    .banco-valor-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--color-text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    .banco-card-valor {
+      font-size: 1.6rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.15;
+    }
+  }
+
+  .banco-card-subtotais {
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    gap: 0.8rem;
+
+    .banco-subtotal-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+
+      .banco-subtotal-val {
+        font-size: 0.82rem;
+        color: var(--color-text-primary);
+        white-space: nowrap;
+      }
+    }
+
+    .banco-subtotal-divider {
+      width: 1px;
+      height: 30px;
+      background: var(--color-border-light);
+    }
+  }
+
+  .banco-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.55rem;
+    border-top: 1px dashed var(--color-border-light);
+    margin-top: auto;
+
+    .btn-card-chevron {
+      color: var(--color-text-muted);
+      transition: all 0.2s ease;
+      font-size: 0.85rem;
+    }
+  }
+}
+
+.banco-modal-resumo {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 3px var(--color-shadow);
+
+  .banco-modal-metrics {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+
+    @media (max-width: 768px) {
+      gap: 0.85rem;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+
+      .metric-col {
+        border-inline-start: none !important;
+        padding-inline-start: 0 !important;
+        text-align: left !important;
+      }
+    }
+  }
+}
+
+.matriz-modal-elevated {
+  z-index: 1060 !important;
+}
+
 // Scroll de Cards
 .cards-scroll-container {
   padding: 0.45rem;
@@ -809,9 +1626,14 @@
   flex-direction: column;
   gap: 0.4rem;
   flex: 1 1 auto;
-  min-height: 460px;
-  max-height: calc(100vh - 355px);
+  min-height: 240px;
+  max-height: calc(100vh - 290px);
   overflow-y: auto;
+
+  @media (max-width: 1024px) {
+    min-height: auto;
+    max-height: 380px;
+  }
 
   &::-webkit-scrollbar {
     width: 5px;
@@ -1762,6 +2584,14 @@
   padding: 2px;
   border-radius: 999px;
   border: 1px solid var(--color-border, #e2e8f0);
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   .score-pill {
     background: transparent;
