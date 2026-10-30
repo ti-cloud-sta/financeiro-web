@@ -96,6 +96,7 @@ class ColaboradorRepository:
             query = query.filter(
                 or_(
                     Colaborador.nome.ilike(search_term),
+                    Colaborador.nomeAbrev.ilike(search_term),
                     Colaborador.documento.ilike(search_term),
                     CentroCusto.nome.ilike(search_term),
                     cc_codigo_filter,

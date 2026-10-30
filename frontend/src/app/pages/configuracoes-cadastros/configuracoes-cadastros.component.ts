@@ -787,7 +787,7 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
 
   isColaboradorModalOpen = false;
   colaboradorModalMode: 'create' | 'edit' = 'create';
-  novoColaborador: any = { nome: '', idCentroCusto: null, idCargoColaborador: null, papel: '', documento: '' };
+  novoColaborador: any = { nome: '', nomeAbrev: '', idCentroCusto: null, idCargoColaborador: null, papel: '', documento: '' };
   isSalvandoColaborador = false;
 
   carregarColaboradores() {
@@ -820,7 +820,7 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
       this.novoColaborador = { ...colaborador };
     } else {
       this.colaboradorModalMode = 'create';
-      this.novoColaborador = { nome: '', idCentroCusto: null, idCargoColaborador: null, papel: '', documento: '' };
+      this.novoColaborador = { nome: '', nomeAbrev: '', idCentroCusto: null, idCargoColaborador: null, papel: '', documento: '' };
     }
     this.isColaboradorModalOpen = true;
   }

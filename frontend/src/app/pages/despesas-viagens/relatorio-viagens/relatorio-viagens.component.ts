@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
@@ -6,6 +6,8 @@ import * as XLSX from 'xlsx';
 
 import { FlatpickrModule } from 'angularx-flatpickr';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
+import { ModalComponent } from '../../../shared/components/modal/modal.component';
+import { BadgeComponent } from '../../../shared/components/badge/badge.component';
 import { DespesasViagensService } from '../../../core/services/despesas-viagens.service';
 import { EmpresasService } from '../../../core/services/empresas.service';
 import { ColaboradoresService } from '../../../core/services/colaboradores.service';
@@ -15,7 +17,7 @@ import { Portuguese } from 'flatpickr/dist/l10n/pt';
 @Component({
   selector: 'app-relatorio-viagens',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule, FlatpickrModule, ButtonComponent],
+  imports: [CommonModule, FormsModule, HttpClientModule, FlatpickrModule, ButtonComponent, ModalComponent, BadgeComponent],
   templateUrl: './relatorio-viagens.component.html',
   styleUrls: ['./relatorio-viagens.component.scss']
 })
@@ -42,6 +44,50 @@ export class RelatorioViagensComponent implements OnInit {
   relatorioDetalhesTotaisPorCategoria: { [cat: string]: number } = {};
   relatorioDetalhesTotalGeral = 0;
   searchRelatorioTerm = '';
+
+  // Modal de Conciliação
+  isConciliacaoModalOpen = false;
+  conciliacaoStep = signal<1 | 2 | 3>(1); // 1 = Upload, 2 = Loading, 3 = Resultado
+  conciliacaoResult = signal<any | null>(null);
+  conciliacaoFile = signal<File | null>(null);
+  conciliacaoError = signal<string>('');
+  activeConciliacaoTab = signal<'unidades' | 'empresas' | 'pessoas'>('unidades');
+  searchConciliacaoTerm = signal<string>('');
+
+  get filteredConciliacaoUnidades(): any[] {
+    const res = this.conciliacaoResult();
+    if (!res || !res.unidades) return [];
+    const term = this.searchConciliacaoTerm().toLowerCase().trim();
+    if (!term) return res.unidades;
+    return res.unidades.filter((u: any) =>
+      (u.unidade_descricao && u.unidade_descricao.toLowerCase().includes(term)) ||
+      (u.unidade_codigo && u.unidade_codigo.toString().includes(term))
+    );
+  }
+
+  get filteredConciliacaoEmpresas(): any[] {
+    const res = this.conciliacaoResult();
+    if (!res || !res.empresas) return [];
+    const term = this.searchConciliacaoTerm().toLowerCase().trim();
+    if (!term) return res.empresas;
+    return res.empresas.filter((e: any) =>
+      (e.empresa_nome && e.empresa_nome.toLowerCase().includes(term)) ||
+      (e.empresa_abrev && e.empresa_abrev.toLowerCase().includes(term)) ||
+      (e.unidade_codigo && e.unidade_codigo.toString().includes(term))
+    );
+  }
+
+  get filteredConciliacaoPessoas(): any[] {
+    const res = this.conciliacaoResult();
+    if (!res || !res.pessoas) return [];
+    const term = this.searchConciliacaoTerm().toLowerCase().trim();
+    if (!term) return res.pessoas;
+    return res.pessoas.filter((p: any) =>
+      (p.colaborador_nome && p.colaborador_nome.toLowerCase().includes(term)) ||
+      (p.nome_abrev && p.nome_abrev.toLowerCase().includes(term)) ||
+      (p.unidade_codigo && p.unidade_codigo.toString().includes(term))
+    );
+  }
 
   // Listas para filtros
   listaEmpresasGeral: any[] = [];
@@ -170,7 +216,6 @@ export class RelatorioViagensComponent implements OnInit {
 
   exportRelatorioToExcel() {
     if (!this.relatorioDetalhesMatrizFiltrada || this.relatorioDetalhesMatrizFiltrada.length === 0) {
-      alert('Não há dados para exportar.');
       return;
     }
 
@@ -184,11 +229,12 @@ export class RelatorioViagensComponent implements OnInit {
     ];
 
     const dataRows = this.relatorioDetalhesMatrizFiltrada.map(row => {
-      const r = [
+      const cc = row.centroCustoCodigo ? String(row.centroCustoCodigo).replace(/\.0$/, '') : '-';
+      const r: any[] = [
         row.unidadeNome ? row.unidadeNome.split('-')[0].trim() : '-',
         row.colaboradorNome || '-',
         row.empresaNome || '-',
-        row.centroCustoCodigo || '-'
+        cc
       ];
       this.relatorioDetalhesCategoriasColunas.forEach(cat => {
         r.push(row.valoresPorCategoria ? (row.valoresPorCategoria[cat] || 0) : 0);
@@ -210,9 +256,52 @@ export class RelatorioViagensComponent implements OnInit {
 
     const worksheet: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet([header, ...dataRows, footerRow]);
 
+    // Formatação contábil para valores numéricos apenas das categorias e total (colunas E em diante, índice >= 4)
+    for (const cellKey of Object.keys(worksheet)) {
+      if (cellKey.startsWith('!')) continue;
+      const cellCoord = XLSX.utils.decode_cell(cellKey);
+      if (cellCoord.r === 0) continue; // Pula linha de cabeçalho
+      
+      if (cellCoord.c >= 4) {
+        const cell = worksheet[cellKey];
+        if (cell && cell.t === 'n') {
+          cell.z = '"R$" #,##0.00;("R$" #,##0.00);"-"';
+        }
+      }
+    }
+
+    // Auto-ajuste de largura das colunas para visualização ideal sem corte
+    const allRows = [header, ...dataRows, footerRow];
+    const colWidths = header.map((h, colIdx) => {
+      let maxLen = h ? String(h).length : 10;
+      for (const row of allRows) {
+        const val = row[colIdx];
+        if (val !== null && val !== undefined) {
+          let strVal = '';
+          if (typeof val === 'number') {
+            strVal = val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            if (val !== 0 && colIdx >= 4) strVal = 'R$ ' + strVal;
+          } else {
+            strVal = String(val);
+          }
+          if (strVal.length > maxLen) {
+            maxLen = strVal.length;
+          }
+        }
+      }
+      return { wch: Math.max(maxLen + 4, 14) };
+    });
+    worksheet['!cols'] = colWidths;
+
+    // Altura destacada para a linha de cabeçalho
+    worksheet['!rows'] = [
+      { hpt: 26 }
+    ];
+
+    // Fixa o cabeçalho no topo da rolagem
     worksheet['!views'] = [{
       state: 'frozen',
-      xSplit: 1,
+      xSplit: 0,
       ySplit: 1
     }];
 
@@ -220,5 +309,57 @@ export class RelatorioViagensComponent implements OnInit {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatório Despesas');
     
     XLSX.writeFile(workbook, 'relatorio-despesas-viagens.xlsx');
+  }
+
+  abrirModalConciliacao() {
+    this.conciliacaoStep.set(1);
+    this.conciliacaoResult.set(null);
+    this.conciliacaoFile.set(null);
+    this.conciliacaoError.set('');
+    this.activeConciliacaoTab.set('unidades');
+    this.searchConciliacaoTerm.set('');
+    this.isConciliacaoModalOpen = true;
+  }
+
+  fecharModalConciliacao() {
+    this.isConciliacaoModalOpen = false;
+  }
+
+  onConciliacaoFileSelected(event: any) {
+    const file = event.target?.files?.[0];
+    if (file) {
+      this.processarArquivoConciliacao(file);
+    }
+  }
+
+  onConciliacaoFileDropped(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+      this.processarArquivoConciliacao(event.dataTransfer.files[0]);
+    }
+  }
+
+  onConciliacaoDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  processarArquivoConciliacao(file: File) {
+    this.conciliacaoFile.set(file);
+    this.conciliacaoError.set('');
+    this.conciliacaoStep.set(2);
+
+    this.despesasViagensService.conciliarPlanilha(file).subscribe({
+      next: (res) => {
+        this.conciliacaoResult.set(res);
+        this.conciliacaoStep.set(3);
+      },
+      error: (err) => {
+        console.error('Erro ao processar conciliação', err);
+        this.conciliacaoError.set(err.error?.detail || 'Erro ao processar a planilha. Verifique o arquivo e tente novamente.');
+        this.conciliacaoStep.set(1);
+      }
+    });
   }
 }

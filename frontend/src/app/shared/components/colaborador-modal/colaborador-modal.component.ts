@@ -31,7 +31,7 @@ export class ColaboradorModalComponent implements OnInit, OnChanges {
   listaCentrosCusto: any[] = [];
   listaCargos: CargoColaborador[] = [];
 
-  novoColaborador: any = { nome: '', idCentroCusto: null, idCargoColaborador: null, papel: '', documento: '' };
+  novoColaborador: any = { nome: '', nomeAbrev: '', idCentroCusto: null, idCargoColaborador: null, papel: '', documento: '' };
   isSalvando = false;
   isCargoModalOpen = false;
 
@@ -45,7 +45,7 @@ export class ColaboradorModalComponent implements OnInit, OnChanges {
       if (this.modalMode === 'edit' && this.colaboradorData) {
         this.novoColaborador = { ...this.colaboradorData };
       } else {
-        this.novoColaborador = { nome: this.initialName || '', idCentroCusto: null, idCargoColaborador: null, papel: '', documento: '' };
+        this.novoColaborador = { nome: this.initialName || '', nomeAbrev: '', idCentroCusto: null, idCargoColaborador: null, papel: '', documento: '' };
       }
     }
   }

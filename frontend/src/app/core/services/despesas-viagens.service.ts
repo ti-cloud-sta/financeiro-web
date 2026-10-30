@@ -79,5 +79,11 @@ export class DespesasViagensService {
     if (filtros.id_centro_custo) params = params.set('id_centro_custo', filtros.id_centro_custo);
     return this.http.get<any>(`${this.apiUrl}/relatorio`, { params });
   }
+
+  conciliarPlanilha(file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<any>(`${this.apiUrl}/relatorio/conciliar`, formData);
+  }
 }
 

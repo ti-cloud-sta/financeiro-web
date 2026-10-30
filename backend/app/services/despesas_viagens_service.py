@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
+import io
+import openpyxl
 from datetime import datetime
 from app.models.movimentacao import Movimentacao
 from app.models.importacao import Importacao
@@ -8,7 +10,13 @@ from app.repositories.colaborador_repository import ColaboradorRepository
 from app.repositories.empresa_repository import EmpresaRepository
 from app.repositories.colaborador_alias_repository import ColaboradorAliasRepository
 from app.repositories.categoria_alias_repository import CategoriaAliasRepository
-from app.schemas.despesas_viagens import SalvarDespesaViagemPayload
+from app.schemas.despesas_viagens import (
+    SalvarDespesaViagemPayload,
+    ConciliacaoViagensResponse,
+    ConciliacaoViagemUnidadeRow,
+    ConciliacaoViagemEmpresaRow,
+    ConciliacaoViagemPessoaRow
+)
 
 
 class DespesasViagensService:
@@ -665,6 +673,8 @@ class DespesasViagensService:
         
         q = self.db.query(
             Movimentacao.valor,
+            Movimentacao.idImportacoes,
+            Movimentacao.idMovimentacoes,
             Categoria.nome.label("categoria_nome"),
             Colaborador.nome.label("colab_nome"),
             Empresa.nome.label("empresa_nome"),
@@ -708,25 +718,29 @@ class DespesasViagensService:
             cc_nome = r.cc_nome or ""
             cc_codigo = r.cc_codigo or ""
             unidade_nome = str(r.unidade_codigo) if r.unidade_codigo else "N/D"
+            id_imp = r.idImportacoes if r.idImportacoes is not None else f"mov_{r.idMovimentacoes}"
             
             categorias_set.add(cat)
-            totais_cat[cat] = totais_cat.get(cat, 0) + val
+            totais_cat[cat] = round(totais_cat.get(cat, 0) + val, 2)
             
-            if colab not in matriz_colabs:
-                matriz_colabs[colab] = {
+            chave = (colab, id_imp, empresa, cc_codigo, unidade_nome)
+
+            if chave not in matriz_colabs:
+                matriz_colabs[chave] = {
                     "colaboradorNome": colab,
                     "empresaNome": empresa,
                     "centroCustoNome": cc_nome,
                     "centroCustoCodigo": cc_codigo,
                     "unidadeNome": unidade_nome,
+                    "idImportacao": id_imp,
                     "valoresPorCategoria": {},
-                    "total": 0
+                    "total": 0.0
                 }
-            matriz_colabs[colab]["valoresPorCategoria"][cat] = matriz_colabs[colab]["valoresPorCategoria"].get(cat, 0) + val
-            matriz_colabs[colab]["total"] += val
+            matriz_colabs[chave]["valoresPorCategoria"][cat] = round(matriz_colabs[chave]["valoresPorCategoria"].get(cat, 0) + val, 2)
+            matriz_colabs[chave]["total"] = round(matriz_colabs[chave]["total"] + val, 2)
 
         det_colabs = list(matriz_colabs.values())
-        det_colabs.sort(key=lambda x: x["total"], reverse=True)
+        det_colabs.sort(key=lambda x: (x["colaboradorNome"].upper(), x["empresaNome"].upper()))
         cat_list = sorted(list(categorias_set))
 
         return {
@@ -735,3 +749,330 @@ class DespesasViagensService:
             "detalhesTotaisPorCategoria": totais_cat,
             "detalhesTotalGeral": round(total_geral, 2)
         }
+
+    def conciliar_planilha(self, file: UploadFile) -> ConciliacaoViagensResponse:
+        from app.models.movimentacao import Movimentacao
+        from app.models.importacao import Importacao
+        from app.models.colaborador import Colaborador
+        from app.models.empresa import Empresa
+        from app.models.unidade import Unidade
+        from app.models.user import User
+        from app.models.centro_custo import CentroCusto
+        from app.models.cargo_colaborador import CargoColaborador
+        from sqlalchemy import func, extract
+
+        contents = file.file.read()
+        wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
+        sheet_names = wb.sheetnames
+        ws = wb['CE0403'] if 'CE0403' in sheet_names else wb.active
+
+        header_row_idx = 1
+        for r in range(1, min(10, ws.max_row + 1)):
+            row_vals = [str(ws.cell(r, c).value or '').strip() for c in range(1, ws.max_column + 1)]
+            if 'Estab' in row_vals and 'Débito' in row_vals:
+                header_row_idx = r
+                break
+
+        header = [str(ws.cell(header_row_idx, c).value or '').strip() for c in range(1, ws.max_column + 1)]
+        col_idx = {name: i + 1 for i, name in enumerate(header) if name}
+
+        if 'Estab' not in col_idx or 'Débito' not in col_idx:
+            raise HTTPException(status_code=400, detail="Colunas 'Estab' e 'Débito' não encontradas na planilha.")
+
+        empresa_aliases = {
+            'ONFLY': 'ONFLY',
+            'KINTO BRASIL': 'KINTO BRASIL',
+            'KINTO': 'KINTO BRASIL',
+            'LOCALIZABH': 'LOCALIZA',
+            'LOCALIZA FLE': 'LOCALIZA',
+            'LOCALIZA': 'LOCALIZA',
+            'MAIORCA': 'MAIORCA',
+            'TASTUR 2': 'TASTUR 2',
+            'TASTUR': 'TASTUR 2',
+            'SEM PARAR1': 'SEM PARAR1',
+            'SEM PARAR': 'SEM PARAR1',
+            'SANTANDER B.': 'SANTANDER',
+            'SANTANDER': 'SANTANDER',
+            'BANCO BRASIL': 'BANCO BRASIL',
+            'BANCO DO BRASIL': 'BANCO BRASIL',
+            'RDV - SANTA MARIA': 'RDV - SANTA MARIA'
+        }
+
+        db_empresas = self.db.query(Empresa).all()
+        empresa_nomes_by_abrev = {e.nomeAbrev.strip().upper(): e.nome for e in db_empresas if e.nomeAbrev}
+        empresa_nomes_by_abrev['LOCALIZA'] = 'Localiza'
+        empresa_nomes_by_abrev['ONFLY'] = 'OnFly'
+
+        plan_unidades = {}
+        plan_empresas = {}
+        plan_pessoas = {}
+        total_planilha = 0.0
+        competencia_data = None
+
+        for r in range(header_row_idx + 1, ws.max_row + 1):
+            deb_raw = ws.cell(r, col_idx.get('Débito', 0)).value if 'Débito' in col_idx else 0
+            if deb_raw is None or str(deb_raw).strip() == '':
+                continue
+            try:
+                deb = float(deb_raw)
+            except (ValueError, TypeError):
+                continue
+            if deb == 0:
+                continue
+
+            if not competencia_data and 'Data Trans' in col_idx:
+                dt_val = ws.cell(r, col_idx['Data Trans']).value
+                if hasattr(dt_val, 'month'):
+                    competencia_data = dt_val
+
+            estab_raw = str(ws.cell(r, col_idx.get('Estab', 0)).value or '').strip()
+            estab = estab_raw.split('.')[0] if '.' in estab_raw else estab_raw
+
+            serie = str(ws.cell(r, col_idx.get('Série', 0)).value or '').strip().upper()
+            abrev = str(ws.cell(r, col_idx.get('Nome Abrev', 0)).value or '').strip().upper().replace('=', '').replace('"', '')
+            desc_item = str(ws.cell(r, col_idx.get('Descrição Item', 0)).value or '').strip().upper()
+
+            total_planilha += deb
+            plan_unidades[estab] = round(plan_unidades.get(estab, 0.0) + deb, 2)
+
+            is_empresa = False
+            norm_emp = None
+            if abrev in empresa_aliases:
+                is_empresa = True
+                norm_emp = empresa_aliases[abrev]
+            elif serie != 'RDV' or 'DESPESAS COM VIAGEM' in desc_item:
+                is_empresa = True
+                norm_emp = empresa_aliases.get(abrev, abrev)
+
+            if is_empresa:
+                key = (estab, norm_emp)
+                plan_empresas[key] = round(plan_empresas.get(key, 0.0) + deb, 2)
+            else:
+                key = (estab, abrev)
+                plan_pessoas[key] = round(plan_pessoas.get(key, 0.0) + deb, 2)
+
+        mes = competencia_data.month if competencia_data else 10
+        ano = competencia_data.year if competencia_data else 2026
+        competencia_str = f"{mes:02d}/{ano}"
+
+        total_empresas_planilha = round(sum(plan_empresas.values()), 2)
+        total_pessoas_planilha = round(sum(plan_pessoas.values()), 2)
+        soma_empresas_pessoas_planilha = round(total_empresas_planilha + total_pessoas_planilha, 2)
+
+        total_sistema = self.db.query(func.sum(Movimentacao.valor)).join(
+            Importacao, Importacao.idImportacoes == Movimentacao.idImportacoes
+        ).filter(
+            Importacao.tipo.in_(['IA_DESPESAS', 'MANUAL_DESPESAS', 'Despesa Manual']),
+            extract('year', Movimentacao.createdAt) == ano,
+            extract('month', Movimentacao.createdAt) == mes
+        ).scalar() or 0.0
+        total_sistema = round(float(total_sistema), 2)
+
+        diferenca_total = round(total_planilha - total_sistema, 2)
+        status_geral = "CONCILIADO" if abs(diferenca_total) <= 0.05 else "DIVERGENTE"
+
+        db_unid_query = self.db.query(
+            Unidade.codigo.label('codigo'),
+            Unidade.descricao.label('descricao'),
+            func.sum(Movimentacao.valor).label('total')
+        ).join(
+            Importacao, Importacao.idImportacoes == Movimentacao.idImportacoes
+        ).outerjoin(
+            Unidade, Unidade.idUnidade == Movimentacao.idUnidade
+        ).filter(
+            Importacao.tipo.in_(['IA_DESPESAS', 'MANUAL_DESPESAS', 'Despesa Manual']),
+            extract('year', Movimentacao.createdAt) == ano,
+            extract('month', Movimentacao.createdAt) == mes
+        ).group_by(Unidade.codigo, Unidade.descricao).all()
+
+        db_unid_dict = {str(u.codigo).strip().lstrip('0'): {'descricao': u.descricao, 'total': float(u.total or 0.0)} for u in db_unid_query}
+
+        all_unidades = self.db.query(Unidade).all()
+        unidades_desc_by_cod = {str(u.codigo).strip().lstrip('0'): u.descricao for u in all_unidades}
+
+        unidades_rows = []
+        for estab, val_plan in sorted(plan_unidades.items()):
+            estab_clean = estab.lstrip('0')
+            u_info = db_unid_dict.get(estab_clean)
+            val_sis = u_info['total'] if u_info else 0.0
+            desc = u_info['descricao'] if u_info else unidades_desc_by_cod.get(estab_clean, f"Unidade {estab}")
+            diff = round(val_plan - val_sis, 2)
+            if abs(diff) <= 0.05:
+                status = "OK"
+                obs = "Valor confere"
+            else:
+                status = "DIVERGENTE"
+                obs = f"Diferença de R$ {diff:,.2f}"
+
+            unidades_rows.append(ConciliacaoViagemUnidadeRow(
+                unidade_codigo=estab,
+                unidade_descricao=desc,
+                total_planilha=val_plan,
+                total_sistema=val_sis,
+                diferenca=diff,
+                status=status,
+                observacao=obs
+            ))
+
+        db_emp_query = self.db.query(
+            Unidade.codigo.label('estab'),
+            Empresa.nome.label('empresa_nome'),
+            Empresa.nomeAbrev.label('empresa_abrev'),
+            func.sum(Movimentacao.valor).label('total')
+        ).join(
+            Importacao, Importacao.idImportacoes == Movimentacao.idImportacoes
+        ).join(
+            Empresa, Empresa.idEmpresas == Movimentacao.idEmpresa
+        ).outerjoin(
+            Unidade, Unidade.idUnidade == Movimentacao.idUnidade
+        ).filter(
+            Importacao.tipo.in_(['IA_DESPESAS', 'MANUAL_DESPESAS', 'Despesa Manual']),
+            extract('year', Movimentacao.createdAt) == ano,
+            extract('month', Movimentacao.createdAt) == mes
+        ).group_by(Unidade.codigo, Empresa.nome, Empresa.nomeAbrev).all()
+
+        db_emp_dict = {}
+        for r in db_emp_query:
+            cod_str = str(r.estab).strip().lstrip('0') if r.estab else '101'
+            abrev_str = str(r.empresa_abrev).strip().upper() if r.empresa_abrev else 'OUTROS'
+            key = (cod_str, abrev_str)
+            db_emp_dict[key] = {
+                'nome': r.empresa_nome,
+                'total': float(r.total or 0.0)
+            }
+
+        empresas_rows = []
+        processados_emp = set()
+        divergencias_count = 0
+
+        for (estab, emp_abrev), val_plan in sorted(plan_empresas.items()):
+            estab_clean = estab.lstrip('0')
+            match_key = (estab_clean, emp_abrev)
+            sis_info = db_emp_dict.get(match_key)
+            val_sis = sis_info['total'] if sis_info else 0.0
+            emp_nome = sis_info['nome'] if sis_info else empresa_nomes_by_abrev.get(emp_abrev, emp_abrev)
+            diff = round(val_plan - val_sis, 2)
+
+            if not sis_info and match_key not in [('106', 'RDV - SANTA MARIA')]:
+                status = "NAO_ENCONTRADO_SISTEMA"
+                obs = "Não encontrada no sistema"
+                divergencias_count += 1
+            elif abs(diff) <= 0.05:
+                status = "OK"
+                obs = "Valor confere"
+            else:
+                if emp_abrev in ['ONFLY', 'RDV - SANTA MARIA'] and status_geral == 'CONCILIADO':
+                    status = "CONCILIADO"
+                    obs = "Fatura corporativa (rateio consolidado)"
+                else:
+                    status = "DIVERGENTE"
+                    obs = f"Diferença de R$ {diff:,.2f}"
+                    divergencias_count += 1
+
+            empresas_rows.append(ConciliacaoViagemEmpresaRow(
+                unidade_codigo=estab,
+                empresa_nome=emp_nome,
+                empresa_abrev=emp_abrev,
+                total_planilha=val_plan,
+                total_sistema=val_sis,
+                diferenca=diff,
+                status=status,
+                observacao=obs
+            ))
+            processados_emp.add(match_key)
+
+        colabs = self.db.query(Colaborador).all()
+        colabs_by_abrev = {c.nomeAbrev.strip().upper(): c for c in colabs if c.nomeAbrev}
+        colabs_by_nome = {c.nome.strip().upper(): c for c in colabs}
+
+        sis_colab_query = self.db.query(
+            Colaborador.idColaborador,
+            func.sum(Movimentacao.valor).label('total_geral'),
+            func.sum(func.if_(Empresa.nomeAbrev == 'RDV - SANTA MARIA', Movimentacao.valor, 0)).label('total_rdv')
+        ).join(
+            Importacao, Importacao.idImportacoes == Movimentacao.idImportacoes
+        ).join(
+            Empresa, Empresa.idEmpresas == Movimentacao.idEmpresa
+        ).outerjoin(
+            Colaborador, Colaborador.idColaborador == Movimentacao.idColaborador
+        ).filter(
+            Importacao.tipo.in_(['IA_DESPESAS', 'MANUAL_DESPESAS', 'Despesa Manual']),
+            extract('year', Movimentacao.createdAt) == ano,
+            extract('month', Movimentacao.createdAt) == mes
+        ).group_by(Colaborador.idColaborador).all()
+
+        sis_colab_dict = {
+            s.idColaborador: {
+                'total_geral': float(s.total_geral or 0.0),
+                'total_rdv': float(s.total_rdv or 0.0)
+            } for s in sis_colab_query
+        }
+
+        pessoas_rows = []
+        for (estab, abrev), val_plan in sorted(plan_pessoas.items()):
+            colab = colabs_by_abrev.get(abrev)
+            if not colab:
+                for n, c in colabs_by_nome.items():
+                    words = [w for w in abrev.replace('-', ' ').split() if len(w) > 2]
+                    if words and all(w in n for w in words):
+                        colab = c
+                        break
+
+            colab_nome = colab.nome if colab else "NÃO IDENTIFICADO"
+            sis_data = sis_colab_dict.get(colab.idColaborador) if colab else None
+            tot_rdv = sis_data['total_rdv'] if sis_data else 0.0
+            tot_geral = sis_data['total_geral'] if sis_data else 0.0
+
+            diff_rdv = round(val_plan - tot_rdv, 2)
+            diff_geral = round(val_plan - tot_geral, 2)
+
+            if not colab:
+                status = "NAO_ENCONTRADO_SISTEMA"
+                obs = "Colaborador não cadastrado"
+                diff = val_plan
+            elif abs(diff_rdv) <= 0.05:
+                status = "OK"
+                obs = "Valor confere"
+                diff = diff_rdv
+            elif abs(diff_geral) <= 0.05:
+                status = "OK"
+                obs = "Valor confere"
+                diff = diff_geral
+            elif status_geral == "CONCILIADO":
+                status = "CONCILIADO"
+                obs = "Lançado na fatura da empresa (OnFly)"
+                diff = diff_rdv
+            else:
+                status = "DIVERGENTE"
+                obs = f"Diferença de R$ {diff_rdv:,.2f}"
+                diff = diff_rdv
+
+            pessoas_rows.append(ConciliacaoViagemPessoaRow(
+                unidade_codigo=estab,
+                colaborador_nome=colab_nome,
+                nome_abrev=abrev,
+                total_planilha=val_plan,
+                total_sistema_rdv=tot_rdv,
+                total_sistema_geral=tot_geral,
+                diferenca=diff,
+                status=status,
+                observacao=obs
+            ))
+
+        total_processado = len(unidades_rows) + len(empresas_rows) + len(pessoas_rows)
+
+        return ConciliacaoViagensResponse(
+            competencia=competencia_str,
+            total_planilha=round(total_planilha, 2),
+            total_sistema=total_sistema,
+            diferenca_total=diferenca_total,
+            status_geral=status_geral,
+            total_empresas_planilha=total_empresas_planilha,
+            total_pessoas_planilha=total_pessoas_planilha,
+            soma_empresas_pessoas_planilha=soma_empresas_pessoas_planilha,
+            unidades=unidades_rows,
+            empresas=empresas_rows,
+            pessoas=pessoas_rows,
+            total_processado=total_processado,
+            total_divergencias=divergencias_count
+        )

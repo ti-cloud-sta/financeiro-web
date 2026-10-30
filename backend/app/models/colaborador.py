@@ -9,6 +9,7 @@ class Colaborador(Base):
 
     idColaborador = Column(Integer, primary_key=True, index=True, autoincrement=True)
     nome = Column(String(80), nullable=False)
+    nomeAbrev = Column(String(100), nullable=True)
     papel = Column(String(45), nullable=True)
     documento = Column(String(30), nullable=True, index=True)
     idCargoColaborador = Column(Integer, ForeignKey("tipocolaborador.idTipoColaborador"), nullable=False)
