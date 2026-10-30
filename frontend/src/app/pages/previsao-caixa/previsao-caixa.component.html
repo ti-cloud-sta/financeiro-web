@@ -161,6 +161,20 @@
 
               </div>
             } @else if (activeNav() === 'contas-pagar') {
+              <!-- SKELETON: CARDS DASH CONTAS A PAGAR -->
+              <section class="kpis-grid-pagar mb-2">
+                @for (i of [1,2,3,4]; track i) {
+                  <div class="kpi-metric-card" style="pointer-events: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <app-skeleton type="text" width="60%" height="11px"></app-skeleton>
+                      <app-skeleton type="circle" width="18px" height="18px"></app-skeleton>
+                    </div>
+                    <app-skeleton type="rect" width="75%" height="18px" class="my-1" style="border-radius: 4px;"></app-skeleton>
+                    <app-skeleton type="text" width="50%" height="10px"></app-skeleton>
+                  </div>
+                }
+              </section>
+
               <!-- Skeleton Bloco: Contas a Pagar (Full Width) -->
               <div class="bloco-operacional painel-pagar w-100 flex-grow-1" style="min-height: 0;">
                 <div class="bloco-header">
@@ -255,6 +269,20 @@
                 </div>
               </div>
             } @else if (activeNav() === 'contas-receber') {
+              <!-- SKELETON: CARDS DASH CONTAS A RECEBER -->
+              <section class="kpis-grid-receber mb-2">
+                @for (i of [1,2,3,4,5]; track i) {
+                  <div class="kpi-metric-card" style="pointer-events: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <app-skeleton type="text" width="60%" height="11px"></app-skeleton>
+                      <app-skeleton type="circle" width="18px" height="18px"></app-skeleton>
+                    </div>
+                    <app-skeleton type="rect" width="75%" height="18px" class="my-1" style="border-radius: 4px;"></app-skeleton>
+                    <app-skeleton type="text" width="50%" height="10px"></app-skeleton>
+                  </div>
+                }
+              </section>
+
               <!-- Skeleton Bloco: Contas a Receber (Full Width) -->
               <div class="bloco-operacional painel-receber w-100 flex-grow-1" style="min-height: 0;">
                 <div class="bloco-header">
@@ -513,26 +541,80 @@
           <!-- ABA: CONTAS A PAGAR                                            -->
           <!-- ============================================================== -->
           @else if (activeNav() === 'contas-pagar') {
+            <!-- CARDS DASH: CONTAS A PAGAR -->
+            <section class="kpis-grid-pagar mb-2">
+              <!-- Card 1: Total a Pagar -->
+              <div class="kpi-metric-card kpi-pagar">
+                <div class="kpi-header">
+                  <span class="kpi-label">Total a Pagar</span>
+                  <div class="kpi-icon-badge pagar-icon">
+                    <i class="fa-solid fa-arrow-trend-down"></i>
+                  </div>
+                </div>
+                <div class="kpi-value text-danger">{{ formatarMoeda(totalPagar()) }}</div>
+                <div class="kpi-footer d-flex justify-content-between gap-1">
+                  <span class="kpi-subtext">BB: {{ formatarMoeda(totalBB()) }}</span>
+                  <span class="kpi-subtext">Itaú: {{ formatarMoeda(totalItau()) }}</span>
+                </div>
+              </div>
+
+              <!-- Card 2: Banco do Brasil -->
+              <div class="kpi-metric-card">
+                <div class="kpi-header">
+                  <span class="kpi-label">Banco do Brasil</span>
+                  <div class="kpi-icon-badge" style="background: rgba(234, 179, 8, 0.15); color: #b45309;">
+                    <i class="fa-solid fa-building-columns"></i>
+                  </div>
+                </div>
+                <div class="kpi-value">{{ formatarMoeda(totalBB()) }}</div>
+                <div class="kpi-footer">
+                  <span class="kpi-subtext">
+                    <i class="fa-solid fa-layer-group me-1"></i>{{ contasBB().length }} títulos reais
+                  </span>
+                </div>
+              </div>
+
+              <!-- Card 3: Itaú Unibanco -->
+              <div class="kpi-metric-card">
+                <div class="kpi-header">
+                  <span class="kpi-label">Itaú Unibanco</span>
+                  <div class="kpi-icon-badge" style="background: rgba(249, 115, 22, 0.15); color: #c2410c;">
+                    <i class="fa-solid fa-building-columns"></i>
+                  </div>
+                </div>
+                <div class="kpi-value">{{ formatarMoeda(totalItau()) }}</div>
+                <div class="kpi-footer">
+                  <span class="kpi-subtext">
+                    <i class="fa-solid fa-layer-group me-1"></i>{{ contasItau().length }} títulos reais
+                  </span>
+                </div>
+              </div>
+
+              <!-- Card 4: Total Provisão -->
+              <div class="kpi-metric-card kpi-provisao">
+                <div class="kpi-header">
+                  <span class="kpi-label">Total Provisão</span>
+                  <div class="kpi-icon-badge provisao-icon">
+                    <i class="fa-solid fa-receipt"></i>
+                  </div>
+                </div>
+                <div class="kpi-value">{{ formatarMoeda(totalContasProvisao()) }}</div>
+                <div class="kpi-footer">
+                  <span class="kpi-subtext">
+                    <i class="fa-solid fa-layer-group me-1"></i>{{ contasProvisao().length }} provisões ativas
+                  </span>
+                </div>
+              </div>
+            </section>
+
             <div class="bloco-operacional painel-pagar w-100 flex-grow-1" style="min-height: 0;">
               
               <!-- Cabeçalho do Bloco Pagar -->
               <div class="bloco-header">
                 <div class="d-flex align-items-center justify-content-between w-100 mb-2 flex-wrap gap-2">
-                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <div class="d-flex align-items-center gap-2">
                     <h4 class="bloco-title mb-0">Contas a Pagar</h4>
                     <span class="contador-badge">{{ contasProvisao().length + contasBB().length + contasItau().length }}</span>
-
-                    <!-- Totais ao lado do título -->
-                    <div class="bloco-header-totais ms-2">
-                      <div class="header-total-chip total-geral-pagar" title="Total geral a pagar (Banco do Brasil + Itaú)">
-                        <span class="total-chip-label">Total a Pagar:</span>
-                        <span class="total-chip-val">{{ formatarMoeda(totalPagar()) }}</span>
-                      </div>
-                      <div class="header-total-chip" title="Total em provisões programadas">
-                        <span class="total-chip-label">Provisão:</span>
-                        <span class="total-chip-val text-dark">{{ formatarMoeda(totalContasProvisao()) }}</span>
-                      </div>
-                    </div>
                   </div>
                 </div>
 
@@ -701,28 +783,116 @@
           <!-- ABA: CONTAS A RECEBER                                          -->
           <!-- ============================================================== -->
           @else if (activeNav() === 'contas-receber') {
+            <!-- CARDS DASH: CONTAS A RECEBER -->
+            <section class="kpis-grid-receber mb-2">
+              <!-- Card 1: Total a Receber -->
+              <div class="kpi-metric-card kpi-receber">
+                <div class="kpi-header">
+                  <span class="kpi-label">Total a Receber</span>
+                  <div class="kpi-icon-badge receber-icon">
+                    <i class="fa-solid fa-arrow-trend-up"></i>
+                  </div>
+                </div>
+                <div class="kpi-value text-success">{{ formatarMoeda(totalReceber()) }}</div>
+                <div class="kpi-footer d-flex justify-content-between gap-1">
+                  <span class="kpi-subtext">Cart.: {{ formatarMoeda(totalCarteira()) }}</span>
+                  <span class="kpi-subtext">Boleto: {{ formatarMoeda(totalBoleto()) }}</span>
+                </div>
+              </div>
+
+              <!-- Card 2: Previsto >= 90% (Alta Certeza) -->
+              <div
+                class="kpi-metric-card kpi-score-alto kpi-card-clickable"
+                [class.active]="filtroScore() === 'ALTO' || filtroScore() === 'MAIOR_90'"
+                (click)="setFiltroScore('ALTO')"
+                role="button"
+                tabindex="0"
+                title="Clique para filtrar Contas a Receber com Score ≥ 90%"
+              >
+                <div class="kpi-header">
+                  <span class="kpi-label">Previsto &ge; 90%</span>
+                  <div class="kpi-icon-badge score-alto-icon">
+                    <i class="fa-solid fa-shield-halved"></i>
+                  </div>
+                </div>
+                <div class="kpi-value text-primary">{{ formatarMoeda(receberMaior90()) }}</div>
+                <div class="kpi-footer d-flex justify-content-between align-items-center">
+                  <span class="kpi-subtext">
+                    <i class="fa-solid fa-layer-group me-1"></i>{{ qtdReceberMaior90() }} títulos de alta certeza
+                  </span>
+                  @if (filtroScore() === 'ALTO' || filtroScore() === 'MAIOR_90') {
+                    <span class="badge bg-primary py-0 px-1" style="font-size: 0.58rem;">Ativo</span>
+                  }
+                </div>
+              </div>
+
+              <!-- Card 3: Previsão < 90% (Atenção / Risco) -->
+              <div
+                class="kpi-metric-card kpi-score-baixo kpi-card-clickable"
+                [class.active]="filtroScore() === 'MENOR_IGUAL_90'"
+                (click)="filtrarMenorIgual90()"
+                role="button"
+                tabindex="0"
+                title="Clique para filtrar Contas a Receber com Score < 90%"
+              >
+                <div class="kpi-header">
+                  <span class="kpi-label">Previsão &lt; 90%</span>
+                  <div class="kpi-icon-badge score-baixo-icon">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                  </div>
+                </div>
+                <div class="kpi-value text-warning">{{ formatarMoeda(receberMenorIgual90()) }}</div>
+                <div class="kpi-footer d-flex justify-content-between align-items-center">
+                  <span class="kpi-subtext">
+                    <i class="fa-solid fa-layer-group me-1"></i>{{ qtdReceberMenorIgual90() }} títulos em atenção
+                  </span>
+                  @if (filtroScore() === 'MENOR_IGUAL_90') {
+                    <span class="badge bg-warning text-dark py-0 px-1" style="font-size: 0.58rem;">Ativo</span>
+                  }
+                </div>
+              </div>
+
+              <!-- Card 4: Carteira (Depósito) -->
+              <div class="kpi-metric-card">
+                <div class="kpi-header">
+                  <span class="kpi-label">Carteira (Depósito)</span>
+                  <div class="kpi-icon-badge" style="background: rgba(8, 145, 178, 0.15); color: #0891b2;">
+                    <i class="fa-solid fa-wallet"></i>
+                  </div>
+                </div>
+                <div class="kpi-value">{{ formatarMoeda(totalCarteira()) }}</div>
+                <div class="kpi-footer">
+                  <span class="kpi-subtext">
+                    <i class="fa-solid fa-layer-group me-1"></i>{{ matrizesCarteira().length }} matrizes
+                  </span>
+                </div>
+              </div>
+
+              <!-- Card 5: Boleto Bancário -->
+              <div class="kpi-metric-card">
+                <div class="kpi-header">
+                  <span class="kpi-label">Boleto Bancário</span>
+                  <div class="kpi-icon-badge" style="background: rgba(22, 163, 74, 0.15); color: #16a34a;">
+                    <i class="fa-solid fa-barcode"></i>
+                  </div>
+                </div>
+                <div class="kpi-value">{{ formatarMoeda(totalBoleto()) }}</div>
+                <div class="kpi-footer">
+                  <span class="kpi-subtext">
+                    <i class="fa-solid fa-layer-group me-1"></i>{{ matrizesBoleto().length }} matrizes
+                  </span>
+                </div>
+              </div>
+            </section>
+
             <div class="bloco-operacional painel-receber w-100 flex-grow-1" style="min-height: 0;">
               
               <!-- Cabeçalho do Bloco Receber -->
               <div class="bloco-header">
                 <div class="d-flex align-items-center justify-content-between w-100 mb-2 flex-wrap gap-2">
-                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <div class="d-flex align-items-center gap-2">
                     <h4 class="bloco-title mb-0">Contas a Receber</h4>
                     <span class="contador-badge receber">{{ totalTitulosReceberFiltrados() }}</span>
-
-                    <!-- Totais ao lado do título -->
-                    <div class="bloco-header-totais ms-2">
-                      <div class="header-total-chip total-geral" title="Total geral de contas a receber">
-                        <span class="total-chip-label">Total a Receber:</span>
-                        <span class="total-chip-val">{{ formatarMoeda(totalReceber()) }}</span>
-                      </div>
-
-                      <div class="header-total-chip total-previsto" title="Total previsto com possibilidade igual ou acima de 90%">
-                        <span class="total-chip-label">Previsto &ge; 90%:</span>
-                        <span class="total-chip-val">{{ formatarMoeda(receberMaior90()) }}</span>
-                        <small class="total-chip-sub">({{ qtdReceberMaior90() }})</small>
-                      </div>
-                    </div>
                   </div>
 
                   <!-- Pílulas de Filtro de Score à Direita -->
