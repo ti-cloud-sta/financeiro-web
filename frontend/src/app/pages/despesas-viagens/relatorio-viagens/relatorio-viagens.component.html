@@ -104,7 +104,7 @@
             </div>
 
             <div class="d-flex flex-wrap gap-2 report-actions">
-              <app-button variant="primary" icon="fa-solid fa-code-compare" class="flex-grow-1">
+              <app-button variant="primary" icon="fa-solid fa-code-compare" (click)="abrirModalConciliacao()" class="flex-grow-1">
                 Conciliação
               </app-button>
               <app-button variant="outline-success" icon="fa-solid fa-file-excel" (click)="exportRelatorioToExcel()" [disabled]="isRelatorioLoading" class="flex-grow-1">
@@ -200,5 +200,297 @@
         </div>
       }
     </main>
+
+  <!-- Modal Conciliação de Valores -->
+  <app-modal [isOpen]="isConciliacaoModalOpen" title="Conciliação de Valores - Despesas de Viagens" (closed)="fecharModalConciliacao()" size="xl">
+    <div modal-body class="p-4" [style.min-height]="conciliacaoStep() === 1 ? '320px' : 'auto'">
+
+      <!-- Passo 1: Upload -->
+      @if (conciliacaoStep() === 1) {
+        <div class="d-flex flex-column align-items-center justify-content-center h-100 mt-2">
+          @if (conciliacaoError()) {
+            <div class="alert alert-danger w-100 d-flex align-items-start gap-2 mb-4" style="max-width: 650px;">
+              <i class="fa-solid fa-triangle-exclamation mt-1"></i>
+              <div>{{ conciliacaoError() }}</div>
+            </div>
+          }
+          <div class="upload-area border border-2 border-dashed rounded-3 p-5 text-center bg-light w-100"
+               style="cursor: pointer; transition: all 0.2s ease; max-width: 650px;"
+               (click)="fileInput.click()"
+               (dragover)="onConciliacaoDragOver($event)"
+               (drop)="onConciliacaoFileDropped($event)"
+               onmouseover="this.classList.add('border-primary', 'bg-white')"
+               onmouseout="this.classList.remove('border-primary', 'bg-white')">
+            <i class="fa-solid fa-cloud-arrow-up text-primary mb-3" style="font-size: 3.5rem;"></i>
+            <h5 class="fw-semibold text-dark mb-2">Clique ou arraste a planilha aqui</h5>
+            <p class="text-muted small mb-0">Planilha contábil / razão auxiliar suportada (.xlsx, .xls)</p>
+            <input #fileInput type="file" accept=".xlsx, .xls" class="d-none" (change)="onConciliacaoFileSelected($event)">
+          </div>
+          <div class="alert alert-light border mt-4 text-center py-2 px-3" style="max-width: 650px; font-size: 0.825rem; color: #64748b;">
+            <i class="fa-solid fa-circle-info text-primary me-1"></i>
+            O sistema confere o <strong>Valor Total</strong>, agrupa por <strong>Empresa</strong> (usando Estab e Nome Abrev) e valida os <strong>Colaboradores</strong> conciliando os lançamentos corporativos e individuais.
+          </div>
+        </div>
+      }
+
+      <!-- Passo 2: Processando -->
+      @if (conciliacaoStep() === 2) {
+        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+          <div class="spinner-border text-primary mb-3" style="width: 3.5rem; height: 3.5rem;" role="status">
+            <span class="visually-hidden">Processando...</span>
+          </div>
+          <h5 class="fw-semibold text-dark mb-1">Cruzando dados da planilha com o banco...</h5>
+          <p class="text-muted small">Comparando totais gerais, despesas corporativas e rateios individuais por colaborador.</p>
+        </div>
+      }
+
+      <!-- Passo 3: Resultados -->
+      @if (conciliacaoStep() === 3 && conciliacaoResult()) {
+        <div class="conciliacao-results fade-in">
+          
+          <!-- Top Header com Competência e Botão Nova Conciliação -->
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <h5 class="fw-bold text-dark mb-0">Painel de Conciliação</h5>
+              <span class="badge bg-light text-dark border px-2 py-1"><i class="fa-regular fa-calendar me-1 text-primary"></i> Competência: {{ conciliacaoResult()?.competencia }}</span>
+              @if (conciliacaoResult()?.status_geral === 'CONCILIADO') {
+                <app-badge variant="success" icon="fa-solid fa-circle-check">Conciliado com Sucesso</app-badge>
+              } @else {
+                <app-badge variant="danger" icon="fa-solid fa-triangle-exclamation">Divergências Encontradas</app-badge>
+              }
+            </div>
+            <div class="d-flex gap-2">
+              <app-button variant="secondary" icon="fa-solid fa-arrow-rotate-left" (click)="abrirModalConciliacao()">
+                Nova Conciliação
+              </app-button>
+            </div>
+          </div>
+
+          <!-- KPI Summary Cards -->
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="card border-0 shadow-sm rounded-3 p-3 h-100" style="background-color: #f8fafc; border: 1px solid #e2e8f0 !important;">
+                <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.725rem; letter-spacing: 0.5px;">Total Planilha</span>
+                <span class="fs-4 fw-bold text-dark mt-1 tabular-nums">
+                  {{ conciliacaoResult()?.total_planilha | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </span>
+                <span class="text-muted small mt-auto" style="font-size: 0.75rem;">Soma geral do razão</span>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="card border-0 shadow-sm rounded-3 p-3 h-100" style="background-color: #f8fafc; border: 1px solid #e2e8f0 !important;">
+                <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.725rem; letter-spacing: 0.5px;">Total Sistema</span>
+                <span class="fs-4 fw-bold text-primary mt-1 tabular-nums">
+                  {{ conciliacaoResult()?.total_sistema | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </span>
+                <span class="text-muted small mt-auto" style="font-size: 0.75rem;">Total banco de dados</span>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="card border-0 shadow-sm rounded-3 p-3 h-100" style="background-color: #f8fafc; border: 1px solid #e2e8f0 !important;">
+                <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.725rem; letter-spacing: 0.5px;">Diferença Total</span>
+                <span class="fs-4 fw-bold mt-1 tabular-nums" [class.text-success]="(conciliacaoResult()?.diferenca_total || 0) >= -0.05 && (conciliacaoResult()?.diferenca_total || 0) <= 0.05" [class.text-danger]="(conciliacaoResult()?.diferenca_total || 0) < -0.05 || (conciliacaoResult()?.diferenca_total || 0) > 0.05">
+                  {{ conciliacaoResult()?.diferenca_total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </span>
+                <span class="text-muted small mt-auto" style="font-size: 0.75rem;">Arredondamento contábil</span>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="card border-0 shadow-sm rounded-3 p-3 h-100" style="background-color: #f8fafc; border: 1px solid #e2e8f0 !important;">
+                <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.725rem; letter-spacing: 0.5px;">Soma Consolidada</span>
+                <span class="fs-4 fw-bold text-dark mt-1 tabular-nums">
+                  {{ conciliacaoResult()?.soma_empresas_pessoas_planilha | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </span>
+                <span class="text-muted small mt-auto" style="font-size: 0.75rem;">Empresas: {{ conciliacaoResult()?.total_empresas_planilha | currency:'BRL':'symbol':'1.0-0':'pt-BR' }} + Pessoas: {{ conciliacaoResult()?.total_pessoas_planilha | currency:'BRL':'symbol':'1.0-0':'pt-BR' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub Header com Abas e Busca -->
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-3 mb-3">
+            <div class="d-flex gap-2 flex-wrap">
+              <button type="button" class="btn btn-sm px-3 fw-semibold rounded-2"
+                [class.btn-primary]="activeConciliacaoTab() === 'unidades'"
+                [class.btn-outline-secondary]="activeConciliacaoTab() !== 'unidades'"
+                (click)="activeConciliacaoTab.set('unidades')">
+                <i class="fa-solid fa-location-dot me-1"></i> Unidades ({{ conciliacaoResult()?.unidades?.length || 0 }})
+              </button>
+              <button type="button" class="btn btn-sm px-3 fw-semibold rounded-2"
+                [class.btn-primary]="activeConciliacaoTab() === 'empresas'"
+                [class.btn-outline-secondary]="activeConciliacaoTab() !== 'empresas'"
+                (click)="activeConciliacaoTab.set('empresas')">
+                <i class="fa-solid fa-building me-1"></i> Empresas ({{ conciliacaoResult()?.empresas?.length || 0 }})
+              </button>
+              <button type="button" class="btn btn-sm px-3 fw-semibold rounded-2"
+                [class.btn-primary]="activeConciliacaoTab() === 'pessoas'"
+                [class.btn-outline-secondary]="activeConciliacaoTab() !== 'pessoas'"
+                (click)="activeConciliacaoTab.set('pessoas')">
+                <i class="fa-solid fa-users me-1"></i> Colaboradores ({{ conciliacaoResult()?.pessoas?.length || 0 }})
+              </button>
+            </div>
+            <div class="search-box" style="max-width: 300px;">
+              <i class="fa-solid fa-search"></i>
+              <input type="text" class="form-control" placeholder="Buscar na conciliação..."
+                [ngModel]="searchConciliacaoTerm()" (ngModelChange)="searchConciliacaoTerm.set($event)">
+            </div>
+          </div>
+
+          <!-- Aba 1: Unidades Table -->
+          @if (activeConciliacaoTab() === 'unidades') {
+            <div class="table-responsive rounded-3 border bg-white shadow-sm" style="max-height: 440px; overflow-y: auto;">
+              <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="bg-light text-uppercase text-muted sticky-top" style="letter-spacing: 0.5px; font-size: 0.75rem;">
+                  <tr>
+                    <th class="border-0 fw-semibold py-3 px-3">Status</th>
+                    <th class="border-0 fw-semibold py-3 px-3">Estab</th>
+                    <th class="border-0 fw-semibold py-3 px-3">Unidade</th>
+                    <th class="border-0 fw-semibold py-3 px-3 text-end">Planilha (R$)</th>
+                    <th class="border-0 fw-semibold py-3 px-3 text-end">Sistema (R$)</th>
+                    <th class="border-0 fw-semibold py-3 px-3 text-end">Diferença (R$)</th>
+                    <th class="border-0 fw-semibold py-3 px-3">Observação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (unid of filteredConciliacaoUnidades; track unid.unidade_codigo) {
+                    <tr>
+                      <td class="px-3 border-bottom-light">
+                        @if (unid.status === 'OK') {
+                          <app-badge variant="success" icon="fa-solid fa-check">OK</app-badge>
+                        } @else {
+                          <app-badge variant="danger" icon="fa-solid fa-triangle-exclamation">Divergente</app-badge>
+                        }
+                      </td>
+                      <td class="px-3 border-bottom-light fw-medium text-dark">{{ unid.unidade_codigo }}</td>
+                      <td class="px-3 border-bottom-light fw-semibold text-dark">{{ unid.unidade_descricao }}</td>
+                      <td class="px-3 text-end tabular-nums border-bottom-light text-dark fw-medium">
+                        {{ unid.total_planilha | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </td>
+                      <td class="px-3 text-end tabular-nums border-bottom-light text-dark">
+                        {{ unid.total_sistema | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </td>
+                      <td class="px-3 text-end tabular-nums border-bottom-light fw-semibold" [class.text-danger]="unid.status === 'DIVERGENTE'" [class.text-success]="unid.status === 'OK'">
+                        {{ unid.diferenca | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </td>
+                      <td class="px-3 border-bottom-light text-muted small" style="font-size: 0.775rem;">
+                        {{ unid.observacao }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          <!-- Aba 2: Empresas Table -->
+          @if (activeConciliacaoTab() === 'empresas') {
+            <div class="table-responsive rounded-3 border bg-white shadow-sm" style="max-height: 440px; overflow-y: auto;">
+              <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="bg-light text-uppercase text-muted sticky-top" style="letter-spacing: 0.5px; font-size: 0.75rem;">
+                  <tr>
+                    <th class="border-0 fw-semibold py-3 px-3">Status</th>
+                    <th class="border-0 fw-semibold py-3 px-3">Estab</th>
+                    <th class="border-0 fw-semibold py-3 px-3">Empresa</th>
+                    <th class="border-0 fw-semibold py-3 px-3 text-end">Planilha (R$)</th>
+                    <th class="border-0 fw-semibold py-3 px-3 text-end">Sistema (R$)</th>
+                    <th class="border-0 fw-semibold py-3 px-3 text-end">Diferença (R$)</th>
+                    <th class="border-0 fw-semibold py-3 px-3">Observação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (emp of filteredConciliacaoEmpresas; track emp.unidade_codigo + emp.empresa_abrev) {
+                    <tr>
+                      <td class="px-3 border-bottom-light">
+                        @if (emp.status === 'OK') {
+                          <app-badge variant="success" icon="fa-solid fa-check">OK</app-badge>
+                        } @else if (emp.status === 'CONCILIADO') {
+                          <app-badge variant="info" icon="fa-solid fa-check-double">Consolidado</app-badge>
+                        } @else if (emp.status === 'DIVERGENTE') {
+                          <app-badge variant="danger" icon="fa-solid fa-triangle-exclamation">Divergente</app-badge>
+                        } @else {
+                          <app-badge variant="warning" icon="fa-solid fa-circle-question">Falta Sist.</app-badge>
+                        }
+                      </td>
+                      <td class="px-3 border-bottom-light fw-medium text-dark">{{ emp.unidade_codigo }}</td>
+                      <td class="px-3 border-bottom-light">
+                        <div class="fw-semibold text-dark">{{ emp.empresa_nome }}</div>
+                        <div class="text-muted small" style="font-size: 0.75rem;">Abrev: {{ emp.empresa_abrev }}</div>
+                      </td>
+                      <td class="px-3 text-end tabular-nums border-bottom-light text-dark fw-medium">
+                        {{ emp.total_planilha | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </td>
+                      <td class="px-3 text-end tabular-nums border-bottom-light text-dark">
+                        {{ emp.total_sistema | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </td>
+                      <td class="px-3 text-end tabular-nums border-bottom-light fw-semibold" [class.text-danger]="emp.status === 'DIVERGENTE'" [class.text-success]="emp.status === 'OK'" [class.text-info]="emp.status === 'CONCILIADO'">
+                        {{ emp.diferenca | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </td>
+                      <td class="px-3 border-bottom-light text-muted small" style="font-size: 0.775rem;">
+                        {{ emp.observacao }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          <!-- Aba 3: Colaboradores Table -->
+          @if (activeConciliacaoTab() === 'pessoas') {
+            <div class="table-responsive rounded-3 border bg-white shadow-sm" style="max-height: 440px; overflow-y: auto;">
+              <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="bg-light text-uppercase text-muted sticky-top" style="letter-spacing: 0.5px; font-size: 0.75rem;">
+                  <tr>
+                    <th class="border-0 fw-semibold py-3 px-3">Status</th>
+                    <th class="border-0 fw-semibold py-3 px-3">Estab</th>
+                    <th class="border-0 fw-semibold py-3 px-3">Colaborador</th>
+                    <th class="border-0 fw-semibold py-3 px-3 text-end">Planilha (R$)</th>
+                    <th class="border-0 fw-semibold py-3 px-3 text-end">Sistema RDV (R$)</th>
+                    <th class="border-0 fw-semibold py-3 px-3 text-end">Sistema Geral (R$)</th>
+                    <th class="border-0 fw-semibold py-3 px-3">Observação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (pes of filteredConciliacaoPessoas; track pes.unidade_codigo + pes.nome_abrev) {
+                    <tr>
+                      <td class="px-3 border-bottom-light">
+                        @if (pes.status === 'OK') {
+                          <app-badge variant="success" icon="fa-solid fa-check">OK</app-badge>
+                        } @else if (pes.status === 'CONCILIADO') {
+                          <app-badge variant="info" icon="fa-solid fa-check-double">Fatura OnFly</app-badge>
+                        } @else if (pes.status === 'DIVERGENTE') {
+                          <app-badge variant="danger" icon="fa-solid fa-triangle-exclamation">Divergente</app-badge>
+                        } @else {
+                          <app-badge variant="warning" icon="fa-solid fa-user-xmark">Não Cadastrado</app-badge>
+                        }
+                      </td>
+                      <td class="px-3 border-bottom-light fw-medium text-dark">{{ pes.unidade_codigo }}</td>
+                      <td class="px-3 border-bottom-light">
+                        <div class="fw-semibold text-dark">{{ pes.colaborador_nome }}</div>
+                        <div class="text-muted small" style="font-size: 0.75rem;">Nome Abrev: {{ pes.nome_abrev }}</div>
+                      </td>
+                      <td class="px-3 text-end tabular-nums border-bottom-light text-dark fw-medium">
+                        {{ pes.total_planilha | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </td>
+                      <td class="px-3 text-end tabular-nums border-bottom-light text-dark">
+                        {{ pes.total_sistema_rdv | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </td>
+                      <td class="px-3 text-end tabular-nums border-bottom-light text-muted">
+                        {{ pes.total_sistema_geral | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      </td>
+                      <td class="px-3 border-bottom-light text-muted small" style="font-size: 0.775rem;">
+                        {{ pes.observacao }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+        </div>
+      }
+
+    </div>
+  </app-modal>
   </div>
 </div>

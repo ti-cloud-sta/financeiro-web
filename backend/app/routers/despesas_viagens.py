@@ -9,7 +9,7 @@ from app.models.user import User
 from app.repositories.categoria_repository import CategoriaRepository
 from app.repositories.colaborador_repository import ColaboradorRepository
 
-from app.schemas.despesas_viagens import SalvarDespesaViagemPayload
+from app.schemas.despesas_viagens import SalvarDespesaViagemPayload, ConciliacaoViagensResponse
 from app.services.despesas_viagens_parser_service import DespesasViagensParserService
 from app.services.despesas_viagens_service import DespesasViagensService
 
@@ -154,3 +154,20 @@ def get_relatorio_viagens(
         return service.obter_relatorio(filtros)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/relatorio/conciliar", response_model=ConciliacaoViagensResponse)
+def conciliar_relatorio_viagens(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        service = DespesasViagensService(db)
+        return service.conciliar_planilha(file)
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e) or "Falha ao processar a planilha de conciliação.")

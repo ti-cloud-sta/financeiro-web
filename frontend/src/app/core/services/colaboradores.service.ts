@@ -8,6 +8,7 @@ import { CentroCusto } from './centros-custo.service';
 export interface Colaborador {
   idColaborador?: number;
   nome: string;
+  nomeAbrev?: string;
   idCentroCusto: number;
   idCargoColaborador: number;
   documento?: string;

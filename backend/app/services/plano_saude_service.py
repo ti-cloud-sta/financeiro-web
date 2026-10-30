@@ -10,6 +10,8 @@ from app.models.colaborador import Colaborador
 from app.models.empresa import Empresa
 from app.models.unidade import Unidade
 from app.models.centro_custo import CentroCusto
+from app.models.user import User
+from app.models.cargo_colaborador import CargoColaborador
 from app.schemas.plano_saude import RelatorioGeralResponse, RelatorioGeralRow, ConciliacaoResponse, ConciliacaoRow
 
 class PlanoSaudeService:
@@ -335,7 +337,28 @@ class PlanoSaudeService:
     def conciliar_planilha(self, file: UploadFile) -> ConciliacaoResponse:
         # Ler a planilha
         contents = file.file.read()
-        df = pd.read_excel(io.BytesIO(contents))
+        excel_file = io.BytesIO(contents)
+        df_preview = pd.read_excel(excel_file, header=None, nrows=10)
+
+        header_idx = 0
+        for i, row in df_preview.iterrows():
+            row_strs = [str(val).strip().upper() for val in row.values]
+            if 'DATA TRANS' in row_strs or ('ESTAB' in row_strs and any('DEBITO' in s or 'DÉBITO' in s for s in row_strs)):
+                header_idx = i
+                break
+
+        excel_file.seek(0)
+        df = pd.read_excel(excel_file, header=header_idx)
+
+        col_rename = {}
+        for col in df.columns:
+            c_upper = str(col).strip().upper()
+            if c_upper == 'DATA TRANS': col_rename[col] = 'Data Trans'
+            elif c_upper == 'ESTAB': col_rename[col] = 'Estab'
+            elif c_upper in ['DÉBITO', 'DEBITO']: col_rename[col] = 'Débito'
+            elif c_upper == 'NOME ABREV': col_rename[col] = 'Nome Abrev'
+
+        df = df.rename(columns=col_rename)
         
         # Encontrar competência (Data Trans)
         data_trans_col = df.get('Data Trans')

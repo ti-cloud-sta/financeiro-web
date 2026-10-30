@@ -191,7 +191,10 @@
                     </thead>
                     <tbody>
                       <tr *ngFor="let colab of listaColaboradores">
-                        <td class="fw-medium">{{ colab.nome }}</td>
+                        <td class="fw-medium">
+                          {{ colab.nome }}
+                          <div *ngIf="colab.nomeAbrev" class="text-muted small" style="font-size: 0.75rem;">{{ colab.nomeAbrev }}</div>
+                        </td>
                         <td>
                           <span *ngIf="colab.centro_custo">{{ colab.centro_custo.codigo }} - {{ colab.centro_custo.nome
                             }}</span>
@@ -711,6 +714,11 @@
     <div class="mb-3">
       <label class="form-label text-muted small fw-medium">NOME DO COLABORADOR</label>
       <input type="text" class="form-control" placeholder="Ex: João da Silva" [(ngModel)]="novoColaborador.nome">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-medium">NOME ABREVIADO</label>
+      <input type="text" class="form-control" placeholder="Ex: João Silva" [(ngModel)]="novoColaborador.nomeAbrev">
     </div>
 
     <div class="mb-3">

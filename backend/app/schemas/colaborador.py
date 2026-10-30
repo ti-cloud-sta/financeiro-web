@@ -6,13 +6,14 @@ from app.schemas.centro_custo import CentroCustoResponse
 
 class ColaboradorBase(BaseModel):
     nome: Optional[str] = Field(None, max_length=80)
+    nomeAbrev: Optional[str] = Field(None, max_length=100)
     idCentroCusto: Optional[int] = None
     papel: Optional[str] = Field(None, max_length=45)
     idCargoColaborador: Optional[int] = None
     documento: Optional[str] = Field(None, max_length=30)
     snAtivo: Optional[str] = Field(None, max_length=1)
 
-    @field_validator('nome')
+    @field_validator('nome', 'nomeAbrev')
     @classmethod
     def nome_upper(cls, v: Optional[str]) -> Optional[str]:
         if v is not None:
@@ -31,6 +32,7 @@ class ColaboradorUpdate(ColaboradorBase):
 class ColaboradorResponse(ColaboradorBase):
     idColaborador: int
     nome: str
+    nomeAbrev: Optional[str] = None
     idCentroCusto: int
     idCargoColaborador: int
     documento: Optional[str] = None

@@ -1159,7 +1159,11 @@
                                                   <i class="fa-regular fa-file-pdf pdf-icon"></i>
                                                 }
                                                 @if (hist.extensaoArquivo !== 'xlsx' && hist.extensaoArquivo !== 'xls' && hist.extensaoArquivo !== 'pdf') {
-                                                  <i class="fa-regular fa-file file-icon"></i>
+                                                  @if (hist.tipo === 'MANUAL_DESPESAS' || hist.tipo === 'Despesa Manual' || hist.extensaoArquivo === 'MANUAL') {
+                                                    <i class="fa-solid fa-file-invoice-dollar text-success me-2" style="font-size: 1rem;"></i>
+                                                  } @else {
+                                                    <i class="fa-regular fa-file file-icon"></i>
+                                                  }
                                                 }
                                                 <span>{{ hist.nomeArquivo }}</span>
                                               </div>
@@ -1169,8 +1173,12 @@
                                             </td>
                                             <td>
                                               <span class="badge rounded-pill"
-                                                style="font-size: 0.7rem; font-weight: 600; padding: 0.3em 0.75em; background: rgba(99,102,241,0.1); color: #6366f1; letter-spacing: 0.3px;">
-                                                <i class="fa-solid fa-robot me-1" style="font-size: 0.6rem;"></i>IA Despesas
+                                                [ngStyle]="(hist.tipo === 'MANUAL_DESPESAS' || hist.tipo === 'Despesa Manual') ? {'background': 'rgba(16, 185, 129, 0.1)', 'color': '#10b981'} : {'background': 'rgba(99,102,241,0.1)', 'color': '#6366f1'}" style="font-size: 0.7rem; font-weight: 600; padding: 0.3em 0.75em; letter-spacing: 0.3px;">
+                                                @if (hist.tipo === 'MANUAL_DESPESAS' || hist.tipo === 'Despesa Manual') {
+                                                  <i class="fa-solid fa-pen-to-square me-1" style="font-size: 0.6rem;"></i>Despesa Manual
+                                                } @else {
+                                                  <i class="fa-solid fa-robot me-1" style="font-size: 0.6rem;"></i>IA Despesas
+                                                }
                                               </span>
                                             </td>
                                             <td>{{ hist.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
@@ -1303,7 +1311,7 @@
 
                           @if (isManualEntry) {
                             <div class="mb-3">
-                              <label class="text-muted small fw-semibold mb-1" style="letter-spacing: 0.5px;">Empresa / Origem das Despesas:</label>
+                              <label class="text-muted small fw-semibold mb-1" style="letter-spacing: 0.5px;">Empresa / Origem das Despesas: <span class="text-danger">*</span></label>
                               <ng-select [items]="listaEmpresasGeral"
                                          bindLabel="nome"
                                          placeholder="Selecione a empresa..."
