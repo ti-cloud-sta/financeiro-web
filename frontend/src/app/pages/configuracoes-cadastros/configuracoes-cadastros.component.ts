@@ -724,6 +724,7 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
   loadingClientes = false;
   savingClientes = false;
   searchCliente = '';
+  erroClientes: string | null = null;
 
   get listaClientesFiltrada(): Cliente[] {
     if (!this.searchCliente) return this.listaClientesAtribuir;
@@ -739,6 +740,7 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
     this.isClienteModalOpen = true;
     this.listaClientesAtribuir = [];
     this.searchCliente = '';
+    this.erroClientes = null;
     this.loadingClientes = true;
     
     this.clientesService.listar(rep.idRepresentante).subscribe({
@@ -749,6 +751,7 @@ export class ConfiguracoesCadastrosComponent implements OnInit {
       },
       error: (err) => {
         console.error('Erro ao carregar clientes', err);
+        this.erroClientes = err.error?.detail || 'Erro ao carregar a lista de clientes do servidor.';
         this.loadingClientes = false;
       }
     });
