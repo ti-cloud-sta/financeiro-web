@@ -8,7 +8,8 @@ from app.api.deps import get_current_user
 
 router = APIRouter()
 
-@router.get("/", response_model=List[ClienteResponse])
+@router.get("", response_model=List[ClienteResponse])
+@router.get("/", response_model=List[ClienteResponse], include_in_schema=False)
 def get_clientes(
     id_representante: Optional[int] = None,
     db: Session = Depends(get_db),

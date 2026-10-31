@@ -1557,6 +1557,11 @@
       </div>
     </div>
     
+    <div *ngIf="erroClientes" class="alert alert-danger m-3 mb-0 d-flex align-items-center gap-2">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span>{{ erroClientes }}</span>
+    </div>
+    
     <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
       <table class="saas-table w-100 m-0">
         <thead style="position: sticky; top: 0; background: white; z-index: 1;">
@@ -1580,7 +1585,7 @@
               <span *ngIf="!cliente.representanteNome" class="text-muted">—</span>
             </td>
           </tr>
-          <tr *ngIf="listaClientesFiltrada.length === 0">
+          <tr *ngIf="listaClientesFiltrada.length === 0 && !erroClientes">
             <td colspan="4" class="text-center text-muted py-5">Nenhum cliente encontrado.</td>
           </tr>
         </tbody>
