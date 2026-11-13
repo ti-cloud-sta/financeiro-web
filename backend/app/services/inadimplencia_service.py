@@ -40,6 +40,7 @@ WEEKDAY_NOMES = [
 TIPO_IMPORTACAO_DATASUL = "Importação DATASUL"
 
 FASE_OPTIONS = ["PENDENCIAS", "LOGISTICA", "FISCAL", "COMERCIAL", "FINANCEIRO", "FINALIZADO"]
+MSG_REABERTA_APOS_PRORROGACAO = "Venceu novamente após a prorrogação: pendência reaberta"
 STATUS_OPTIONS = [
     "ACORDO", "AD", "AN", "ANALISAR", "ATRASADO", "COMISSAO", "DES",
     "DEVOLUCAO", "EXPORTACAO", "MARTINS", "MERCADINHO", "OK", "PERDAS",
@@ -497,6 +498,25 @@ class InadimplenciaService:
                     pendencia_existente.faseOrigemBaixa = None
                     mudancas.append("Status de encerramento reaberto para ativo")
 
+                # Prorrogada que venceu de novo: o título volta na atualização já vencido e com o mesmo
+                # vencimento gravado na prorrogação (não é nova prorrogação). Sem isto ficava 'P'
+                # (FINALIZADO) para sempre. Reabre e limpa a classificação manual para a view aplicar
+                # as regras (ex.: DP vencida das carteiras SIM/VIN volta para FINANCEIRO). A data de
+                # corte evita reabrir devolução (DEV), que entra na importação antes de vencer.
+                reaberta_apos_prorrogacao = (
+                    not is_prorrogacao
+                    and pendencia_existente.encerrado == 'P'
+                    and venc_excel is not None
+                    and venc_excel <= data_corte
+                )
+                if reaberta_apos_prorrogacao:
+                    pendencia_existente.encerrado = 'N'
+                    pendencia_existente.dataBaixa = None
+                    pendencia_existente.faseOrigemBaixa = None
+                    pendencia_existente.fase = None
+                    pendencia_existente.status = None
+                    mudancas.append(MSG_REABERTA_APOS_PRORROGACAO)
+
                 # Efetivação e gravação de histórico
                 pendencia_existente.idImportacoes = importacao.idImportacoes
                 self.db.flush()
@@ -536,8 +556,20 @@ class InadimplenciaService:
                             14 # system
                         )
 
+                    if reaberta_apos_prorrogacao:
+                        self._novo_historico(
+                            pendencia_existente.idnfpendencias,
+                            "Pendência reaberta",
+                            f"Título venceu novamente após a prorrogação (vencimento {venc_excel.strftime('%d/%m/%Y')}) "
+                            f"e voltou como pendência na {origem}.",
+                            14 # system
+                        )
+
                     # Outras alterações cadastrais
-                    outras_mudancas = [m for m in mudancas if not m.startswith("Saldo:") and not m.startswith("Carteira:")]
+                    outras_mudancas = [
+                        m for m in mudancas
+                        if not m.startswith("Saldo:") and not m.startswith("Carteira:") and m != MSG_REABERTA_APOS_PRORROGACAO
+                    ]
                     if outras_mudancas:
                         self._novo_historico(
                             pendencia_existente.idnfpendencias,
@@ -546,8 +578,8 @@ class InadimplenciaService:
                             14 # system
                         )
 
-                    # Reclassificação via View após a alteração de carteira ou saldo
-                    if mudou_carteira or mudou_saldo:
+                    # Reclassificação via View após a alteração de carteira, saldo ou a reabertura
+                    if mudou_carteira or mudou_saldo or reaberta_apos_prorrogacao:
                         vw = self.db.query(VwNfPendenciaFase).filter_by(idnfpendencias=pendencia_existente.idnfpendencias).first()
                         if vw:
                             self._novo_historico(
